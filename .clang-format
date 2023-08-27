@@ -1,0 +1,210 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+# 访问说明符(public、private等)的偏移
+AccessModifierOffset: -4
+
+
+# 允许构造函数的初始化参数放在下一行
+AllowAllConstructorInitializersOnNextLine: true
+# 允许短的块放在同一行(Always 总是将短块合并成一行，Empty 只合并空块)
+AllowShortBlocksOnASingleLine: Empty
+# 允许短的case标签放在同一行
+AllowShortCaseLabelsOnASingleLine: false
+# 允许短的函数放在同一行: None, InlineOnly(定义在类中), Empty(空函数), Inline(定义在类中，空函数), All
+AllowShortFunctionsOnASingleLine: None
+# 允许短的if语句保持在同一行
+AllowShortIfStatementsOnASingleLine: false
+
+# 允许短的循环保持在同一行
+AllowShortLoopsOnASingleLine: false
+
+# 总是在定义返回类型后换行(deprecated)
+AlwaysBreakAfterDefinitionReturnType: None
+
+# 函数声明返回类型后是否换行(None 自动，All全部，TopLevel...)
+AlwaysBreakAfterReturnType: None
+
+
+# false表示所有形参要么都在同一行，要么都各自一行
+BinPackParameters: true
+
+
+# 大括号换行，只有当 BreakBeforeBraces 设置为Custom时才有效
+BreakBeforeBraces: Custom
+
+# 大括号换行，只有当 BreakBeforeBraces 设置为Custom时才有效
+BraceWrapping:
+  # case 语句后面
+  AfterCaseLabel: false
+  # class定义后面
+  AfterClass: false
+  # 控制语句后面
+  AfterControlStatement: false
+  # enum定义后面
+  AfterEnum: false
+  # 函数定义后面
+  AfterFunction: false
+  # 命名空间定义后面
+  AfterNamespace: false
+  # ObjC定义后面
+  AfterObjCDeclaration: false
+  # struct定义后面
+  AfterStruct: false
+  # union定义后面
+  AfterUnion: false
+  # extern 导出块后面
+  AfterExternBlock: false
+  # catch之前
+  BeforeCatch: false
+  # else之前
+  BeforeElse: false
+  # 缩进大括号(整个大括号框起来的部分都缩进)
+  IndentBraces: false
+  # 空函数的大括号是否可以在一行
+  SplitEmptyFunction: true
+  # 空记录体(struct/class/union)的大括号是否可以在一行
+  SplitEmptyRecord: false
+  # 空名字空间的大括号是否可以在一行
+  SplitEmptyNamespace: false
+
+# 在构造函数的初始化列表的逗号前换行
+BreakConstructorInitializersBeforeComma: false
+
+# 每行字符的限制，0表示没有限制
+ColumnLimit: 120
+# 如果为true，则连续的名称空间声明将在同一行上。如果为false，则在新行上声明每个名称空间。
+CompactNamespaces: true
+
+# 构造函数的初始化列表要么都在同一行，要么都各自一行
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
+# 构造函数的初始化列表的缩进宽度
+ConstructorInitializerIndentWidth: 4
+
+# 延续的行的缩进宽度
+ContinuationIndentWidth: 4
+
+# 缩进宽度
+IndentWidth: 4
+
+# 缩进case标签
+IndentCaseLabels: false
+
+# 指针和引用的对齐: Left, Right, Middle
+PointerAlignment: Right
+
+# 关闭格式化
+DisableFormat: false
+
+# 自动检测函数的调用和定义是否被格式为每行一个参数(Experimental)
+ExperimentalAutoDetectBinPacking: false
+
+# 如果为true，则clang格式会为短名称空间添加缺少的名称空间结尾注释，并修复无效的现有名称结束注释
+FixNamespaceComments: true
+
+# 允许排序#include
+SortIncludes: false
+
+# 允许排序 using 声明顺序
+SortUsingDeclarations: false
+
+# 在逻辑非操作符(!)之后插入一个空格
+SpaceAfterLogicalNot: false
+
+# 在 template 关键字后插入一个空格
+SpaceAfterTemplateKeyword: false
+
+# 在赋值运算符之前添加空格
+SpaceBeforeAssignmentOperators: true
+
+# 总是在 template<...> 后换行
+AlwaysBreakTemplateDeclarations: true
+
+# 左圆括号之前添加一个空格: Never, ControlStatements, Always
+SpaceBeforeParens: ControlStatements
+
+# 空格将在基于范围的for循环冒号之前被删除
+SpaceBeforeRangeBasedForLoopColon: true
+
+# [ 前是否添加空格（数组名和[之间，Lambdas不会受到影响）
+# 连续多个 [ 只考虑第一个（嵌套数组，多维数组）
+SpaceBeforeSquareBrackets: false
+
+# 在空的圆括号中添加空格
+SpaceInEmptyParentheses: false
+
+# 在尾随的评论前添加的空格数(只适用于//)
+SpacesBeforeTrailingComments: 4
+
+# 在尖括号的<后和>前添加空格
+SpacesInAngles: false
+
+# 在容器(ObjC和JavaScript的数组和字典等)字面量中添加空格
+SpacesInContainerLiterals:  false
+
+# 在C风格类型转换的括号中添加空格
+SpacesInCStyleCastParentheses: false
+ 
+# 如果为true，将在If/for/switch/while条件括号前后插入空格。
+SpacesInConditionalStatement: false
+
+# 在圆括号的(后和)前添加空格
+SpacesInParentheses: false
+ 
+# 在方括号的[后和]前添加空格，lamda表达式和未指明大小的数组的声明不受影响
+SpacesInSquareBrackets: false
+
+# 标准: Cpp03, Cpp11, Auto
+Standard: c++20
+
+# tab宽度
+TabWidth: 4
+
+# 使用tab字符: Never, ForIndentation, ForContinuationAndIndentation, Always
+UseTab: Never
+
+# 连续空行的最大数量
+MaxEmptyLinesToKeep: 1
+
+# 命名空间的缩进: None, Inner(缩进嵌套的命名空间中的内容), All
+NamespaceIndentation: None
+
+# 允许重新排版注释
+ReflowComments: false
+
+# 允许排序 using 声明
+SortUsingDeclarations: false
+
+# 在C风格类型转换后添加空格
+SpaceAfterCStyleCast: false
+
+AlignAfterOpenBracket: DontAlign
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+# false表示函数实参要么都在同一行，要么都各自一行
+BinPackArguments: false
+BinPackParameters: false
+
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Never
+
+AlignConsecutiveBitFields: true
+
+AlignOperands: Align
+BreakInheritanceList: BeforeComma
+
+
+
+AlwaysBreakAfterReturnType: None
+
+BreakBeforeBinaryOperators:    None
+PenaltyBreakAssignment: 10000
+PenaltyReturnTypeOnItsOwnLine: 1000
+
+# 宏条件缩进
+IndentPPDirectives: BeforeHash
+
+# 标签总是换行
+BreakAfterAttributes: Always 

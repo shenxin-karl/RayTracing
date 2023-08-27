@@ -1,0 +1,3 @@
+[submodule "ThirdParty/stduuid"]
+	path = ThirdParty/stduuid
+	url = https://github.com/mariusbancila/stduuid.git
