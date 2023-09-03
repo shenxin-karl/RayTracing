@@ -1,6 +1,6 @@
 #include "RegistryUtils.h"
 #ifdef PLATFORM_WIN
-    #include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
 
 namespace Registry {
 

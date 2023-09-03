@@ -33,6 +33,7 @@ add_requires("glm")
 add_requires("stduuid", {debug = isDebug})
 add_requires("jsoncpp 1.9.5", {debug = isDebug, configs = {shared = false}})
 add_requires("d3d12-memory-allocator v2.0.1")
+add_requires("magic_enum v0.9.0")
 
 target("RayTracing")
     set_languages("c++latest")
@@ -51,6 +52,7 @@ target("RayTracing")
     add_packages("jsoncpp")
     add_packages("glm")
     add_packages("d3d12-memory-allocator")
+    add_packages("magic_enum")
 
     -- local packages
     add_packages("stduuid")

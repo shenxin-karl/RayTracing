@@ -3,7 +3,7 @@
 #include <Windows.h>
 #include "Applcation/Application.h"
 #include "Foundation/GameTimer.h"
-#include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
 
 int main() {
     try {

@@ -106,8 +106,9 @@ public:                                                                         
         Type::TransferImpl(transfer);                                                                                  \
     }
 
-#define TRANSFER(field) TransferHelper<decltype(this->field)>::Transfer(transfer, #field, this->field)
-#define TRANSFER_WITH_NAME(field, name) TransferHelper<decltype(this->field)>::Transfer(transfer, name, this->field)
+#define TRANSFER(field) TransferHelper<decltype(this->field)>::Transfer(transfer, #field, field)
+#define TRANSFER_WITH_NAME(field, name) TransferHelper<decltype(this->field)>::Transfer(transfer, name, field)
+#define TRANSFER_VERSION(TypeKey, Version) transfer.TransferVersion(TypeKey, Version)
 
 template<TransferContextConcept Transfer, typename T>
 bool Serialize(Transfer &transfer, T &object) {

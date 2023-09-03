@@ -5,6 +5,7 @@ IMPLEMENT_SERIALIZER(AssetProjectSetting)
 
 template<TransferContextConcept T>
 void AssetProjectSetting::TransferImpl(T &transfer) {
+    TRANSFER_VERSION("AssetProjectSetting", 1);
     TRANSFER(_assetRelativePath);
     TRANSFER(_assetAbsolutePath);
     TRANSFER(_assetCacheRelativePath);
@@ -53,10 +54,10 @@ bool AssetProjectSetting::SerializeToFile() {
 
 void AssetProjectSetting::RepairPath(stdfs::path &relativePath, stdfs::path &absolutePath) {
     if (!relativePath.empty() && !relativePath.is_relative()) {
-	   relativePath =  relative(relativePath);
+        relativePath = relative(relativePath);
     }
     if (!absolutePath.empty() && !absolutePath.is_absolute()) {
-	    absolutePath = absolute(absolutePath);
+        absolutePath = absolute(absolutePath);
     }
 
     if (!relativePath.empty() && absolutePath.empty()) {

@@ -1,5 +1,4 @@
 #include "DxcModule.h"
-#include "combaseapi.h"
 
 void DxcModule::OnCreate() {
 	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&_pCompiler));

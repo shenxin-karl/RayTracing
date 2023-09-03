@@ -179,6 +179,6 @@
 
 #define UNUSED_VAR(x) ((void)x)
 
-#define NonCopyable(Type)                                                                                              \
+#define NON_COPYABLE(Type)                                                                                             \
     Type(const Type &) = delete;                                                                                       \
     Type &operator=(const Type &) = delete

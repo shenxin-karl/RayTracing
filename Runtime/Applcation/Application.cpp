@@ -40,7 +40,7 @@ void Application::OnDestroy() {
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
-    AssetProjectSetting::OnInstanceCreate();
+    AssetProjectSetting::OnInstanceDestroy();
     InputSystem::OnInstanceDestroy();
     Logger::OnInstanceDestroy();
 }

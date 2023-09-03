@@ -1,6 +1,6 @@
 #include "CommandListRing.h"
 #include "Device.h"
-#include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
 
 namespace dx {
 

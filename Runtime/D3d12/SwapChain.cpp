@@ -1,7 +1,7 @@
 #include "SwapChain.h"
 #include "Device.h"
 #include "DescriptorManager.hpp"
-#include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
 
 namespace dx {
 

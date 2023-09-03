@@ -3,7 +3,7 @@
 #include "InputSystem.h"
 #include "Mouse.h"
 #include "Foundation/GameTimer.h"
-#include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
 
 Window::Window(int width, int height, const std::string &title, InputSystem *pInputSystem)
     : _hwnd(nullptr),

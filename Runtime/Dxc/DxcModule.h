@@ -1,7 +1,6 @@
 #pragma once
-#include <dxcapi.h>
-#include <wrl/client.h>
 #include "Foundation/Singleton.hpp"
+#include "D3d12/D3dUtils.h"
 
 class DxcModule : public Singleton<DxcModule> {
 public:

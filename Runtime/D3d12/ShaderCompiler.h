@@ -62,11 +62,10 @@ private:
 /**
  * \brief 
  * \param path          [in]    hlsl include file path
- * \param ppBuffer      [out]   return file content buffer
- * \param pBufferSize   [out]   the buffer byte size
+ * \param fileContent   [out]   return file content buffer
  * \return                      return success status
  */
-using ShaderIncludeCallback = std::function<bool(const std::string &path, uint8_t **ppBuffer, size_t *pBufferSize)>;
+using ShaderIncludeCallback = std::function<bool(const std::string &path, std::string &fileContent)>;
 
 struct ShaderCompilerDesc {
     stdfs::path path;

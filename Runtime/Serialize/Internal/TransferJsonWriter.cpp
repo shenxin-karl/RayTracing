@@ -17,7 +17,7 @@ bool TransferJsonWriter::EndTransfer() {
 	Exception::CondThrow(output.is_open(), "can't open the file!");
 	Exception::CondThrow(_stack.size() == 1, "invalid stack state");
 
-	Json::Value versionObject = Json::ValueType::objectValue;
+	Json::Value versionObject = Json::ValueType::arrayValue;
 	for (auto &&[key, version] : _versionMap) {
 		Json::Value object;
 		object["Name"] = key;

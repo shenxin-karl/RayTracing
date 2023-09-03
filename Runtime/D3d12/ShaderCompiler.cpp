@@ -1,9 +1,8 @@
 #include "ShaderCompiler.h"
 #include "D3d12/Dxc/DxcModule.h"
-#include <regex>
-
 #include "Foundation/PathUtils.h"
-#include "Foundation/StringConvert.h"
+#include "Foundation/StringUtil.h"
+#include <regex>
 
 namespace dx {
 
@@ -94,27 +93,16 @@ public:
         using Microsoft::WRL::ComPtr;
         ComPtr<IDxcBlobEncoding> pEncoding;
 
-        uint8_t *pBuffer = nullptr;
-        size_t bufferSize = 0;
+        std::string fileContent;
         std::string path = nstd::to_string(pFilename);
-        if (!shaderIncludeCallback(path, &pBuffer, &bufferSize)) {
+        if (!shaderIncludeCallback(path, fileContent)) {
             return S_FALSE;
         }
 
-        //stdfs::path filePath(nstd::to_string(std::wstring(pFilename)));
-        //stdfs::path assetAbsolutePath = gAssetProjectSetting->GetAssetAbsolutePath();
-        //std::optional<stdfs::path> pRelativePath = nstd::ToRelativePath(assetAbsolutePath, filePath);
-        //if (!pRelativePath) {
-        //    return S_FALSE;
-        //}
-
-        //filePath = assetAbsolutePath / pRelativePath.value();
-        //std::wstring wFileName = nstd::to_wstring(filePath.string());
-
-        HRESULT hr = DxcModule::GetInstance()->GetUtils()->CreateBlob(bufferSize,
-            pBuffer,
-            bufferSize,
-            nullptr,
+        HRESULT hr = DxcModule::GetInstance()->GetUtils()->CreateBlob(
+            fileContent.data(),
+            fileContent.length() + 1,
+            DXC_CP_ACP,
             pEncoding.GetAddressOf());
 
         if (SUCCEEDED(hr)) {
