@@ -5,11 +5,14 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <D3D12MemAlloc.h>
+#include <dxcapi.h>
+
+#include "d3dx12.h"
+#include "FormatHelper.hpp"
+
 #include "Foundation/Exception.h"
 #include "Foundation/PreprocessorDirectives.h"
 #include "Foundation/NonCopyable.h"
-#include "d3dx12.h"
-#include <dxcapi.h>
 
 namespace dx {
 
