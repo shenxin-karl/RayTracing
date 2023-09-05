@@ -1,5 +1,6 @@
 #pragma once
 #include "D3dUtils.h"
+#include "Foundation/NamespeceAlias.h"
 
 namespace dx {
 
@@ -34,21 +35,11 @@ public:
         return _pResource.Get();
     }
 private:
-	void InitFeatureSupport(ID3D12Device *pDevice, DXGI_FORMAT format);
-private:
     // clang-format off
-    bool                                _isSupportRTV;
-	bool                                _isSupportDSV;
-	bool                                _isSupportUAV;
-	bool                                _isSupport2D;
-	bool                                _isSupportCube;
-	bool                                _isSupportLinearSample;
-	bool                                _isSupportMip;
+    Device *                            _pDevice;
     WRL::ComPtr<ID3D12Resource>         _pResource;
     D3D12MA::Allocation *               _pAllocation;
     D3D12_RESOURCE_DESC                 _textureDesc;
-    D3D12_FEATURE_DATA_FORMAT_SUPPORT   _formatSupport;
-
     // clang-format on
 };
 

@@ -1,0 +1,26 @@
+#pragma once
+#include <cstdint>
+#include <dxgiformat.h>
+#include "Foundation/NamespeceAlias.h"
+
+namespace dx {
+
+// Describes the image information
+struct ImageHeader {
+    uint32_t width;
+    uint32_t height;
+    uint32_t depth;
+    uint32_t arraySize;
+    uint32_t mipMapCount;
+    uint32_t bitCount;
+    DXGI_FORMAT format;
+};
+
+class IImageLoader {
+public:
+    virtual ~IImageLoader() = default;
+    virtual bool Load(const stdfs::path &filePath, float cutOff, ImageHeader &imageHeader) = 0;
+    virtual void CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height) = 0;
+};
+
+}    // namespace dx

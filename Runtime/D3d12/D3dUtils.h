@@ -7,12 +7,12 @@
 #include <D3D12MemAlloc.h>
 #include <dxcapi.h>
 
-#include "d3dx12.h"
-#include "FormatHelper.hpp"
-
 #include "Foundation/Exception.h"
 #include "Foundation/PreprocessorDirectives.h"
 #include "Foundation/NonCopyable.h"
+
+#include "d3dx12.h"
+#include "FormatHelper.hpp"
 
 namespace dx {
 
@@ -27,6 +27,7 @@ class DescriptorAllocator;
 class DescriptorHandle;
 class DescriptorPage;
 class DescriptorManager;
+class Texture;
 
 class RTV;
 class DSV;
