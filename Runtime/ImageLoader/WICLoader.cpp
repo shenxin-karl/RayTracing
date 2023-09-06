@@ -50,7 +50,7 @@ bool WICLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
     return true;
 }
 
-void WICLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
+void WICLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
     for (uint32_t y = 0; y < height; y++) {
         memcpy(static_cast<char *>(pDest) + y * stride, _pData + y * width, width);
     }

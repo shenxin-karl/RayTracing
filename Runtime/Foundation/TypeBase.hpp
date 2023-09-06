@@ -18,7 +18,7 @@ public:
     virtual TypeId GetTypeId() const {
         return kTypeIdTypeBase;
     }
-    virtual std::string_view GetClassName() const {
+    virtual std::string_view GetTypeName() const {
         return GetTypeName<TypeBase>();
     }
 };
@@ -30,6 +30,6 @@ public:                                                                         
     TypeId GetTypeId() const override {                                                                                \
         return kTypeId##Type;                                                                                          \
     }                                                                                                                  \
-    std::string_view GetClassName() const override {                                                                   \
+    std::string_view GetTypeName() const override {                                                                   \
         return #Type;                                                                                                  \
     }

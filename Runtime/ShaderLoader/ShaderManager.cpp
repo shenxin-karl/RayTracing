@@ -10,6 +10,8 @@
 #include <fstream>
 #include <magic_enum.hpp>
 
+#include "Foundation/StreamUtil.h"
+
 #if defined(MODE_DEBUG)
 static std::string_view sShaderCacheDirectory = "Shader/Debug";
 #elif defined(MODE_RELEASE)
@@ -143,9 +145,7 @@ auto ShaderManager::LoadFromCache(UUID128 uuid, const stdfs::path &sourcePath, c
     ShaderDependency &dependency = GetShaderDependency(sourcePath);
     if (dependency.GetLastWriteTime() <= cacheLastWriteTime) {
         std::ifstream fin(cachePath, std::ios::binary);
-        fin.seekg(0, SEEK_END);
-        uint32_t fileSize = fin.tellg();
-        fin.seekg(0, SEEK_SET);
+		std::size_t fileSize = nstd::GetFileSize(fin);
         std::vector<std::byte> byteCode;
         byteCode.resize(fileSize);
         fin.read(reinterpret_cast<char *>(byteCode.data()), fileSize);

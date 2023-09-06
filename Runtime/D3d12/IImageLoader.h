@@ -20,7 +20,7 @@ class IImageLoader {
 public:
     virtual ~IImageLoader() = default;
     virtual bool Load(const stdfs::path &filePath, float cutOff, ImageHeader &imageHeader) = 0;
-    virtual void CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height) = 0;
+    virtual void GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) = 0;
 };
 
 }    // namespace dx

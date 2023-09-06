@@ -114,52 +114,52 @@
 
 #define DETAIL__ENUM_FLAGS(T, PREFIX_)                                                                                 \
     static_assert(std::is_enum<T>::value);                                                                             \
-    PREFIX_ inline T operator|(const T left, const T right) {                                                          \
+    PREFIX_ Inline(2) T operator|(const T left, const T right) {                                                          \
         using type = std::underlying_type<T>::type;                                                                    \
         return static_cast<T>(static_cast<type>(left) | static_cast<type>(right));                                     \
     }                                                                                                                  \
-    PREFIX_ inline T operator&(const T left, const T right) {                                                          \
+    PREFIX_ Inline(2) T operator&(const T left, const T right) {                                                          \
         using type = std::underlying_type<T>::type;                                                                    \
         return static_cast<T>(static_cast<type>(left) & static_cast<type>(right));                                     \
     }                                                                                                                  \
-    PREFIX_ inline T operator^(const T left, const T right) {                                                          \
+    PREFIX_ Inline(2) T operator^(const T left, const T right) {                                                          \
         using type = std::underlying_type<T>::type;                                                                    \
         return static_cast<T>(static_cast<type>(left) ^ static_cast<type>(right));                                     \
     }                                                                                                                  \
-    PREFIX_ inline T operator~(const T flags) {                                                                        \
+    PREFIX_ Inline(2) T operator~(const T flags) {                                                                        \
         using type = std::underlying_type<T>::type;                                                                    \
         return static_cast<T>(~static_cast<type>(flags));                                                              \
     }                                                                                                                  \
-    PREFIX_ inline T &operator|=(T &left, const T right) {                                                             \
+    PREFIX_ Inline(2) T &operator|=(T &left, const T right) {                                                             \
         return left = left | right;                                                                                    \
     }                                                                                                                  \
-    PREFIX_ inline T &operator&=(T &left, const T right) {                                                             \
+    PREFIX_ Inline(2) T &operator&=(T &left, const T right) {                                                             \
         return left = left & right;                                                                                    \
     }                                                                                                                  \
-    PREFIX_ inline T &operator^=(T &left, const T right) {                                                             \
+    PREFIX_ Inline(2) T &operator^=(T &left, const T right) {                                                             \
         return left = left ^ right;                                                                                    \
     }                                                                                                                  \
-    PREFIX_ inline bool HasFlag(const T flags, const T flagToTest) {                                                   \
+    PREFIX_ Inline(2) bool HasFlag(const T flags, const T flagToTest) {                                                   \
         using type = std::underlying_type<T>::type;                                                                    \
         assert((static_cast<type>(flagToTest) & (static_cast<type>(flagToTest) - 1)) == 0 &&                           \
                "More than one flag specified in HasFlag()");                                                           \
         return (static_cast<type>(flags) & static_cast<type>(flagToTest)) != 0;                                        \
     }                                                                                                                  \
-    PREFIX_ inline bool HasAnyFlags(const T flags, const T flagsToTest) {                                              \
+    PREFIX_ Inline(2) bool HasAnyFlags(const T flags, const T flagsToTest) {                                              \
         using type = std::underlying_type<T>::type;                                                                    \
         return (static_cast<type>(flags) & static_cast<type>(flagsToTest)) != 0;                                       \
     }                                                                                                                  \
-    PREFIX_ inline bool HasAllFlags(const T flags, const T flagsToTest) {                                              \
+    PREFIX_ Inline(2) bool HasAllFlags(const T flags, const T flagsToTest) {                                              \
         using type = std::underlying_type<T>::type;                                                                    \
         return (static_cast<type>(flags) & static_cast<type>(flagsToTest)) == static_cast<type>(flagsToTest);          \
     }                                                                                                                  \
-    PREFIX_ inline T SetFlags(const T flags, const T flagsToSet) {                                                     \
+    PREFIX_ Inline(2) T SetFlags(const T flags, const T flagsToSet) {                                                     \
         return (flags | flagsToSet);                                                                                   \
     }                                                                                                                  \
-    PREFIX_ inline T ClearFlags(const T flags, const T flagsToClear) {                                                 \
+    PREFIX_ Inline(2) T ClearFlags(const T flags, const T flagsToClear) {                                                 \
         return (flags & ~flagsToClear);                                                                                \
     }                                                                                                                  \
-    PREFIX_ inline T SetOrClearFlags(const T flags, const T flagsToSetOrClear, bool value) {                           \
+    PREFIX_ Inline(2) T SetOrClearFlags(const T flags, const T flagsToSetOrClear, bool value) {                           \
         return value ? SetFlags(flags, flagsToSetOrClear) : ClearFlags(flags, flagsToSetOrClear);                      \
     }
 
