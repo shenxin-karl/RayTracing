@@ -29,6 +29,10 @@ class DescriptorPage;
 class DescriptorManager;
 class Texture;
 
+class CommandListPool;
+class FrameResource;
+class FrameResourceRing;
+
 class RTV;
 class DSV;
 class CBV;
