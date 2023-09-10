@@ -29,6 +29,10 @@ class DescriptorPage;
 class DescriptorManager;
 class Texture;
 
+class Context;
+class ComputeContext;
+class GraphicsContext;
+
 class CommandListPool;
 class FrameResource;
 class FrameResourceRing;
@@ -41,6 +45,11 @@ class SRV;
 class SAMPLER;
 
 namespace WRL = Microsoft::WRL;
+
+enum class ContextType {
+	eGraphics = 0,
+    eCompute = 1,
+};
 
 inline void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {
     if (FAILED(hr)) {

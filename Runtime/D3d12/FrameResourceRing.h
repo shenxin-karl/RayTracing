@@ -1,5 +1,6 @@
 #pragma once
 #include "D3dUtils.h"
+#include "Fence.h"
 
 namespace dx {
 
@@ -19,12 +20,16 @@ public:
     void OnDestroy();
     void OnBeginFrame();
     void OnEndFrame();
+	auto GetCurrentFrameResource() const -> FrameResource &;
 private :
 	using FrameResourcePool = std::vector<std::unique_ptr<FrameResource>>;
 private:
     // clang-format off
-    Device              *_pDevice = nullptr;
+    Device              *_pDevice;
+    uint32_t             _frameIndex;
     FrameResourcePool    _frameResourcePool;
+    Fence                _graphicsQueueFence;
+    Fence                _computeQueueFence;
     // clang-format on
 };
 

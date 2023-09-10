@@ -2,6 +2,7 @@
 #include "D3d12/CommandListRing.h"
 #include "D3d12/DescriptorManager.hpp"
 #include "D3d12/Device.h"
+#include "D3d12/FrameResourceRing.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
@@ -20,11 +21,20 @@ void Renderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     _pDevice = std::make_unique<dx::Device>();
     _pSwapChain = std::make_unique<dx::SwapChain>();
     _pGraphicsCmdListPool = std::make_unique<dx::CommandListRing>();
+    _pFrameResourceRing = std::make_unique<dx::FrameResourceRing>();
     _pUploadHeap = std::make_unique<dx::UploadHeap>();
 
     _pDevice->OnCreate(true);
 	pDescriptorManger->OnCreate(_pDevice.get());
     _pSwapChain->OnCreate(_pDevice.get(), _numBackBuffer, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);
+
+	dx::FrameResourceRingDesc frameResourceRingDesc;
+    frameResourceRingDesc.pDevice = _pDevice.get();
+    frameResourceRingDesc.numComputeCmdListPreFrame = 1;
+    frameResourceRingDesc.numGraphicsCmdListPreFrame = 1;
+    frameResourceRingDesc.numFrameResource = 3;
+    _pFrameResourceRing->OnCreate(frameResourceRingDesc);
+
     _pGraphicsCmdListPool->OnCreate(_pDevice.get(), numBackBuffer + 1, 3, D3D12_COMMAND_LIST_TYPE_DIRECT);
     _pUploadHeap->OnCreate(_pDevice.get(), dx::GetMByte(64));
 }
@@ -33,6 +43,7 @@ void Renderer::OnDestroy() {
 	dx::DescriptorManager *pDescriptorManger = dx::DescriptorManager::GetInstance();
 
     _pDevice->WaitForGPUFlush();
+    _pFrameResourceRing->OnDestroy();
     _pUploadHeap->OnDestroy();
     _pGraphicsCmdListPool->OnDestroy();
     _pSwapChain->OnDestroy();
