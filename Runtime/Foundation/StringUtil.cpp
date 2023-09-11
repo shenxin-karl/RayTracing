@@ -81,7 +81,6 @@ auto Base64Decode(std::string_view encodedData) -> std::vector<uint8_t> {
     std::vector<unsigned char> decoded_data;
     int i = 0;
     int j = 0;
-    int in_ = 0;
     unsigned char char_array_4[4], char_array_3[3];
 
     for (const auto &c : encodedData) {

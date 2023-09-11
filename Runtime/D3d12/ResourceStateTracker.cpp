@@ -74,8 +74,8 @@ void ResourceStateTracker::ResourceState::SetSubResourceState(UINT subResource, 
 auto ResourceStateTracker::ResourceState::GetSubResourceState(UINT subResource) -> D3D12_RESOURCE_STATES {
 	D3D12_RESOURCE_STATES currentState = state;
 	if (auto iter = subResourceStateMap.find(subResource); iter != subResourceStateMap.end())
-		state = iter->second;
-	return state;
+		currentState = iter->second;
+	return currentState;
 }
 
 }    // namespace dx

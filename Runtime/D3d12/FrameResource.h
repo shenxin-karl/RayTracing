@@ -5,7 +5,7 @@
 namespace dx {
 
 class FrameResource : NonCopyable {
-private:
+public:
     friend class FrameResourceRing;
     FrameResource();
     ~FrameResource();
