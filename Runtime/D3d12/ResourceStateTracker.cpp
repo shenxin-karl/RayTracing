@@ -55,10 +55,6 @@ void ResourceStateTracker::FlushResourceBarriers(ID3D12GraphicsCommandList6 *pCo
 	}
 }
 
-void ResourceStateTracker::FlushPendingResourceBarriers(ID3D12GraphicsCommandList6 *pCommandList) {
-
-}
-
 ResourceStateTracker::ResourceState::ResourceState(D3D12_RESOURCE_STATES state) : state(state) {
 }
 

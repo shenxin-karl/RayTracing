@@ -40,7 +40,9 @@ void FrameResourceRing::OnBeginFrame() {
 
 void FrameResourceRing::OnEndFrame() {
 	_graphicsQueueFence.IssueFence(_pDevice->GetGraphicsQueue());
+#if ENABLE_D3D_COMPUTE_QUEUE
 	_computeQueueFence.IssueFence(_pDevice->GetComputeQueue());
+#endif
 }
 
 auto FrameResourceRing::GetCurrentFrameResource() const -> FrameResource & {

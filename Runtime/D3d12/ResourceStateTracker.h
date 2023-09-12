@@ -19,7 +19,12 @@ private:
     friend class FrameResource;
     void ResourceBarrier(D3D12_RESOURCE_BARRIER barrier);
     void FlushResourceBarriers(ID3D12GraphicsCommandList6 *pCommandList);
-    void FlushPendingResourceBarriers(ID3D12GraphicsCommandList6 *pCommandList);
+    auto GetPendingResourceBarriers() const -> const ResourceBarriers & {
+	    return _pendingResourceBarriers;
+    }
+    auto GetFinalResourceStateMap() const -> const ResourceStateMap & {
+	    return _finalResourceState;
+    }
 private:
     // clang-format off
 	ResourceBarriers      _pendingResourceBarriers;

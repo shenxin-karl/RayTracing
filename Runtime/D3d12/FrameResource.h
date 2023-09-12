@@ -18,14 +18,18 @@ private:
     }
 public:
     auto AllocGraphicsContext() -> std::shared_ptr<GraphicsContext>;
+#if ENALBE_D3D_COMPUTE_QUEUE
     auto AllocComputeContext() -> std::shared_ptr<ComputeContext>;
+#endif
     void ExecuteContexts(ReadonlyArraySpan<Context *> contexts);
 private:
     // clang-format off
     Device                          *_pDevice;
     uint64_t                         _fenceValue;
     std::unique_ptr<CommandListPool> _pGraphicsCmdListPool;
+#if ENALBE_D3D_COMPUTE_QUEUE
     std::unique_ptr<CommandListPool> _pComputeCmdListPool;
+#endif
     // clang-format on
 };
 

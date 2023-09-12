@@ -14,6 +14,10 @@
 #include "d3dx12.h"
 #include "FormatHelper.hpp"
 
+#ifndef ENABLE_D3D_COMPUTE_QUEUE
+#define ENABLE_D3D_COMPUTE_QUEUE 0
+#endif
+
 namespace dx {
 
 class Device;

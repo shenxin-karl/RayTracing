@@ -19,9 +19,11 @@ public:
     auto GetGraphicsQueue() const -> ID3D12CommandQueue * {
         return _pDirectQueue.Get();
     }
+#if ENALBE_D3D_COMPUTE_QUEUE
     auto GetComputeQueue() const -> ID3D12CommandQueue * {
         return _pComputeQueue.Get();
     }
+#endif
     auto GetAllocator() const -> D3D12MA::Allocator * {
         return _pAllocator;
     }
@@ -32,7 +34,9 @@ private:
     WRL::ComPtr<IDXGIAdapter> _pAdapter = nullptr;
     WRL::ComPtr<ID3D12CommandQueue> _pCopyQueue = nullptr;
     WRL::ComPtr<ID3D12CommandQueue> _pDirectQueue = nullptr;
+#if ENALBE_D3D_COMPUTE_QUEUE
     WRL::ComPtr<ID3D12CommandQueue> _pComputeQueue = nullptr;
+#endif
     D3D12MA::Allocator *_pAllocator = nullptr;
 };
 
