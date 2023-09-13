@@ -1,6 +1,7 @@
 #include "SwapChain.h"
 #include "Device.h"
 #include "DescriptorManager.hpp"
+#include "ResourceStateTracker.h"
 #include "Foundation/StringUtil.h"
 
 namespace dx {
@@ -80,8 +81,11 @@ void SwapChain::SetVSync(bool bVSync) {
 }
 
 void SwapChain::CreateRtv() {
-    _renderTargetResources.resize(_swapChainDesc.BufferCount);
+    for (WRL::ComPtr<ID3D12Resource> &pResource : _renderTargetResources) {
+	    GlobalResourceState::RemoveResourceState(pResource.Get());
+    }
 
+    _renderTargetResources.resize(_swapChainDesc.BufferCount);
     ID3D12Device *pDevice = _pDevice->GetDevice();
     for (uint32_t i = 0; i < _swapChainDesc.BufferCount; i++) {
         WRL::ComPtr<ID3D12Resource> pBackBuffer;
@@ -94,6 +98,7 @@ void SwapChain::CreateRtv() {
         pDevice->CreateRenderTargetView(pBackBuffer.Get(), &colorDesc, _rtvViews.GetCpuHandle(i));
         pBackBuffer->SetName(nstd::to_wstring(fmt::format("SwapChainBuffer_{}", i)).c_str());
         _renderTargetResources[i] = pBackBuffer;
+	    GlobalResourceState::SetResourceState(pBackBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
     }
 }
 

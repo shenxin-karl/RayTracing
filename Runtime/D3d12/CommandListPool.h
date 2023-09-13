@@ -10,10 +10,13 @@ public:
 	void OnBeginFrame();
 	auto AllocCommandList() -> ID3D12GraphicsCommandList6 *;
 private:
+	using CommandListContainer = std::vector<WRL::ComPtr<ID3D12GraphicsCommandList6>>;
+	using CommandAllocatorContainer = std::vector<WRL::ComPtr<ID3D12CommandAllocator>>;
+private:
 	// clang-format off
-    uint32_t												_allocCount = 0;
-    WRL::ComPtr<ID3D12CommandAllocator>						_pAllocator;
-	std::vector<WRL::ComPtr<ID3D12GraphicsCommandList6>>	_cmdList;
+    uint32_t					_allocCount = 0;
+	CommandListContainer		_cmdList;
+    CommandAllocatorContainer	_allocatorList;
 	// clang-format on
 };
 

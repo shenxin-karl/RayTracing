@@ -1,4 +1,8 @@
 #include "FrameResource.h"
+
+#include <ranges>
+#include <unordered_set>
+
 #include "CommandListPool.h"
 #include "Context.h"
 #include "Device.h"
@@ -14,7 +18,7 @@ FrameResource::~FrameResource() {
 void FrameResource::OnCreate(Device *pDevice, uint32_t numGraphicsCmdListPreFrame, uint32_t numComputeCmdListPreFrame) {
     _pDevice = pDevice;
     _pGraphicsCmdListPool = std::make_unique<CommandListPool>();
-    _pGraphicsCmdListPool->OnCreate(pDevice, numGraphicsCmdListPreFrame, D3D12_COMMAND_LIST_TYPE_DIRECT);
+    _pGraphicsCmdListPool->OnCreate(pDevice, numGraphicsCmdListPreFrame + 1, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 #if ENABLE_D3D_COMPUTE_QUEUE
     _pComputeCmdListPool = std::make_unique<CommandListPool>();
@@ -66,16 +70,21 @@ static bool OptimizeResourceBarrierState(D3D12_RESOURCE_STATES state) {
 
 void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     using ResourceBarriers = ResourceStateTracker::ResourceBarriers;
-    using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
     using ResourceState = ResourceStateTracker::ResourceState;
+
+    for (Context *pContext : contexts) {
+	    pContext->FlushResourceBarriers();
+    }
 
     GlobalResourceState::Lock();
 
+    std::vector<ID3D12CommandList *> graphicsCmdList;
+    std::unordered_set<ID3D12Resource *> hashSet;
     ResourceBarriers linkCommandListStateBarriers;
-    for (int i = 0; i < static_cast<int>(contexts.Count()) - 1; ++i) {
+
+    for (int i = 0; i < static_cast<int>(contexts.Count()); ++i) {
         ResourceStateTracker &resourceStateTracker = contexts[i]->_resourceStateTracker;
-        ID3D12GraphicsCommandList6 *pCmdList = contexts[i - 1]->GetCommandList();
-        const ResourceBarriers &pendingResourceBarriers = resourceStateTracker.GetPendingResourceBarriers();
+        ResourceBarriers &pendingResourceBarriers = resourceStateTracker.GetPendingResourceBarriers();
         for (D3D12_RESOURCE_BARRIER barrier : pendingResourceBarriers) {
             ID3D12Resource *pResource = barrier.Transition.pResource;
             ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
@@ -89,6 +98,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
                     continue;
                 }
 
+                hashSet.insert(pResource);
                 if (pResourceState->subResourceStateMap.empty()) {
                     barrier.Transition.StateBefore = pResourceState->state;
                     linkCommandListStateBarriers.push_back(barrier);
@@ -96,15 +106,38 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
                 }
 
                 for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
-	                barrier.Transition.Subresource = subResource;
+                    barrier.Transition.Subresource = subResource;
                     barrier.Transition.StateBefore = subResourceState;
                     linkCommandListStateBarriers.push_back(barrier);
                 }
                 continue;
             }
 
+            hashSet.insert(pResource);
             barrier.Transition.StateBefore = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
             linkCommandListStateBarriers.push_back(barrier);
+        }
+
+        pendingResourceBarriers.clear();
+        if (linkCommandListStateBarriers.empty()) {
+            continue;
+        }
+
+        ID3D12GraphicsCommandList6 *pCmdList = nullptr;
+        if (i == 0) {
+            pCmdList = _pGraphicsCmdListPool->AllocCommandList();
+            pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
+            ThrowIfFailed(pCmdList->Close());
+            graphicsCmdList.push_back(pCmdList);
+        } else {
+            pCmdList = contexts[i - 1]->GetCommandList();
+            pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
+        }
+
+        for (const D3D12_RESOURCE_BARRIER barrier : pendingResourceBarriers) {
+            ID3D12Resource *pResource = barrier.Transition.pResource;
+            ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
+            pResourceState->SetSubResourceState(barrier.Transition.Subresource, barrier.Transition.StateAfter);
         }
     }
 
@@ -112,7 +145,6 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         ThrowIfFailed(pContext->GetCommandList()->Close());
     }
 
-    std::vector<ID3D12CommandList *> graphicsCmdList;
     std::vector<ID3D12CommandList *> computeCmdList;
     for (Context *pContext : contexts) {
         if (pContext->GetContextType() == ContextType::eGraphics) {
@@ -131,6 +163,19 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         _pDevice->GetComputeQueue()->ExecuteCommandLists(computeCmdList.size(), computeCmdList.data());
     }
 #endif
+
+    for (ID3D12Resource *pResource : hashSet) {
+        ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
+        for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
+	        if (OptimizeResourceBarrierState(subResourceState)) {
+		        subResourceState = D3D12_RESOURCE_STATE_COMMON;
+	        }
+        }
+        if (OptimizeResourceBarrierState(pResourceState->state)) {
+	        pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
+        }
+    }
+
     GlobalResourceState::UnLock();
 }
 

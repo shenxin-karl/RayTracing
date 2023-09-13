@@ -29,7 +29,8 @@ auto Fence::IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t {
 }
 
 void Fence::CpuWaitForFence(uint64_t olderFence) {
-    if (_pFence->GetCompletedValue() < olderFence) {
+	UINT64 completedValue = _pFence->GetCompletedValue();
+    if (completedValue < olderFence) {
         ThrowIfFailed(_pFence->SetEventOnCompletion(olderFence, _event));
         WaitForSingleObject(_event, INFINITE);
     }

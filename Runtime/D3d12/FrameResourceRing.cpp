@@ -11,6 +11,7 @@ FrameResourceRing::~FrameResourceRing() {
 }
 
 void FrameResourceRing::OnCreate(const FrameResourceRingDesc &desc) {
+	_pDevice = desc.pDevice;
 	for (size_t i = 0; i < desc.numFrameResource; ++i) {
 		_frameResourcePool.push_back(std::make_unique<FrameResource>());
 		_frameResourcePool[i]->OnCreate(desc.pDevice, desc.numGraphicsCmdListPreFrame, desc.numComputeCmdListPreFrame);
@@ -33,8 +34,10 @@ void FrameResourceRing::OnBeginFrame() {
 	++_frameIndex;
 	size_t index = _frameIndex % _frameResourcePool.size();
 	uint64_t fenceValue = _frameResourcePool[index]->GetFenceValue();
-	_computeQueueFence.CpuWaitForFence(fenceValue);
 	_graphicsQueueFence.CpuWaitForFence(fenceValue);
+#if ENABLE_D3D_COMPUTE_QUEUE
+	_computeQueueFence.CpuWaitForFence(fenceValue);
+#endif
 	 _frameResourcePool[index]->OnBeginFrame(_frameIndex);
 }
 

@@ -5,31 +5,44 @@
 namespace dx {
 
 void CommandListPool::OnCreate(Device *pDevice, uint32_t numCmdList, D3D12_COMMAND_LIST_TYPE type) {
-    std::string_view name = type == D3D12_COMMAND_LIST_TYPE_COMPUTE ? "ComputeCommandListPool" : "GraphicsCommandListPool";
+    std::string_view name = type == D3D12_COMMAND_LIST_TYPE_COMPUTE ? "ComputeCommandListPool"
+                                                                    : "GraphicsCommandListPool";
     ID3D12Device *device = pDevice->GetDevice();
-    ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_pAllocator)));
-    _pAllocator->SetName(nstd::to_wstring(fmt::format("{}::Allocator", name.data())).c_str());
 
     _cmdList.resize(numCmdList);
+    _allocatorList.resize(numCmdList);
+
     for (uint32_t i = 0; i < numCmdList; ++i) {
-        ThrowIfFailed(device->CreateCommandList(0, type, _pAllocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList[i])));
-        ThrowIfFailed(_cmdList[i]->Close());
-        _cmdList[i]->SetName(nstd::to_wstring(fmt::format("{}::CommandList {}", name.data(), i)).c_str());
+        std::wstring allocatorName = nstd::to_wstring(fmt::format("{}::Allocator", name.data()));
+        ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocatorList[i])));
+        _allocatorList[i]->SetName(allocatorName.c_str());
+
+        std::wstring cmdListName = nstd::to_wstring(fmt::format("{}::CommandList {}", name.data(), i));
+        ThrowIfFailed(device->CreateCommandList(0, type, _allocatorList[i].Get(), nullptr, IID_PPV_ARGS(&_cmdList[i])));
+        _cmdList[i]->SetName(cmdListName.c_str());
     }
 
-    std::vector<ID3D12CommandList *> cmds;
-    ID3D12CommandQueue *pQueue = type == D3D12_COMMAND_LIST_TYPE_COMPUTE ? pDevice->GetComputeQueue()
-                                                                         : pDevice->GetGraphicsQueue();
-    for (size_t j = 0; j < numCmdList; ++j) {
-        cmds.push_back(_cmdList[j].Get());
+    ID3D12CommandQueue *pQueue = nullptr;
+#if ENABLE_D3D_COMPUTE_QUEUE
+    if (type == D3D12_COMMAND_LIST_TYPE_COMPUTE) {
+		pQueue = pDevice->GetComputeQueue();
     }
-    pQueue->ExecuteCommandLists(cmds.size(), cmds.data());
+#endif
+    if (type == D3D12_COMMAND_LIST_TYPE_DIRECT) {
+		pQueue = pDevice->GetGraphicsQueue();
+    }
+
+    std::vector<ID3D12CommandList *> cmdList;
+    for (size_t i = 0; i < numCmdList; ++i) {
+        ThrowIfFailed(_cmdList[i]->Close());
+        cmdList.push_back(_cmdList[i].Get());
+    }
+    pQueue->ExecuteCommandLists(cmdList.size(), cmdList.data());
     pDevice->WaitForGPUFlush();
 }
 
 void CommandListPool::OnDestroy() {
     _cmdList.clear();
-    _pAllocator = nullptr;
 }
 
 void CommandListPool::OnBeginFrame() {
@@ -38,9 +51,10 @@ void CommandListPool::OnBeginFrame() {
 
 auto CommandListPool::AllocCommandList() -> ID3D12GraphicsCommandList6 * {
     Assert(_allocCount < _cmdList.size());
-	ID3D12GraphicsCommandList6 *cmd = _cmdList[_allocCount++].Get();
-    ThrowIfFailed(cmd->Reset(_pAllocator.Get(), nullptr));
-    return cmd;
+    std::size_t i = _allocCount++;
+	ThrowIfFailed(_allocatorList[i]->Reset());
+    ThrowIfFailed(_cmdList[i]->Reset(_allocatorList[i].Get(), nullptr));
+    return _cmdList[i].Get();
 }
 
 }    // namespace dx

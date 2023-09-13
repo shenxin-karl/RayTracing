@@ -24,7 +24,6 @@ private:
 	size_t									_numBackBuffer;
 	std::unique_ptr<dx::Device>				_pDevice;
 	std::unique_ptr<dx::SwapChain>			_pSwapChain;
-	std::unique_ptr<dx::CommandListRing>	_pGraphicsCmdListPool;
 	std::unique_ptr<dx::FrameResourceRing>	_pFrameResourceRing;
 	std::unique_ptr<dx::UploadHeap>			_pUploadHeap;
 	// clang-format on
