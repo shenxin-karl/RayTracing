@@ -1,5 +1,6 @@
 #include "Texture.h"
 #include "Device.h"
+#include "ResourceStateTracker.h"
 #include "Foundation/StringUtil.h"
 
 namespace dx {
@@ -33,6 +34,7 @@ void Texture::OnCreate(Device *pDevice,
         &_pAllocation, 
         IID_PPV_ARGS(&_pResource)));
     // clang-format on
+    GlobalResourceState::SetResourceState(_pResource.Get(), initState);
 }
 
 void Texture::OnDestroy() {
@@ -41,6 +43,8 @@ void Texture::OnDestroy() {
         _pAllocation->Release();
         _pAllocation = nullptr;
     }
+    GlobalResourceState::RemoveResourceState(_pResource.Get());
+
 }
 
 void Texture::SetName(std::string_view name) {

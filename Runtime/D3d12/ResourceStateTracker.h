@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 #include <unordered_map>
 #include "D3dUtils.h"
 
@@ -10,7 +11,7 @@ public:
         D3D12_RESOURCE_STATES stateAfter,
         UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
-private:
+public:
     struct ResourceState;
     using ResourceBarriers = std::vector<D3D12_RESOURCE_BARRIER>;
     using ResourceStateMap = std::unordered_map<ID3D12Resource *, ResourceState>;
@@ -34,13 +35,33 @@ private:
 };
 
 struct ResourceStateTracker::ResourceState {
-    explicit ResourceState(D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON);
+    ResourceState(D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON);
     void SetSubResourceState(UINT subResource, D3D12_RESOURCE_STATES currentState);
     auto GetSubResourceState(UINT subResource) -> D3D12_RESOURCE_STATES;
 public:
     // clang-format off
 	D3D12_RESOURCE_STATES							state;
 	std::unordered_map<UINT, D3D12_RESOURCE_STATES> subResourceStateMap;
+    // clang-format on
+};
+
+
+class GlobalResourceState : NonCopyable {
+public:
+    using ResourceState = ResourceStateTracker::ResourceState;
+	using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
+public:
+    static void Lock();
+    static void UnLock();
+    static bool IsLock();
+    static void SetResourceState(ID3D12Resource *pResource, ResourceState state);
+    static void RemoveResourceState(ID3D12Resource *pResource);
+    static auto FindResourceState(ID3D12Resource *pResource) -> ResourceState *;
+private:
+    // clang-format off
+    static inline bool              _isLock           = false;
+    static inline std::mutex        _mutex              = {};
+    static inline ResourceStateMap  _resourceStateMap   = {};
     // clang-format on
 };
 

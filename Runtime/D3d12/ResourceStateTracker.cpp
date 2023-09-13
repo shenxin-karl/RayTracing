@@ -74,4 +74,40 @@ auto ResourceStateTracker::ResourceState::GetSubResourceState(UINT subResource) 
 	return currentState;
 }
 
+void GlobalResourceState::Lock() {
+	_isLock = true;
+	_mutex.lock();
+}
+
+void GlobalResourceState::UnLock() {
+	_isLock = false;
+	_mutex.unlock();
+}
+
+bool GlobalResourceState::IsLock() {
+	return _isLock;
+}
+
+void GlobalResourceState::SetResourceState(ID3D12Resource *pResource, ResourceState state) {
+	if (pResource != nullptr) {
+		std::lock_guard lock(_mutex);
+		_resourceStateMap[pResource] = std::move(state);
+	}
+}
+
+void GlobalResourceState::RemoveResourceState(ID3D12Resource *pResource) {
+	if (pResource != nullptr) {
+		std::lock_guard lock(_mutex);
+		_resourceStateMap.erase(pResource);
+	}
+}
+
+auto GlobalResourceState::FindResourceState(ID3D12Resource *pResource) -> ResourceState * {
+	Assert(IsLock());
+	auto iter = _resourceStateMap.find(pResource);
+	if (iter != _resourceStateMap.end())
+		return &iter->second;
+	return nullptr;
+}
+
 }    // namespace dx

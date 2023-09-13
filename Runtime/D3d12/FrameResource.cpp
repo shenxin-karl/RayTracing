@@ -48,41 +48,63 @@ auto FrameResource::AllocComputeContext() -> std::shared_ptr<ComputeContext> {
 #endif
 
 // 下面这些状态,能够被 D3D12_RESOURCE_STATE_COMMON 隐式转换, 在 ExecuteCommandLists 后, 也能够自动转化为 D3D12_RESOURCE_STATE_COMMON
-// NON_PIXEL_SHADER_RESOURCE
-// PIXEL_SHADER_RESOURCE
-// COPY_DEST
-// COPY_SOURCE
-// VERTEX_AND_CONSTANT_BUFFER
-// INDEX_BUFFER
-// INDIRECT_ARGUMENT
-// GENERIC_READ
+static bool OptimizeResourceBarrierState(D3D12_RESOURCE_STATES state) {
+    switch (state) {
+    case D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE:
+    case D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE:
+    case D3D12_RESOURCE_STATE_COPY_DEST:
+    case D3D12_RESOURCE_STATE_COPY_SOURCE:
+    case D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER:
+    case D3D12_RESOURCE_STATE_INDEX_BUFFER:
+    case D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT:
+    case D3D12_RESOURCE_STATE_GENERIC_READ:
+        return true;
+    default:
+        return false;
+    }
+}
 
 void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     using ResourceBarriers = ResourceStateTracker::ResourceBarriers;
     using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
     using ResourceState = ResourceStateTracker::ResourceState;
 
-    ResourceStateMap resourceStateMap;
+    GlobalResourceState::Lock();
+
+    ResourceBarriers linkCommandListStateBarriers;
     for (int i = 0; i < static_cast<int>(contexts.Count()) - 1; ++i) {
         ResourceStateTracker &resourceStateTracker = contexts[i]->_resourceStateTracker;
         ID3D12GraphicsCommandList6 *pCmdList = contexts[i - 1]->GetCommandList();
         const ResourceBarriers &pendingResourceBarriers = resourceStateTracker.GetPendingResourceBarriers();
-        for (const D3D12_RESOURCE_BARRIER &barrier : pendingResourceBarriers) {
+        for (D3D12_RESOURCE_BARRIER barrier : pendingResourceBarriers) {
             ID3D12Resource *pResource = barrier.Transition.pResource;
-            auto iter = resourceStateMap.find(pResource);
-            if (iter == resourceStateMap.end() && barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+            ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
+            assert(pResourceState != nullptr);
+
+            // translation all sub resource to after state
+            if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+                if (pResourceState->subResourceStateMap.empty() &&
+                    pResourceState->state == D3D12_RESOURCE_STATE_COMMON &&
+                    OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
+                    continue;
+                }
+
+                if (pResourceState->subResourceStateMap.empty()) {
+                    barrier.Transition.StateBefore = pResourceState->state;
+                    linkCommandListStateBarriers.push_back(barrier);
+                    continue;
+                }
+
+                for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
+	                barrier.Transition.Subresource = subResource;
+                    barrier.Transition.StateBefore = subResourceState;
+                    linkCommandListStateBarriers.push_back(barrier);
+                }
                 continue;
             }
 
-            const ResourceState &currentState = iter->second;
-            if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && currentState.subResourceStateMap.empty()) {
-                
-            }
-        }
-
-        const ResourceStateMap &finalResourceStateMap = resourceStateTracker.GetFinalResourceStateMap();
-        for (auto &&[pResource, resourceState] : finalResourceStateMap) {
-            resourceStateMap[pResource] = resourceState;
+            barrier.Transition.StateBefore = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
+            linkCommandListStateBarriers.push_back(barrier);
         }
     }
 
@@ -101,14 +123,15 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     }
 
     if (!graphicsCmdList.empty()) {
-		_pDevice->GetGraphicsQueue()->ExecuteCommandLists(graphicsCmdList.size(), graphicsCmdList.data());
+        _pDevice->GetGraphicsQueue()->ExecuteCommandLists(graphicsCmdList.size(), graphicsCmdList.data());
     }
 
 #if ENABLE_D3D_COMPUTE_QUEUE
     if (!computeCmdList.empty()) {
-		_pDevice->GetComputeQueue()->ExecuteCommandLists(computeCmdList.size(), computeCmdList.data());
+        _pDevice->GetComputeQueue()->ExecuteCommandLists(computeCmdList.size(), computeCmdList.data());
     }
 #endif
+    GlobalResourceState::UnLock();
 }
 
 }    // namespace dx
