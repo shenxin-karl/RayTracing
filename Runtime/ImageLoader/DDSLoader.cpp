@@ -128,9 +128,6 @@ bool DDSLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
         return false;
     }
 
-    std::size_t fileSize = nstd::GetFileSize(_file);
-    uint32_t rawTextureSize = fileSize;
-
     char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
     if (_file.read(headerData, sizeof(headerData))) {
         char *pByteData = headerData;
@@ -139,13 +136,7 @@ bool DDSLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
             return false;
         }
 
-        pByteData += 4;
-        rawTextureSize -= 4;
-
         DDS_HEADER *header = reinterpret_cast<DDS_HEADER *>(pByteData);
-        pByteData += sizeof(DDS_HEADER);
-        rawTextureSize -= sizeof(DDS_HEADER);
-
         imageHeader.width = header->dwWidth;
         imageHeader.height = header->dwHeight;
         imageHeader.depth = header->dwDepth ? header->dwDepth : 1;
@@ -153,7 +144,6 @@ bool DDSLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
 
         if (header->ddspf.fourCC == '01XD') {
             DDS_HEADER_DXT10 *header10 = reinterpret_cast<DDS_HEADER_DXT10 *>((char *)header + sizeof(DDS_HEADER));
-            rawTextureSize -= sizeof(DDS_HEADER_DXT10);
 
             imageHeader.arraySize = header10->arraySize;
             imageHeader.format = header10->dxgiFormat;

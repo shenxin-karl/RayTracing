@@ -19,7 +19,7 @@ public:
         return kTypeIdTypeBase;
     }
     virtual std::string_view GetTypeName() const {
-        return GetTypeName<TypeBase>();
+        return "TypeBase";
     }
 };
 

@@ -1,12 +1,14 @@
 #pragma once
 #include "D3dUtils.h"
 #include "Foundation/NamespeceAlias.h"
+#include <source_location>
+#include <string>
 
 namespace dx {
 
 class Texture : public NonCopyable {
 public:
-    Texture();
+    Texture(const std::source_location &sl = std::source_location::current());
     ~Texture();
 public:
     void OnCreate(Device *pDevice,
@@ -36,6 +38,7 @@ public:
     }
 private:
     // clang-format off
+    std::string                         _name;
     Device *                            _pDevice;
     WRL::ComPtr<ID3D12Resource>         _pResource;
     D3D12MA::Allocation *               _pAllocation;

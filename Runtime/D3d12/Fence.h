@@ -14,9 +14,11 @@ public:
     void CpuWaitForFence(uint64_t olderFence);
     void GpuWaitForFence(ID3D12CommandQueue *pCommandQueue);
 private:
-    HANDLE _event;
-    uint64_t _fenceCounter;
+    // clang-format off
+    HANDLE                   _event;
+    uint64_t                 _fenceCounter;
     WRL::ComPtr<ID3D12Fence> _pFence;
+    // clang-format on
 };
 
 }    // namespace dx

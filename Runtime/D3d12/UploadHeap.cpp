@@ -108,7 +108,7 @@ void UploadHeap::DoUpload() {
     _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
     ThrowIfFailed(_pCommandAllocator->Reset());
     ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
-
+    // todo ExecuteCommandLists 以后, 资源的状态隐式转化为 COMMON, 这里需要处理下
     _pDataCur = _pDataBegin;
 }
 

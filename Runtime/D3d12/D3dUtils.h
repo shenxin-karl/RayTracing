@@ -55,7 +55,7 @@ enum class ContextType {
     eCompute = 1,
 };
 
-inline void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {
+Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {
     if (FAILED(hr)) {
         FormatAndLocation formatAndLocation{"d3d api error", location};
         Exception::Throw(formatAndLocation);

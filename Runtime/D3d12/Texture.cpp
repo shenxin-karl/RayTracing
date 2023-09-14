@@ -5,9 +5,10 @@
 
 namespace dx {
 
-Texture::Texture() : _pResource(nullptr), _textureDesc{} {
+Texture::Texture(const std::source_location &sl) : _pResource(nullptr), _textureDesc{} {
     _pDevice = nullptr;
     _pAllocation = nullptr;
+    _name = fmt::format("{}:{}", sl.function_name(), sl.line());
 }
 
 Texture::~Texture() {
@@ -35,6 +36,9 @@ void Texture::OnCreate(Device *pDevice,
         IID_PPV_ARGS(&_pResource)));
     // clang-format on
     GlobalResourceState::SetResourceState(_pResource.Get(), initState);
+
+    std::wstring wideName = nstd::to_wstring(_name);
+    _pResource->SetName(wideName.c_str());
 }
 
 void Texture::OnDestroy() {
@@ -48,7 +52,8 @@ void Texture::OnDestroy() {
 }
 
 void Texture::SetName(std::string_view name) {
-    std::wstring wideName = nstd::to_wstring(name);
+    _name = name;
+    std::wstring wideName = nstd::to_wstring(_name);
     _pResource->SetName(wideName.c_str());
 }
 
