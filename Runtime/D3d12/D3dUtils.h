@@ -14,6 +14,8 @@
 #include "d3dx12.h"
 #include "FormatHelper.hpp"
 
+#include <optional>
+
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
 #define ENABLE_D3D_COMPUTE_QUEUE 0
 #endif
@@ -47,6 +49,8 @@ class CBV;
 class UAV;
 class SRV;
 class SAMPLER;
+
+class StaticBuffer;
 
 namespace WRL = Microsoft::WRL;
 
