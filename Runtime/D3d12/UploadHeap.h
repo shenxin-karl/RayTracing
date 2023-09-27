@@ -24,8 +24,12 @@ public:
     auto GetAllocatableSize(size_t align = 1) const -> size_t;
     void DoUpload();
 
+    auto CalcBufferOffset(const uint8_t *ptr) const -> size_t {
+	    return ptr - _pDataBegin;
+    }
+
     auto GetBasePtr() const -> uint8_t * {
-        return _pDataCur;
+        return _pDataBegin;
     }
     auto GetResource() const -> ID3D12Resource * {
         return _pBufferAllocation->GetResource();

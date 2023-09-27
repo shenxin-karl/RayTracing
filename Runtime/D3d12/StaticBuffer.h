@@ -1,21 +1,32 @@
 #pragma once
 #include "D3dUtils.h"
+#include "Foundation/StringUtil.h"
 
 namespace dx {
 
 class StaticBuffer : public NonCopyable {
 private:
-    StaticBuffer();
+    StaticBuffer(std::source_location sl = std::source_location::current());
     ~StaticBuffer();
 public:
-    void OnCreate(Device *pDevice, size_t totalMemSize, std::string_view name);
-    void OnCreate(Device *pDevice, size_t totalMemSize, std::source_location sl = std::source_location::current());
+    void OnCreate(Device *pDevice, size_t totalMemSize, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE, UINT64 alignment = 0);
+    void OnCreate(Device *pDevice, const D3D12_RESOURCE_DESC &desc);
     void OnDestroy();
-    auto GetResource() const -> ID3D12Resource *;
+public:
+    Inline(2) auto GetResource() const -> ID3D12Resource * {
+        return _pAllocation != nullptr ? _pAllocation->GetResource() : nullptr;
+    }
+    Inline(2) void SetName(std::string_view name) {
+	    _name = name;
+        _pAllocation->GetResource()->SetName(nstd::to_wstring(name).c_str());
+    }
+    Inline(2) auto GetBufferSize() const -> UINT64 {
+	    return _bufferDesc.Width;
+    }
 private:
     // clang-format off
+    std::string                   _name;
 	Device						 *_pDevice;
-	WRL::ComPtr<ID3D12Resource>   _pResource;
     D3D12MA::Allocation *         _pAllocation;
     D3D12_RESOURCE_DESC           _bufferDesc;
     // clang-format on
@@ -30,7 +41,7 @@ public:
     auto AllocIndexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pData) -> std::optional<D3D12_INDEX_BUFFER_VIEW>;
     auto AllocConstantBuffer(size_t totalMemory, const void *pData) -> std::optional<D3D12_CONSTANT_BUFFER_VIEW_DESC>;
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pData) -> std::optional<SRV>;
-    void Finalize();
+    void DoUpload();
 
     template<typename T>
     auto AllocVertexBuffer(std::span<T> view) -> std::optional<D3D12_VERTEX_BUFFER_VIEW> {
@@ -50,12 +61,14 @@ public:
     }
 private:
     // clang-format off
-    size_t  _offset             = 0;
-    bool    _uploadFinished     = false;
-    bool    _vertexBuffer       = false;
-    bool    _indexBuffer        = false;
-    bool    _constantBuffer     = false;
-    bool    _structuredBuffer   = false;
+    StaticBuffer   *_pStaticBuffer      = nullptr;
+    UploadHeap     *_pUploadHeap        = nullptr;
+    size_t          _offset             = 0;
+    bool            _uploadFinished     = false;
+    bool            _vertexBuffer       = false;
+    bool            _indexBuffer        = false;
+    bool            _constantBuffer     = false;
+    bool            _structuredBuffer   = false;
     // clang-format on
 };
 

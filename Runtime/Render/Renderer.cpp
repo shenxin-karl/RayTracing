@@ -96,7 +96,7 @@ void Renderer::OnRender(GameTimer &timer) {
     };
 
     pGraphicsCtx->ClearRenderTargetView(_pSwapChain->GetCurrentBackBufferRTV(), color);
-    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COMMON);
+    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
 
     _pFrameResourceRing->OnEndFrame();

@@ -15,6 +15,7 @@
 #include "FormatHelper.hpp"
 
 #include <optional>
+#include <span>
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
 #define ENABLE_D3D_COMPUTE_QUEUE 0
