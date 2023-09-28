@@ -15,6 +15,7 @@ public:
     struct ResourceState;
     using ResourceBarriers = std::vector<D3D12_RESOURCE_BARRIER>;
     using ResourceStateMap = std::unordered_map<ID3D12Resource *, ResourceState>;
+    static bool OptimizeResourceBarrierState(D3D12_RESOURCE_STATES state);
 private:
     friend class Context;
     friend class FrameResource;

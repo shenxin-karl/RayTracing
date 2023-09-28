@@ -20,7 +20,7 @@ public:
         DescriptorPage *pPage);
 public:
     void Release();
-    auto GetCpuHandle(size_t offset) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
+    auto GetCpuHandle(size_t offset = 0) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     auto GetNumHandle() const -> size_t {
         return _numHandle;
     }

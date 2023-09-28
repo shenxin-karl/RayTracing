@@ -7,7 +7,7 @@ namespace dx {
 void CommandListPool::OnCreate(Device *pDevice, uint32_t numCmdList, D3D12_COMMAND_LIST_TYPE type) {
     std::string_view name = type == D3D12_COMMAND_LIST_TYPE_COMPUTE ? "ComputeCommandListPool"
                                                                     : "GraphicsCommandListPool";
-    ID3D12Device *device = pDevice->GetDevice();
+    ID3D12Device *device = pDevice->GetNativeDevice();
 
     _cmdList.resize(numCmdList);
     _allocatorList.resize(numCmdList);

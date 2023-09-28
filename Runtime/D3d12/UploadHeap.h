@@ -25,9 +25,8 @@ public:
     void DoUpload();
 
     auto CalcBufferOffset(const uint8_t *ptr) const -> size_t {
-	    return ptr - _pDataBegin;
+        return ptr - _pDataBegin;
     }
-
     auto GetBasePtr() const -> uint8_t * {
         return _pDataBegin;
     }
@@ -40,24 +39,29 @@ public:
     void AddTextureCopy(const TextureCopy &textureCopy) {
         _textureCopies.push_back(textureCopy);
     }
-    void AddPreUploadBarrier(const D3D12_RESOURCE_BARRIER &barrier) {
-        _preUploadBarriers.push_back(barrier);
-    }
-    void AddPostUploadBarrier(const D3D12_RESOURCE_BARRIER &barrier) {
-        _postUploadBarriers.push_back(barrier);
-    }
+    void AddPreUploadTranslation(ID3D12Resource *pResource,
+        D3D12_RESOURCE_STATES stateAfter,
+        UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+        D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
+
+    void AddPostUploadTranslation(ID3D12Resource *pResource,
+        D3D12_RESOURCE_STATES stateAfter,
+        UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+        D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 private:
-    Device *_pDevice = nullptr;
-    uint8_t *_pDataCur = nullptr;
-    uint8_t *_pDataEnd = nullptr;
-    uint8_t *_pDataBegin = nullptr;
-    D3D12MA::Allocation *_pBufferAllocation = nullptr;
-    WRL::ComPtr<ID3D12GraphicsCommandList> _pCommandList = nullptr;
-    WRL::ComPtr<ID3D12CommandAllocator> _pCommandAllocator = nullptr;
-    std::vector<BufferCopy> _bufferCopies;
-    std::vector<TextureCopy> _textureCopies;
-    std::vector<D3D12_RESOURCE_BARRIER> _preUploadBarriers;
-    std::vector<D3D12_RESOURCE_BARRIER> _postUploadBarriers;
+    // clang-format off
+    Device                                  *_pDevice           = nullptr;
+    uint8_t                                 *_pDataCur          = nullptr;
+    uint8_t                                 *_pDataEnd          = nullptr;
+    uint8_t                                 *_pDataBegin        = nullptr;
+    D3D12MA::Allocation                     *_pBufferAllocation = nullptr;
+    WRL::ComPtr<ID3D12GraphicsCommandList>   _pCommandList      = nullptr;
+    WRL::ComPtr<ID3D12CommandAllocator>      _pCommandAllocator = nullptr;
+    std::vector<BufferCopy>                  _bufferCopies;
+    std::vector<TextureCopy>                 _textureCopies;
+    std::vector<D3D12_RESOURCE_BARRIER>      _preUploadBarriers;
+    std::vector<D3D12_RESOURCE_BARRIER>      _postUploadBarriers;
+    // clang-format on
 };
 
 }    // namespace dx

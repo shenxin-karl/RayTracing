@@ -26,5 +26,12 @@ private:
 	std::unique_ptr<dx::SwapChain>			_pSwapChain;
 	std::unique_ptr<dx::FrameResourceRing>	_pFrameResourceRing;
 	std::unique_ptr<dx::UploadHeap>			_pUploadHeap;
+
+private:
+	void InitTriangleGeometry();
+private:
+	std::shared_ptr<dx::StaticBuffer>		_pTriangleStaticBuffer;
+	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView;
+	D3D12_INDEX_BUFFER_VIEW					_indexBufferView;
 	// clang-format on
 };

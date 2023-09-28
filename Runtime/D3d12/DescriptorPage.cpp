@@ -4,7 +4,7 @@
 namespace dx {
 
 DescriptorPage::DescriptorPage(Device *pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, size_t numDescriptorPrePage) {
-    auto device = pDevice->GetDevice();
+	ID3D12Device *device = pDevice->GetNativeDevice();
     _numFreeHandle = numDescriptorPrePage;
     _numDescriptorPrePage = numDescriptorPrePage;
     _descriptorIncrementSize = device->GetDescriptorHandleIncrementSize(heapType);

@@ -4,6 +4,7 @@
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
+#include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
@@ -34,8 +35,9 @@ void Renderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     frameResourceRingDesc.numGraphicsCmdListPreFrame = 1;
     frameResourceRingDesc.numFrameResource = 3;
     _pFrameResourceRing->OnCreate(frameResourceRingDesc);
-
     _pUploadHeap->OnCreate(_pDevice.get(), dx::GetMByte(64));
+
+    InitTriangleGeometry();
 }
 
 void Renderer::OnDestroy() {
@@ -113,4 +115,25 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
     _width = width;
     _height = height;
     _pSwapChain->OnResize(width, height);
+}
+
+void Renderer::InitTriangleGeometry() {
+	_pTriangleStaticBuffer = std::make_shared<dx::StaticBuffer>();
+    uint16_t indices[] = {
+        0, 1, 2
+    };
+
+    float depthValue = 1.0;
+    float offset = 0.7f;
+    glm::vec3 vertices[] = {
+        { 0, -offset, depthValue },
+        { -offset, offset, depthValue },
+        { offset, offset, depthValue }
+    };
+
+    _pTriangleStaticBuffer->OnCreate(_pDevice.get(), sizeof(indices) + sizeof(vertices));
+    dx::StaticBufferUploadHeap uploadHeap(*_pTriangleStaticBuffer, *_pUploadHeap);
+    _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(glm::vec3), vertices).value();
+    _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
+    uploadHeap.DoUpload();
 }

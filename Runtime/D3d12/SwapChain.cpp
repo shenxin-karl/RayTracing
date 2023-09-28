@@ -86,7 +86,7 @@ void SwapChain::CreateRtv() {
     }
 
     _renderTargetResources.resize(_swapChainDesc.BufferCount);
-    ID3D12Device *pDevice = _pDevice->GetDevice();
+    ID3D12Device *pDevice = _pDevice->GetNativeDevice();
     for (uint32_t i = 0; i < _swapChainDesc.BufferCount; i++) {
         WRL::ComPtr<ID3D12Resource> pBackBuffer;
         ThrowIfFailed(_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));

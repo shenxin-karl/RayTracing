@@ -1,5 +1,6 @@
 #include "UploadHeap.h"
 #include "Device.h"
+#include "ResourceStateTracker.h"
 
 namespace dx {
 
@@ -11,7 +12,7 @@ UploadHeap::~UploadHeap() {
 
 void UploadHeap::OnCreate(Device *pDevice, size_t size) {
     _pDevice = pDevice;
-    ID3D12Device *device = pDevice->GetDevice();
+    ID3D12Device *device = pDevice->GetNativeDevice();
 
     device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&_pCommandAllocator));
     device->CreateCommandList(0,
@@ -81,8 +82,62 @@ auto UploadHeap::GetAllocatableSize(size_t align) const -> size_t {
 }
 
 void UploadHeap::DoUpload() {
+    GlobalResourceState::Lock();
+
+    using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
+    using ResourceBarriers = ResourceStateTracker::ResourceBarriers;
+    ResourceStateMap resourceStateMap;
+
+    auto DoResourceBarrier = [&](const ResourceBarriers &barriers) {
+        ResourceBarriers tempBarriers;
+        for (D3D12_RESOURCE_BARRIER barrier : barriers) {
+            ID3D12Resource *pResource = barrier.Transition.pResource;
+
+            ResourceStateTracker::ResourceState *pResourceState = nullptr;
+            if (auto it = resourceStateMap.find(pResource); it != resourceStateMap.end()) {
+                pResourceState = &it->second;
+            }
+            if (pResourceState == nullptr) {
+                pResourceState = GlobalResourceState::FindResourceState(barrier.Transition.pResource);
+            }
+            Assert(pResourceState != nullptr);
+
+            // translation all sub resource to after state
+            if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+                if (pResourceState->subResourceStateMap.empty() &&
+                    pResourceState->state == D3D12_RESOURCE_STATE_COMMON &&
+                    ResourceStateTracker::OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
+                    continue;
+                }
+
+                if (pResourceState->subResourceStateMap.empty()) {
+                    barrier.Transition.StateBefore = pResourceState->state;
+                    tempBarriers.push_back(barrier);
+                    resourceStateMap[pResource].SetSubResourceState(barrier.Transition.Subresource,
+                        barrier.Transition.StateAfter);
+                    continue;
+                }
+
+                for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
+                    barrier.Transition.Subresource = subResource;
+                    barrier.Transition.StateBefore = subResourceState;
+                    resourceStateMap[pResource].SetSubResourceState(barrier.Transition.Subresource,
+                        barrier.Transition.StateAfter);
+                    tempBarriers.push_back(barrier);
+                }
+                continue;
+            }
+            barrier.Transition.StateBefore = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
+            resourceStateMap[pResource].SetSubResourceState(barrier.Transition.Subresource,
+                barrier.Transition.StateAfter);
+            tempBarriers.push_back(barrier);
+        }
+        _pCommandList->ResourceBarrier(tempBarriers.size(), tempBarriers.data());
+        tempBarriers.clear();
+    };
+
     if (!_preUploadBarriers.empty()) {
-        _pCommandList->ResourceBarrier(_preUploadBarriers.size(), _preUploadBarriers.data());
+        DoResourceBarrier(_preUploadBarriers);
     }
 
     for (const TextureCopy &c : _textureCopies) {
@@ -94,7 +149,7 @@ void UploadHeap::DoUpload() {
     }
 
     if (!_postUploadBarriers.empty()) {
-        _pCommandList->ResourceBarrier(_postUploadBarriers.size(), _postUploadBarriers.data());
+        DoResourceBarrier(_postUploadBarriers);
     }
 
     _textureCopies.clear();
@@ -108,8 +163,54 @@ void UploadHeap::DoUpload() {
     _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
     ThrowIfFailed(_pCommandAllocator->Reset());
     ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
-    // todo ExecuteCommandLists 以后, 资源的状态隐式转化为 COMMON, 这里需要处理下
     _pDataCur = _pDataBegin;
+
+    // update resource state
+    for (auto &&[pResource, resourceState] : resourceStateMap) {
+        auto pResourceState = GlobalResourceState::FindResourceState(pResource);
+	    if (resourceState.subResourceStateMap.empty() && ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+            D3D12_RESOURCE_STATES state = resourceState.state;
+            if (ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+	            state = D3D12_RESOURCE_STATE_COMMON;
+            }
+            pResourceState->SetSubResourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
+            continue;
+        }
+
+        for (auto &&[subResource, subResourceState] : resourceState.subResourceStateMap) {
+            if (ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+                subResourceState = D3D12_RESOURCE_STATE_COMMON;
+	        }
+            pResourceState->SetSubResourceState(subResource, subResourceState);
+        }
+    }
+    GlobalResourceState::UnLock();
+}
+
+void UploadHeap::AddPreUploadTranslation(ID3D12Resource *pResource,
+    D3D12_RESOURCE_STATES stateAfter,
+    UINT subResource,
+    D3D12_RESOURCE_BARRIER_FLAGS flags) {
+
+    D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(pResource,
+        D3D12_RESOURCE_STATE_COMMON,
+        stateAfter,
+        subResource,
+        flags);
+    _preUploadBarriers.push_back(barrier);
+}
+
+void UploadHeap::AddPostUploadTranslation(ID3D12Resource *pResource,
+    D3D12_RESOURCE_STATES stateAfter,
+    UINT subResource,
+    D3D12_RESOURCE_BARRIER_FLAGS flags) {
+
+    D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(pResource,
+        D3D12_RESOURCE_STATE_COMMON,
+        stateAfter,
+        subResource,
+        flags);
+    _postUploadBarriers.push_back(barrier);
 }
 
 }    // namespace dx

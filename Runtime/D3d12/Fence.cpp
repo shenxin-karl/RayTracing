@@ -12,7 +12,7 @@ Fence::~Fence() {
 
 void Fence::OnCreate(Device *pDevice, std::string_view name) {
     _fenceCounter = 0;
-    ThrowIfFailed(pDevice->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_pFence)));
+    ThrowIfFailed(pDevice->GetNativeDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_pFence)));
     _pFence->SetName(nstd::to_wstring(name).c_str());
     _event = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
 }
