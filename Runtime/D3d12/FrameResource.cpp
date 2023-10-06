@@ -81,7 +81,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     using ResourceState = ResourceStateTracker::ResourceState;
 
     for (Context *pContext : contexts) {
-	    pContext->FlushResourceBarriers();
+        pContext->FlushResourceBarriers();
     }
 
     GlobalResourceState::Lock();
@@ -175,12 +175,12 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     for (ID3D12Resource *pResource : hashSet) {
         ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
         for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
-	        if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
-		        subResourceState = D3D12_RESOURCE_STATE_COMMON;
-	        }
+            if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
+                subResourceState = D3D12_RESOURCE_STATE_COMMON;
+            }
         }
         if (ResourceStateTracker::OptimizeResourceBarrierState(pResourceState->state)) {
-	        pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
+            pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
         }
     }
 

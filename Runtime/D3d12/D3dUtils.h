@@ -21,7 +21,7 @@
 #include <array>
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
-#define ENABLE_D3D_COMPUTE_QUEUE 0
+    #define ENABLE_D3D_COMPUTE_QUEUE 0
 #endif
 
 namespace dx {
@@ -66,7 +66,7 @@ constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;	// µ¥¸ö¸
 namespace WRL = Microsoft::WRL;
 
 enum class ContextType {
-	eGraphics = 0,
+    eGraphics = 0,
     eCompute = 1,
 };
 

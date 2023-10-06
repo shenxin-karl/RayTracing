@@ -6,7 +6,7 @@
 
 namespace dx {
 
-class Texture : public NonCopyable {
+class Texture : NonCopyable {
 public:
     Texture(const std::source_location &sl = std::source_location::current());
     ~Texture();

@@ -2,7 +2,7 @@
 #include "Foundation/NonCopyable.h"
 
 class GameTimer;
-class ITick : public NonCopyable {
+class ITick : NonCopyable {
 public:
 	// logic tick
 	virtual void OnPreUpdate(GameTimer &timer) {}

@@ -145,7 +145,7 @@ void StaticBufferUploadHeap::DoUpload() {
 	    state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
     }
     if (_structuredBuffer) {
-	    state |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+	    state |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
     _pUploadHeap->AddPostUploadTranslation(_pStaticBuffer->GetResource(), state);
     _pUploadHeap->DoUpload();

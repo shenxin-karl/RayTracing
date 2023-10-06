@@ -20,7 +20,7 @@ struct ITransferReader {
     }
 };
 
-class TransferBase : public NonCopyable {
+class TransferBase : NonCopyable {
 public:
     TransferBase(const stdfs::path &path) : _sourceFilePath(path) {
     }

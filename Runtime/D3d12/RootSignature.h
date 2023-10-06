@@ -23,7 +23,7 @@ public:
 class RootSignature : NonCopyable {
 private:
     using DescriptorTableBitMask = std::bitset<kMaxRootParameter>;
-    using NumDescirptorPreTable = std::array<uint8_t, kMaxRootParameter>;
+    using NumDescriptorPreTable = std::array<uint8_t, kMaxRootParameter>;
 public:
     RootSignature();
     ~RootSignature();
@@ -37,14 +37,14 @@ public:
     bool IsFinalized() const;
     void Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
     auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const ->DescriptorTableBitMask;
-    auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescirptorPreTable &;
+    auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescriptorPreTable &;
 private:
     // clang-format off
     bool                                    _finalized;
     size_t                                  _numParameters;
     size_t                                  _numStaticSamplers;
     DescriptorTableBitMask                  _descriptorTableBitMap[2];
-    NumDescirptorPreTable                   _numDescriptorPreTable[2];
+    NumDescriptorPreTable                   _numDescriptorPreTable[2];
     WRL::ComPtr<ID3D12RootSignature>        _pRootSignature;
     std::vector<RootParameter>              _rootParameters;
     std::vector<D3D12_STATIC_SAMPLER_DESC>  _staticSamplers;

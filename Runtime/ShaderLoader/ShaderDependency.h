@@ -3,7 +3,7 @@
 #include "Foundation/NamespeceAlias.h"
 #include "Foundation/NonCopyable.h"
 
-class ShaderDependency : public NonCopyable {
+class ShaderDependency : NonCopyable {
 public:
 	ShaderDependency(const stdfs::path &path);
 	auto GetLastWriteTime() const -> stdfs::file_time_type;

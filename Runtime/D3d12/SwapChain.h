@@ -7,7 +7,7 @@
 namespace dx {
 
 class Device;
-class SwapChain : public NonCopyable {
+class SwapChain : NonCopyable {
 public:
     SwapChain();
     ~SwapChain();

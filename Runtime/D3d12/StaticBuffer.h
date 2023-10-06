@@ -4,8 +4,8 @@
 
 namespace dx {
 
-class StaticBuffer : public NonCopyable {
-private:
+class StaticBuffer : NonCopyable {
+public:
     StaticBuffer(std::source_location sl = std::source_location::current());
     ~StaticBuffer();
 public:

@@ -3,7 +3,7 @@
 
 namespace dx {
 
-class UploadHeap : public NonCopyable {
+class UploadHeap : NonCopyable {
 public:
     UploadHeap();
     ~UploadHeap();

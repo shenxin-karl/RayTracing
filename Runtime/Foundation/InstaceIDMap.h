@@ -7,7 +7,7 @@
 #include "Foundation/NonCopyable.h"
 #include "InstanceID.h"
 
-class InstanceIDMap : public NonCopyable {
+class InstanceIDMap : NonCopyable {
 public:
 	InstanceIDMap();
 	~InstanceIDMap();

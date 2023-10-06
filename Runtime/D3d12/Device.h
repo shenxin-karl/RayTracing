@@ -3,7 +3,7 @@
 
 namespace dx {
 
-class Device : public NonCopyable {
+class Device : NonCopyable {
 public:
     void OnCreate(bool validationEnabled);
     void OnDestroy();

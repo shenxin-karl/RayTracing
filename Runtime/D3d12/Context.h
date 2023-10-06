@@ -7,7 +7,7 @@
 
 namespace dx {
 
-class Context : private NonCopyable {
+class Context : NonCopyable {
 protected:
     friend class FrameResource;
     Context(Device *pDevice);

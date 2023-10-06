@@ -20,7 +20,7 @@ enum class ShaderType {
 };
 
 #pragma region DefineList
-class DefineList : public NonCopyable {
+class DefineList : NonCopyable {
 public:
     struct MacroItem {
         std::string key;

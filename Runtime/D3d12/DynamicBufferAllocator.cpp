@@ -3,8 +3,7 @@
 
 namespace dx {
 
-DynamicBufferAllocator::DynamicBufferAllocator() : _maxBufferSize(GetMByte(1)) {
-
+DynamicBufferAllocator::DynamicBufferAllocator() : _pDevice(nullptr), _maxBufferSize(GetMByte(1)) {
 }
 
 DynamicBufferAllocator::~DynamicBufferAllocator() {
@@ -12,6 +11,7 @@ DynamicBufferAllocator::~DynamicBufferAllocator() {
 }
 
 void DynamicBufferAllocator::OnCreate(Device *pDevice) {
+    _pDevice = pDevice;
 }
 
 void DynamicBufferAllocator::OnDestroy() {
@@ -22,7 +22,8 @@ void DynamicBufferAllocator::OnDestroy() {
     _memoryBlockList.clear();
 }
 
-auto DynamicBufferAllocator::AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_VERTEX_BUFFER_VIEW {
+auto DynamicBufferAllocator::AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+    -> D3D12_VERTEX_BUFFER_VIEW {
     size_t bufferSize = numOfVertices * strideInBytes;
     AllocInfo allocInfo = AllocBuffer(bufferSize);
     std::memcpy(allocInfo.pBuffer, pInitData, bufferSize);
@@ -34,7 +35,8 @@ auto DynamicBufferAllocator::AllocVertexBuffer(size_t numOfVertices, size_t stri
     return view;
 }
 
-auto DynamicBufferAllocator::AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData) -> D3D12_INDEX_BUFFER_VIEW {
+auto DynamicBufferAllocator::AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData)
+    -> D3D12_INDEX_BUFFER_VIEW {
     size_t bufferSize = numOfIndex * strideInBytes;
     AllocInfo allocInfo = AllocBuffer(bufferSize);
     std::memcpy(allocInfo.pBuffer, pInitData, bufferSize);
@@ -52,14 +54,18 @@ auto DynamicBufferAllocator::AllocIndexBuffer(size_t numOfIndex, size_t strideIn
     return view;
 }
 
-auto DynamicBufferAllocator::AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS {
+auto DynamicBufferAllocator::AllocConstantBuffer(size_t strideInBytes, const void *pInitData)
+    -> D3D12_GPU_VIRTUAL_ADDRESS {
+
     size_t bufferSize = strideInBytes;
     AllocInfo allocInfo = AllocBuffer(AlignUp(bufferSize, 256));
     std::memcpy(allocInfo.pBuffer, pInitData, strideInBytes);
     return allocInfo.virtualAddress;
 }
 
-auto DynamicBufferAllocator::AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS {
+auto DynamicBufferAllocator::AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+    -> D3D12_GPU_VIRTUAL_ADDRESS {
+
     size_t bufferSize = numOfVertices * strideInBytes;
     AllocInfo allocInfo = AllocBuffer(bufferSize);
     std::memcpy(allocInfo.pBuffer, pInitData, bufferSize);
@@ -85,7 +91,7 @@ auto DynamicBufferAllocator::AllocBuffer(size_t bufferSize) -> AllocInfo {
     MemoryBlock &block = _memoryBlockList.emplace_back();
     D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(_maxBufferSize);
 
-    D3D12MA::Allocator* pAllocator = _pDevice->GetAllocator();
+    D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
     D3D12MA::ALLOCATION_DESC allocationDesc = {};
     allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
     ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
@@ -109,9 +115,9 @@ auto DynamicBufferAllocator::AllocBuffer(size_t bufferSize) -> AllocInfo {
 }
 
 void DynamicBufferAllocator::Reset() {
-    for (MemoryBlock& memoryBlock : _memoryBlockList) {
+    for (MemoryBlock &memoryBlock : _memoryBlockList) {
         memoryBlock.pCurrent = memoryBlock.pBegin;
     }
 }
 
-}
+}    // namespace dx
