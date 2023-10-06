@@ -21,6 +21,9 @@ public:
 // clang-format on
 
 class RootSignature : NonCopyable {
+private:
+    using DescriptorTableBitMask = std::bitset<kMaxRootParameter>;
+    using NumDescirptorPreTable = std::array<uint8_t, kMaxRootParameter>;
 public:
     RootSignature();
     ~RootSignature();
@@ -32,16 +35,20 @@ public:
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;
     bool IsFinalized() const;
-    void Finalize(D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    void Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const ->DescriptorTableBitMask;
+    auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescirptorPreTable &;
 private:
-    bool _finalized;
-    size_t _numParameters;
-    size_t _numStaticSamplers;
-    std::bitset<16> _descriptorTableBitMap[2];
-    std::array<uint8_t, 16> _numDescriptorPreTable[2];
-    WRL::ComPtr<ID3D12RootSignature> _pRootSignature;
-    std::vector<RootParameter> _rootParameters;
-    std::vector<D3D12_STATIC_SAMPLER_DESC> _staticSamplers;
+    // clang-format off
+    bool                                    _finalized;
+    size_t                                  _numParameters;
+    size_t                                  _numStaticSamplers;
+    DescriptorTableBitMask                  _descriptorTableBitMap[2];
+    NumDescirptorPreTable                   _numDescriptorPreTable[2];
+    WRL::ComPtr<ID3D12RootSignature>        _pRootSignature;
+    std::vector<RootParameter>              _rootParameters;
+    std::vector<D3D12_STATIC_SAMPLER_DESC>  _staticSamplers;
+    // clang-format on
 };
 
 }    // namespace dx

@@ -27,6 +27,7 @@ private:
     auto GetFinalResourceStateMap() const -> const ResourceStateMap & {
 	    return _finalResourceState;
     }
+    void Reset();
 private:
     // clang-format off
 	ResourceBarriers      _pendingResourceBarriers;

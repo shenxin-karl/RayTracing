@@ -99,7 +99,7 @@ auto StaticBufferUploadHeap::AllocIndexBuffer(size_t numOfVertices, size_t strid
 auto StaticBufferUploadHeap::AllocConstantBuffer(size_t totalMemory, const void *pData)
     -> std::optional<D3D12_CONSTANT_BUFFER_VIEW_DESC> {
 
-    size_t alignedTotalMemory = AlignUp(totalMemory, 4096);
+    size_t alignedTotalMemory = AlignUp(totalMemory, 256);
     std::optional<BufferInResourceInfo> pInfo = CopyToUploadBuffer(1, alignedTotalMemory, pData, totalMemory);
     if (!pInfo.has_value()) {
 	    return std::nullopt;
@@ -157,8 +157,7 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
     size_t dataSize) -> std::optional<BufferInResourceInfo> {
 
     size_t bufferSize = numOfVertices * strideInBytes;
-    size_t alignmentOffset = AlignUp(_offset, strideInBytes);
-    size_t newOffset = alignmentOffset + bufferSize;
+    size_t newOffset = _offset + bufferSize;
     if (newOffset > _pStaticBuffer->GetDesc().Width) {
         return std::nullopt;
     }
@@ -179,7 +178,7 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
 
     BufferInResourceInfo info;
     info.bufferSize = bufferSize;
-    info.virtualAddress = _pStaticBuffer->GetResource()->GetGPUVirtualAddress() + alignmentOffset;
+    info.virtualAddress = _pStaticBuffer->GetResource()->GetGPUVirtualAddress() + _offset;
     return std::make_optional(info);
 }
 

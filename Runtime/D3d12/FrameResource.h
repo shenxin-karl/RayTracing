@@ -23,13 +23,21 @@ public:
 #endif
     void ExecuteContexts(ReadonlyArraySpan<Context *> contexts);
 private:
+    using GraphicsContextList = std::vector<std::shared_ptr<GraphicsContext>>;
+    using ComputeContextList = std::vector<std::shared_ptr<ComputeContext>>;
+private:
     // clang-format off
     Device                          *_pDevice;
     uint64_t                         _fenceValue;
     std::unique_ptr<CommandListPool> _pGraphicsCmdListPool;
+    GraphicsContextList              _graphicsContextList;
+    size_t                           _graphicsContextIndex;
 #if ENABLE_D3D_COMPUTE_QUEUE
     std::unique_ptr<CommandListPool> _pComputeCmdListPool;
+    ComputeContextList               _computeContextList;
+    size_t                           _computeContextIndex;
 #endif
+
     // clang-format on
 };
 

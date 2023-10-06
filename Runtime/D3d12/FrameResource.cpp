@@ -1,15 +1,17 @@
 #include "FrameResource.h"
-
-#include <ranges>
-#include <unordered_set>
-
 #include "CommandListPool.h"
 #include "Context.h"
 #include "Device.h"
 
+#include <ranges>
+#include <unordered_set>
+
 namespace dx {
 
-FrameResource::FrameResource() : _pDevice(nullptr), _fenceValue(0) {
+FrameResource::FrameResource() : _pDevice(nullptr), _fenceValue(0), _graphicsContextIndex(0) {
+#if ENABLE_D3D_COMPUTE_QUEUE
+    _computeContextIndex = 0;
+#endif
 }
 
 FrameResource::~FrameResource() {
@@ -23,6 +25,19 @@ void FrameResource::OnCreate(Device *pDevice, uint32_t numGraphicsCmdListPreFram
 #if ENABLE_D3D_COMPUTE_QUEUE
     _pComputeCmdListPool = std::make_unique<CommandListPool>();
     _pComputeCmdListPool->OnCreate(pDevice, numComputeCmdListPreFrame, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+#endif
+
+    _graphicsContextIndex = 0;
+    _graphicsContextList.clear();
+    for (size_t i = 0; i < numGraphicsCmdListPreFrame; ++i) {
+        _graphicsContextList.emplace_back(std::make_shared<GraphicsContext>(pDevice));
+    }
+#if ENABLE_D3D_COMPUTE_QUEUE
+    _computeContextIndex = 0;
+    _computeContextList.clear();
+    for (size_t i = 0; i < numComputeCmdListPreFrame; ++i) {
+        _computeContextList.emplace_back(std::make_shared<ComputeContext>(pDevice));
+    }
 #endif
 }
 
@@ -39,15 +54,25 @@ void FrameResource::OnBeginFrame(uint64_t newFenceValue) {
     _fenceValue = newFenceValue;
     _pGraphicsCmdListPool->OnBeginFrame();
     _pGraphicsCmdListPool->OnBeginFrame();
+    _graphicsContextIndex = 0;
+#if ENABLE_D3D_COMPUTE_QUEUE
+    _computeContextIndex = 0;
+#endif
 }
 
 auto FrameResource::AllocGraphicsContext() -> std::shared_ptr<GraphicsContext> {
-    return std::make_shared<GraphicsContext>(_pGraphicsCmdListPool->AllocCommandList());
+    Assert(_graphicsContextIndex < _graphicsContextList.size());
+    auto pContext = _graphicsContextList[_graphicsContextIndex++];
+    pContext->Reset(_pGraphicsCmdListPool->AllocCommandList());
+    return pContext;
 }
 
 #if ENABLE_D3D_COMPUTE_QUEUE
 auto FrameResource::AllocComputeContext() -> std::shared_ptr<ComputeContext> {
-    return std::make_shared<ComputeContext>(_pComputeCmdListPool->AllocCommandList());
+    Assert(_computeContextIndex < _computeContextList.size());
+    auto pContext = _computeContextList[_computeContextIndex++];
+    pContext->Reset(_pComputeCmdListPool->AllocCommandList());
+    return pContext;
 }
 #endif
 
@@ -150,11 +175,11 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     for (ID3D12Resource *pResource : hashSet) {
         ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
         for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
-	        if (OptimizeResourceBarrierState(subResourceState)) {
+	        if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
 		        subResourceState = D3D12_RESOURCE_STATE_COMMON;
 	        }
         }
-        if (OptimizeResourceBarrierState(pResourceState->state)) {
+        if (ResourceStateTracker::OptimizeResourceBarrierState(pResourceState->state)) {
 	        pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
         }
     }

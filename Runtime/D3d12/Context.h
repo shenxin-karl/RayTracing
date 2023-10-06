@@ -1,14 +1,18 @@
 #pragma once
 #include "D3dUtils.h"
 #include "ResourceStateTracker.h"
+#include "DynamicBufferAllocator.h"
 #include "Foundation/ReadonlyArraySpan.hpp"
 #include <glm/glm.hpp>
+
 namespace dx {
+
 class Context : private NonCopyable {
 protected:
     friend class FrameResource;
-    Context(ID3D12GraphicsCommandList6 *pCommandList);
+    Context(Device *pDevice);
     virtual ~Context();
+    void Reset(ID3D12GraphicsCommandList6 *pCommandList);
 public:
     void Transition(ID3D12Resource *pResource,
         D3D12_RESOURCE_STATES stateAfter,
@@ -17,16 +21,24 @@ public:
 
     void FlushResourceBarriers();
     auto GetCommandList() const -> ID3D12GraphicsCommandList6 *;
+    
+    auto AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_VERTEX_BUFFER_VIEW;
+    auto AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData) -> D3D12_INDEX_BUFFER_VIEW;
+    auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
+    auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
+public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
     // clang-format off
 	ID3D12GraphicsCommandList6 *_pCommandList;
 	ResourceStateTracker		_resourceStateTracker;
+    DynamicBufferAllocator      _dynamicBufferAllocator;
     // clang-format on
 };
+
 class ComputeContext : public Context {
 public:
-    ComputeContext(ID3D12GraphicsCommandList6 *pCommandList);
+    ComputeContext(Device* pDevice);
     ~ComputeContext() override;
 public:
     auto GetContextType() const -> ContextType override {
@@ -36,7 +48,7 @@ public:
 
 class GraphicsContext : public ComputeContext {
 public:
-    GraphicsContext(ID3D12GraphicsCommandList6 *pCommandList);
+    GraphicsContext(Device *pDevice);
     ~GraphicsContext() override;
 public:
     void SetViewport(ReadonlyArraySpan<D3D12_VIEWPORT> viewports);
@@ -56,10 +68,18 @@ public:
 
 #pragma region Context
 
-inline Context::Context(ID3D12GraphicsCommandList6 *pCommandList) : _pCommandList(pCommandList) {
+inline Context::Context(Device *pDevice) : _pCommandList(nullptr) {
+    _dynamicBufferAllocator.OnCreate(pDevice);
 }
 
 inline Context::~Context() {
+    _dynamicBufferAllocator.OnDestroy();
+}
+
+inline void Context::Reset(ID3D12GraphicsCommandList6 *pCommandList) {
+    _pCommandList = pCommandList;
+    _resourceStateTracker.Reset();
+    _dynamicBufferAllocator.Reset();
 }
 
 inline void Context::Transition(ID3D12Resource *pResource,
@@ -83,10 +103,26 @@ inline auto Context::GetCommandList() const -> ID3D12GraphicsCommandList6 * {
     return _pCommandList;
 }
 
+inline auto Context::AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_VERTEX_BUFFER_VIEW {
+    return _dynamicBufferAllocator.AllocVertexBuffer(numOfVertices, strideInBytes, pInitData);
+}
+
+inline auto Context::AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData) -> D3D12_INDEX_BUFFER_VIEW {
+    return _dynamicBufferAllocator.AllocIndexBuffer(numOfIndex, strideInBytes, pInitData);
+}
+
+inline auto Context::AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS {
+    return _dynamicBufferAllocator.AllocConstantBuffer(strideInBytes, pInitData);
+}
+
+inline auto Context::AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS {
+    return _dynamicBufferAllocator.AllocStructuredBuffer(numOfVertices, strideInBytes, pInitData);
+}
+
 #pragma endregion
 
 #pragma region ComputeContext
-inline ComputeContext::ComputeContext(ID3D12GraphicsCommandList6 *pCommandList) : Context(pCommandList) {
+inline ComputeContext::ComputeContext(Device *pDevice) : Context(pDevice) {
 }
 
 inline ComputeContext::~ComputeContext() {
@@ -95,7 +131,7 @@ inline ComputeContext::~ComputeContext() {
 
 
 #pragma region GraphicsContext
-inline GraphicsContext::GraphicsContext(ID3D12GraphicsCommandList6 *pCommandList) : ComputeContext(pCommandList) {
+inline GraphicsContext::GraphicsContext(Device *pDevice) : ComputeContext(pDevice) {
 }
 
 inline GraphicsContext::~GraphicsContext() {

@@ -72,6 +72,12 @@ void ResourceStateTracker::FlushResourceBarriers(ID3D12GraphicsCommandList6 *pCo
 	}
 }
 
+void ResourceStateTracker::Reset() {
+	_pendingResourceBarriers.clear();
+	_resourceBarriers.clear();
+	_finalResourceState.clear();
+}
+
 ResourceStateTracker::ResourceState::ResourceState(D3D12_RESOURCE_STATES state) : state(state) {
 }
 

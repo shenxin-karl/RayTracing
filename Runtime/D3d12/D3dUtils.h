@@ -16,6 +16,9 @@
 
 #include <optional>
 #include <span>
+#include <queue>
+#include <bitset>
+#include <array>
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
 #define ENABLE_D3D_COMPUTE_QUEUE 0
@@ -52,6 +55,13 @@ class SRV;
 class SAMPLER;
 
 class StaticBuffer;
+class DynamicDescriptorHeap;
+
+// clang-format off
+constexpr inline std::size_t kMaxRootParameter              = 16;	// ×î¶à16¸ö¸ùÇ©Ãû
+constexpr inline std::size_t kMaxDescriptor                 = 256;	// ¸ùÇ©ÃûÖÐ×î¶à256¸öÃèÊö·û
+constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;	// µ¥¸ö¸ù²ÎÊý×î´ó255¸öÃèÊö·û
+// clang-format on
 
 namespace WRL = Microsoft::WRL;
 
