@@ -29,7 +29,7 @@ public:
     auto GetLine() const noexcept -> int;
     auto GetFile() const noexcept -> const char *;
     auto GetFunc() const noexcept -> const char *;
-    auto GetMessage() const noexcept -> const std::string &;
+    auto GetErrorMessage() const noexcept -> const std::string &;
 
     template<typename... Args>
     static void Throw(const FormatAndLocation &fmtAndLocation, Args &&...args) {

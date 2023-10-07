@@ -29,7 +29,7 @@ auto Exception::GetFunc() const noexcept -> const char * {
 	return _func;
 }
 
-const std::string &Exception::GetMessage() const noexcept {
+const std::string &Exception::GetErrorMessage() const noexcept {
 	return _message;
 }
 

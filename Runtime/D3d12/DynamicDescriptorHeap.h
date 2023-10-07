@@ -1,17 +1,19 @@
 #pragma once
 #include "D3dUtils.h"
+#include "Foundation/ReadonlyArraySpan.hpp"
 
 namespace dx {
 
 class DynamicDescriptorHeap : NonCopyable {
 public:
     DynamicDescriptorHeap(Device *pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, size_t numDescriptorsPerHeap);
-    void ParseRootSignature(RootSignature *pRootSignature);
+    void ParseRootSignature(const RootSignature *pRootSignature);
     void Reset();
     void StageDescriptors(size_t rootParameterIndex,
         size_t numDescriptors,
-        const D3D12_CPU_DESCRIPTOR_HANDLE &baseDescriptor
+        const D3D12_CPU_DESCRIPTOR_HANDLE &baseDescriptor,
         size_t offset = 0);
+    void StageDescriptors(size_t rootParameterIndex, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset = 0);
 public:
     void CommitStagedDescriptorForDraw(ID3D12GraphicsCommandList6 *pCommandList) {
         CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
@@ -30,6 +32,7 @@ private:
         D3D12_CPU_DESCRIPTOR_HANDLE *pBaseHandle;
     };
 
+    auto ComputeStaleDescriptorCount() const -> size_t;
     void CommitDescriptorTables(ID3D12GraphicsCommandList6 *pCommandList, CommitFunc commitFunc);
     auto RequestDescriptorHeap() -> WRL::ComPtr<ID3D12DescriptorHeap>;
 private:

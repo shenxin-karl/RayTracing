@@ -2,8 +2,11 @@
 #include "D3dUtils.h"
 #include "ResourceStateTracker.h"
 #include "DynamicBufferAllocator.h"
+#include "DynamicDescriptorHeap.h"
 #include "Foundation/ReadonlyArraySpan.hpp"
 #include <glm/glm.hpp>
+
+#include "DescriptorHandle.h"
 
 namespace dx {
 
@@ -21,11 +24,16 @@ public:
 
     void FlushResourceBarriers();
     auto GetCommandList() const -> ID3D12GraphicsCommandList6 *;
-    
-    auto AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_VERTEX_BUFFER_VIEW;
+
+    void SetDynamicViews(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
+    void SetDynamicSamples(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
+
+    auto AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+        -> D3D12_VERTEX_BUFFER_VIEW;
     auto AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData) -> D3D12_INDEX_BUFFER_VIEW;
     auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
-    auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
+    auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+        -> D3D12_GPU_VIRTUAL_ADDRESS;
 public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
@@ -33,12 +41,14 @@ protected:
 	ID3D12GraphicsCommandList6 *_pCommandList;
 	ResourceStateTracker		_resourceStateTracker;
     DynamicBufferAllocator      _dynamicBufferAllocator;
+    DynamicDescriptorHeap       _viewDynamicHeap;
+    DynamicDescriptorHeap       _sampleDynamicHeap;
     // clang-format on
 };
 
 class ComputeContext : public Context {
 public:
-    ComputeContext(Device* pDevice);
+    ComputeContext(Device *pDevice);
     ~ComputeContext() override;
 public:
     auto GetContextType() const -> ContextType override {
@@ -65,10 +75,13 @@ public:
     }
 };
 
-
 #pragma region Context
 
-inline Context::Context(Device *pDevice) : _pCommandList(nullptr) {
+inline Context::Context(Device *pDevice)
+    : _pCommandList(nullptr),
+      _viewDynamicHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128),
+      _sampleDynamicHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 32) {
+
     _dynamicBufferAllocator.OnCreate(pDevice);
 }
 
@@ -103,11 +116,26 @@ inline auto Context::GetCommandList() const -> ID3D12GraphicsCommandList6 * {
     return _pCommandList;
 }
 
-inline auto Context::AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_VERTEX_BUFFER_VIEW {
+inline void Context::SetDynamicViews(size_t rootIndex,
+    size_t numDescriptors,
+    const DescriptorHandle &handle,
+    size_t offset) {
+
+    _viewDynamicHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
+}
+
+inline void Context::SetDynamicSamples(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle,
+	size_t offset) {
+    _sampleDynamicHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
+}
+
+inline auto Context::AllocVertexBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+    -> D3D12_VERTEX_BUFFER_VIEW {
     return _dynamicBufferAllocator.AllocVertexBuffer(numOfVertices, strideInBytes, pInitData);
 }
 
-inline auto Context::AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData) -> D3D12_INDEX_BUFFER_VIEW {
+inline auto Context::AllocIndexBuffer(size_t numOfIndex, size_t strideInBytes, const void *pInitData)
+    -> D3D12_INDEX_BUFFER_VIEW {
     return _dynamicBufferAllocator.AllocIndexBuffer(numOfIndex, strideInBytes, pInitData);
 }
 
@@ -115,7 +143,8 @@ inline auto Context::AllocConstantBuffer(size_t strideInBytes, const void *pInit
     return _dynamicBufferAllocator.AllocConstantBuffer(strideInBytes, pInitData);
 }
 
-inline auto Context::AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS {
+inline auto Context::AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
+    -> D3D12_GPU_VIRTUAL_ADDRESS {
     return _dynamicBufferAllocator.AllocStructuredBuffer(numOfVertices, strideInBytes, pInitData);
 }
 
@@ -128,7 +157,6 @@ inline ComputeContext::ComputeContext(Device *pDevice) : Context(pDevice) {
 inline ComputeContext::~ComputeContext() {
 }
 #pragma endregion
-
 
 #pragma region GraphicsContext
 inline GraphicsContext::GraphicsContext(Device *pDevice) : ComputeContext(pDevice) {
