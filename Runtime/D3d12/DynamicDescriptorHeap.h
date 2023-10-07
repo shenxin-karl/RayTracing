@@ -9,9 +9,9 @@ public:
     void ParseRootSignature(RootSignature *pRootSignature);
     void Reset();
     void StageDescriptors(size_t rootParameterIndex,
-        size_t offset,
         size_t numDescriptors,
-        const D3D12_CPU_DESCRIPTOR_HANDLE &baseDescriptor);
+        const D3D12_CPU_DESCRIPTOR_HANDLE &baseDescriptor
+        size_t offset = 0);
 public:
     void CommitStagedDescriptorForDraw(ID3D12GraphicsCommandList6 *pCommandList) {
         CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
