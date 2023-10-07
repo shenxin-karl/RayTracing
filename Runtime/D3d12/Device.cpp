@@ -38,9 +38,10 @@ void Device::OnCreate(bool validationEnabled) {
     }
     _pDevice->SetName(L"Device");
 
+    // Use the direct type to create the copy queue because the resource barriers directive is to be executed
     D3D12_COMMAND_QUEUE_DESC copyQueue = {};
     copyQueue.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    copyQueue.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+    copyQueue.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;        
     copyQueue.NodeMask = 0;
     ThrowIfFailed(_pDevice->CreateCommandQueue(&copyQueue, IID_PPV_ARGS(&_pCopyQueue)));
     _pCopyQueue->SetName(L"CopyQueue");
