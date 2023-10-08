@@ -11,12 +11,14 @@ enum class ShaderType;
 
 }    // namespace dx
 
+// clang-format off
 struct ShaderLoadInfo {
-    stdfs::path sourcePath;
-    std::string_view entryPoint;
-    dx::ShaderType shaderType;
-    const dx::DefineList *pDefineList = nullptr;
+    stdfs::path             sourcePath;
+    std::string_view        entryPoint;
+    dx::ShaderType          shaderType;
+    const dx::DefineList   *pDefineList = nullptr;
 };
+// clang-format on
 
 class ShaderDependency;
 class ShaderManager : public Singleton<ShaderManager> {

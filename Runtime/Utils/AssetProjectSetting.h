@@ -31,6 +31,15 @@ public:
     auto GetAssetCacheAbsolutePath() const -> const stdfs::path & {
         return _assetCacheAbsolutePath;
     }
+
+    static auto ToAssetPath(const stdfs::path &relativePath) -> stdfs::path {
+        Assert(relativePath.is_relative());
+	    return GetInstance()->GetAssetAbsolutePath() / relativePath;
+    }
+    static auto ToCachePath(const stdfs::path &relativePath) -> stdfs::path {
+        Assert(relativePath.is_relative());
+	    return GetInstance()->GetAssetCacheAbsolutePath() / relativePath;
+    }
 private:
     constexpr static std::string_view sSerializePath = "AssetProjectSetting.json";
     static void RepairPath(stdfs::path &relativePath, stdfs::path &absolutePath);

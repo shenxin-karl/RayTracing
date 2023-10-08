@@ -17,6 +17,7 @@ enum class ShaderType {
     eGS = 4,
     ePS = 5,
     eCS = 6,
+    eLib = 7,
 };
 
 #pragma region DefineList
@@ -67,14 +68,16 @@ private:
  */
 using ShaderIncludeCallback = std::function<bool(const std::string &path, std::string &fileContent)>;
 
+// clang-format off
 struct ShaderCompilerDesc {
-    stdfs::path path;
-    std::string_view entryPoint;
-    ShaderType shaderType;
-    const DefineList *pDefineList = nullptr;
-    bool makeDebugInfo = !CompileEnvInfo::IsModeRelWithDebInfo();
-    ShaderIncludeCallback includeCallback;
+    stdfs::path             path;
+    std::string_view        entryPoint;
+    ShaderType              shaderType;
+    const DefineList       *pDefineList = nullptr;
+    bool                    makeDebugInfo = !CompileEnvInfo::IsModeRelWithDebInfo();
+    ShaderIncludeCallback   includeCallback;
 };
+// clang-format on
 
 class ShaderCompiler : NonCopyable {
 public:

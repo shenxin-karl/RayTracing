@@ -48,7 +48,6 @@ void Texture::OnDestroy() {
         _pAllocation = nullptr;
     }
     GlobalResourceState::RemoveResourceState(_pResource.Get());
-
 }
 
 void Texture::SetName(std::string_view name) {

@@ -57,7 +57,7 @@ protected:
     std::string _whatBuffer;
 };
 
-#define Assert(cond)                                                                                          \
+#define Assert(cond)                                                                                                   \
     do {                                                                                                               \
         bool _bValueFlag = bool(cond);                                                                                 \
         ::Exception::CondThrow(_bValueFlag, #cond);                                                                    \

@@ -69,6 +69,9 @@ public:
     void ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE rtv,
         glm::vec4 color,
         ReadonlyArraySpan<D3D12_RECT> rects = {});
+    void SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views);
+    void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view);
+    void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eGraphics;
@@ -124,8 +127,10 @@ inline void Context::SetDynamicViews(size_t rootIndex,
     _viewDynamicHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
 }
 
-inline void Context::SetDynamicSamples(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle,
-	size_t offset) {
+inline void Context::SetDynamicSamples(size_t rootIndex,
+    size_t numDescriptors,
+    const DescriptorHandle &handle,
+    size_t offset) {
     _sampleDynamicHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
 }
 
@@ -189,6 +194,18 @@ inline void GraphicsContext::ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE r
 
     float c[4] = {color.r, color.g, color.b, color.a};
     _pCommandList->ClearRenderTargetView(rtv, c, rects.Count(), rects.Data());
+}
+
+inline void GraphicsContext::SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views) {
+    _pCommandList->IASetVertexBuffers(startSlot, views.Count(), views.Data());
+}
+
+inline void GraphicsContext::SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view) {
+    _pCommandList->IASetIndexBuffer(&view);
+}
+
+inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology) {
+    _pCommandList->IASetPrimitiveTopology(topology);
 }
 
 #pragma endregion

@@ -164,13 +164,21 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
     case ShaderType::eCS:
         target = L"cs_6_1";
         break;
+    case ShaderType::eLib:
+        target = L"lib_6_3";
     default:
         Exception::Throw("Error ShaderType");
         break;
     }
 
     std::wstring entryPointStr = nstd::to_wstring(entryPoint);
-    std::vector<LPCWSTR> arguments = {fileName.c_str(), L"-E", entryPointStr.c_str(), L"-T", target.data()};
+    std::vector<LPCWSTR> arguments = {fileName.c_str(), L"-T", target.data()};
+
+    if (type != ShaderType::eLib) {
+	    Assert(!entryPointStr.empty());
+        arguments.push_back(L"-E");
+    	arguments.push_back(entryPointStr.c_str());
+    }
 
     if (makeDebugInfo) {
         arguments.push_back(L"-Zi");

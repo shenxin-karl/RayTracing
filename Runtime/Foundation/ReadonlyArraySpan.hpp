@@ -3,7 +3,7 @@
 #include <vector>
 
 template<typename T>
-class ReadonlyArraySpan {
+class ReadonlyArraySpan final {
 public:
     constexpr ReadonlyArraySpan() noexcept : _pData(nullptr), _count(0) {
     }
@@ -20,8 +20,24 @@ public:
     constexpr ReadonlyArraySpan(const std::initializer_list<const T> &list) noexcept
         : _pData(list.begin()), _count(list.size()) {
     }
+    template<size_t N>
+    constexpr ReadonlyArraySpan(const std::span<T, N> &span) noexcept : _pData(span.data()), _count(span.size()) {
+    }
+    template<size_t N>
+    constexpr ReadonlyArraySpan(const std::span<const T, N> &span) noexcept : _pData(span.data()), _count(span.size()) {
+    }
+    template<size_t N>
+    constexpr ReadonlyArraySpan(const std::array<T, N> &array) noexcept : _pData(array.data()), _count(N) {
+    }
+    template<size_t N>
+    constexpr ReadonlyArraySpan(const std::array<const T, N> &array) noexcept : _pData(array.data()), _count(N) {
+    }
     template<typename Allocator>
     constexpr ReadonlyArraySpan(const std::vector<T, Allocator> &vector)
+        : _pData(vector.data()), _count(vector.size()) {
+    }
+    template<typename Allocator>
+    constexpr ReadonlyArraySpan(const std::vector<const T, Allocator> &vector)
         : _pData(vector.data()), _count(vector.size()) {
     }
     constexpr auto begin() const noexcept -> const T * {

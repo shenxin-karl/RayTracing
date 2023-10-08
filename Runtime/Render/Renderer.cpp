@@ -90,6 +90,7 @@ void Renderer::OnRender(GameTimer &timer) {
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGraphicsCtx->FlushResourceBarriers();
 
+
     glm::vec4 color = {
         std::sin(timer.GetTotalTime()) * 0.5f + 0.5f,
         std::cos(timer.GetTotalTime()) * 0.5f + 0.5f,
