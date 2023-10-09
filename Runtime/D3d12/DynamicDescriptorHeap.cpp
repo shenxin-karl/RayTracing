@@ -100,7 +100,7 @@ auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
     return numStaleDescriptors;
 }
 
-void DynamicDescriptorHeap::CommitDescriptorTables(CommandList *pCommandList, CommitFunc commitFunc) {
+void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandList, CommitFunc commitFunc) {
     size_t numStaleDescriptors = ComputeStaleDescriptorCount();
     if (numStaleDescriptors == 0) {
         return;

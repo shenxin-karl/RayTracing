@@ -29,7 +29,8 @@ namespace dx {
 // clang-format off
 // global config
 constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_12_0;
-using CommandList                                           = ID3D12GraphicsCommandList6;
+using NativeDevice                                          = ID3D12Device;
+using NativeCommandList                                     = ID3D12GraphicsCommandList6;
 constexpr inline std::size_t kMaxRootParameter              = 16;	
 constexpr inline std::size_t kMaxDescriptor                 = 256;	
 constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;

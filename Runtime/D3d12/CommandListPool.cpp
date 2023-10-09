@@ -49,7 +49,7 @@ void CommandListPool::OnBeginFrame() {
     _allocCount = 0;
 }
 
-auto CommandListPool::AllocCommandList() -> CommandList * {
+auto CommandListPool::AllocCommandList() -> NativeCommandList * {
     Assert(_allocCount < _cmdList.size());
     std::size_t i = _allocCount++;
 	ThrowIfFailed(_allocatorList[i]->Reset());

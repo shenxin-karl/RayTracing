@@ -20,7 +20,7 @@ private:
     friend class Context;
     friend class FrameResource;
     void ResourceBarrier(D3D12_RESOURCE_BARRIER barrier);
-    void FlushResourceBarriers(CommandList *pCommandList);
+    void FlushResourceBarriers(NativeCommandList *pCommandList);
     auto GetPendingResourceBarriers() -> ResourceBarriers & {
 	    return _pendingResourceBarriers;
     }

@@ -40,7 +40,7 @@ protected:
     friend class FrameResource;
     Context(Device *pDevice);
     virtual ~Context();
-    void Reset(CommandList *pCommandList);
+    void Reset(NativeCommandList *pCommandList);
 public:
     void Transition(ID3D12Resource *pResource,
         D3D12_RESOURCE_STATES stateAfter,
@@ -48,7 +48,7 @@ public:
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
     void FlushResourceBarriers();
-    auto GetCommandList() const -> CommandList *;
+    auto GetCommandList() const -> NativeCommandList *;
 
     void SetPipelineState(ID3D12PipelineState *pPipelineState);
     void SetDynamicViews(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
@@ -66,7 +66,7 @@ public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
     // clang-format off
-	CommandList   *_pCommandList;
+	NativeCommandList          *_pCommandList;
 	ResourceStateTracker		_resourceStateTracker;
     DynamicBufferAllocator      _dynamicBufferAllocator;
     DynamicDescriptorHeap       _dynamicViewDescriptorHeap;
@@ -135,7 +135,7 @@ inline Context::~Context() {
     _dynamicBufferAllocator.OnDestroy();
 }
 
-inline void Context::Reset(CommandList *pCommandList) {
+inline void Context::Reset(NativeCommandList *pCommandList) {
     _pCommandList = pCommandList;
     _resourceStateTracker.Reset();
     _dynamicBufferAllocator.Reset();
@@ -158,7 +158,7 @@ inline void Context::FlushResourceBarriers() {
     _resourceStateTracker.FlushResourceBarriers(_pCommandList);
 }
 
-inline auto Context::GetCommandList() const -> CommandList * {
+inline auto Context::GetCommandList() const -> NativeCommandList * {
     return _pCommandList;
 }
 

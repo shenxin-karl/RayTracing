@@ -131,7 +131,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
             continue;
         }
 
-        CommandList *pCmdList = nullptr;
+        NativeCommandList *pCmdList = nullptr;
         if (i == 0) {
             pCmdList = _pGraphicsCmdListPool->AllocCommandList();
             pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());

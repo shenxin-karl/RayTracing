@@ -64,7 +64,7 @@ void ResourceStateTracker::ResourceBarrier(D3D12_RESOURCE_BARRIER barrier) {
     _finalResourceState[pResource].SetSubResourceState(subResource, stateAfter);
 }
 
-void ResourceStateTracker::FlushResourceBarriers(CommandList *pCommandList) {
+void ResourceStateTracker::FlushResourceBarriers(NativeCommandList *pCommandList) {
 	UINT numBarrier = _resourceBarriers.size();
 	if (numBarrier > 0) {
 		pCommandList->ResourceBarrier(numBarrier, _resourceBarriers.data());

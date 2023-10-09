@@ -8,9 +8,9 @@ public:
 	void OnCreate(Device *pDevice, uint32_t numCmdList, D3D12_COMMAND_LIST_TYPE type);
 	void OnDestroy();
 	void OnBeginFrame();
-	auto AllocCommandList() -> CommandList *;
+	auto AllocCommandList() -> NativeCommandList *;
 private:
-	using CommandListContainer = std::vector<WRL::ComPtr<CommandList>>;
+	using CommandListContainer = std::vector<WRL::ComPtr<NativeCommandList>>;
 	using CommandAllocatorContainer = std::vector<WRL::ComPtr<ID3D12CommandAllocator>>;
 private:
 	// clang-format off
