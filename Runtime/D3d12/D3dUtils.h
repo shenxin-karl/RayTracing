@@ -26,6 +26,15 @@
 
 namespace dx {
 
+// clang-format off
+// global config
+constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_12_0;
+using CommandList                                           = ID3D12GraphicsCommandList6;
+constexpr inline std::size_t kMaxRootParameter              = 16;	
+constexpr inline std::size_t kMaxDescriptor                 = 256;	
+constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;
+// clang-format on
+
 class Device;
 class SwapChain;
 class Fence;
@@ -56,12 +65,6 @@ class SAMPLER;
 
 class StaticBuffer;
 class DynamicDescriptorHeap;
-
-// clang-format off
-constexpr inline std::size_t kMaxRootParameter              = 16;	// ×î¶à16¸ö¸ùÇ©Ãû
-constexpr inline std::size_t kMaxDescriptor                 = 256;	// ¸ùÇ©ÃûÖÐ×î¶à256¸öÃèÊö·û
-constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;	// µ¥¸ö¸ù²ÎÊý×î´ó255¸öÃèÊö·û
-// clang-format on
 
 namespace WRL = Microsoft::WRL;
 

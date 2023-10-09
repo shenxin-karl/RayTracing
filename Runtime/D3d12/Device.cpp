@@ -27,7 +27,7 @@ void Device::OnCreate(bool validationEnabled) {
         ThrowIfFailed(pFactory->EnumAdapters(0, &_pAdapter));
     }
 
-    ThrowIfFailed(D3D12CreateDevice(_pAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&_pDevice)));
+    ThrowIfFailed(D3D12CreateDevice(_pAdapter.Get(), KD3D_FEATURE_LEVEL, IID_PPV_ARGS(&_pDevice)));
     if (validationEnabled) {
         WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
         if (_pDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue)) == S_OK) {

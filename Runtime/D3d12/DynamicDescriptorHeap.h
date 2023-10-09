@@ -15,10 +15,10 @@ public:
         size_t offset = 0);
     void StageDescriptors(size_t rootParameterIndex, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset = 0);
 public:
-    void CommitStagedDescriptorForDraw(ID3D12GraphicsCommandList6 *pCommandList) {
+    void CommitStagedDescriptorForDraw(CommandList *pCommandList) {
         CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
     }
-    void CommitStagedDescriptorForDispatch(ID3D12GraphicsCommandList6 *pCommandList) {
+    void CommitStagedDescriptorForDispatch(CommandList *pCommandList) {
         CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
     }
 private:
@@ -33,7 +33,7 @@ private:
     };
 
     auto ComputeStaleDescriptorCount() const -> size_t;
-    void CommitDescriptorTables(ID3D12GraphicsCommandList6 *pCommandList, CommitFunc commitFunc);
+    void CommitDescriptorTables(CommandList *pCommandList, CommitFunc commitFunc);
     auto RequestDescriptorHeap() -> WRL::ComPtr<ID3D12DescriptorHeap>;
 private:
     // clang-format off

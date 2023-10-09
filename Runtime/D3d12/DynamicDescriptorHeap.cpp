@@ -100,7 +100,7 @@ auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
     return numStaleDescriptors;
 }
 
-void DynamicDescriptorHeap::CommitDescriptorTables(ID3D12GraphicsCommandList6 *pCommandList, CommitFunc commitFunc) {
+void DynamicDescriptorHeap::CommitDescriptorTables(CommandList *pCommandList, CommitFunc commitFunc) {
     size_t numStaleDescriptors = ComputeStaleDescriptorCount();
     if (numStaleDescriptors == 0) {
         return;

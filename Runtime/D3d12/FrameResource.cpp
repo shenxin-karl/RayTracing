@@ -131,7 +131,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
             continue;
         }
 
-        ID3D12GraphicsCommandList6 *pCmdList = nullptr;
+        CommandList *pCmdList = nullptr;
         if (i == 0) {
             pCmdList = _pGraphicsCmdListPool->AllocCommandList();
             pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
