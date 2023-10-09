@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "DescriptorHandle.h"
+#include "RootSignature.h"
 
 namespace dx {
 
@@ -49,6 +50,7 @@ public:
     void FlushResourceBarriers();
     auto GetCommandList() const -> CommandList *;
 
+    void SetPipelineState(ID3D12PipelineState *pPipelineState);
     void SetDynamicViews(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
     void SetDynamicViews(size_t rootIndex, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset = 0);
     void SetDynamicSamples(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
@@ -77,9 +79,13 @@ public:
     ComputeContext(Device *pDevice);
     ~ComputeContext() override;
 public:
+    void SetComputeRootSignature(RootSignature *pRootSignature);
     void SetCompute32Constant(UINT rootIndex, DWParam val, UINT offset = 0);
     void SetCompute32Constants(UINT rootIndex, ReadonlyArraySpan<DWParam> span, UINT offset = 0);
     void SetCompute32Constants(UINT rootIndex, UINT num32BitValuesToSet, const void *pData, UINT offset = 0);
+    void SetComputeRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+    void SetComputeRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+    void SetComputeRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eCompute;
@@ -102,9 +108,13 @@ public:
     void SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views);
     void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view);
     void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
+    void SetGraphicsRootSignature(RootSignature *pRootSignature);
     void SetGraphics32Constant(UINT rootIndex, DWParam val, UINT offset = 0);
     void SetGraphics32Constants(UINT rootIndex, ReadonlyArraySpan<DWParam> span, UINT offset = 0);
     void SetGraphics32Constants(UINT rootIndex, UINT num32BitValuesToSet, const void *pData, UINT offset = 0);
+    void SetGraphicsRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+    void SetGraphicsRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+    void SetGraphicsRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eGraphics;
@@ -152,10 +162,14 @@ inline auto Context::GetCommandList() const -> CommandList * {
     return _pCommandList;
 }
 
+inline void Context::SetPipelineState(ID3D12PipelineState *pPipelineState) {
+    _pCommandList->SetPipelineState(pPipelineState);
+}
+
 inline void Context::SetDynamicViews(size_t rootIndex,
-    size_t numDescriptors,
-    const DescriptorHandle &handle,
-    size_t offset) {
+                                     size_t numDescriptors,
+                                     const DescriptorHandle &handle,
+                                     size_t offset) {
 
     _dynamicViewDescriptorHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
 }
@@ -207,6 +221,10 @@ inline ComputeContext::ComputeContext(Device *pDevice) : Context(pDevice) {
 inline ComputeContext::~ComputeContext() {
 }
 
+inline void ComputeContext::SetComputeRootSignature(RootSignature *pRootSignature) {
+    _pCommandList->SetComputeRootSignature(pRootSignature->GetRootSignature());
+}
+
 inline void ComputeContext::SetCompute32Constant(UINT rootIndex, DWParam val, UINT offset) {
     _pCommandList->SetComputeRoot32BitConstant(rootIndex, val.Uint, offset);
 }
@@ -221,6 +239,19 @@ inline void ComputeContext::SetCompute32Constants(UINT rootIndex,
     UINT offset) {
 
     _pCommandList->SetComputeRoot32BitConstants(rootIndex, num32BitValuesToSet, pData, offset);
+}
+
+inline void ComputeContext::SetComputeRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetComputeRootConstantBufferView(rootIndex, bufferLocation);
+}
+
+inline void ComputeContext::SetComputeRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetComputeRootShaderResourceView(rootIndex, bufferLocation);
+}
+
+inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetComputeRootUnorderedAccessView(rootIndex, bufferLocation);
 }
 #pragma endregion
 
@@ -268,6 +299,10 @@ inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topol
     _pCommandList->IASetPrimitiveTopology(topology);
 }
 
+inline void GraphicsContext::SetGraphicsRootSignature(RootSignature *pRootSignature) {
+    _pCommandList->SetGraphicsRootSignature(pRootSignature->GetRootSignature());
+}
+
 inline void GraphicsContext::SetGraphics32Constant(UINT rootIndex, DWParam val, UINT offset) {
     _pCommandList->SetGraphicsRoot32BitConstant(rootIndex, val.Uint, offset);
 }
@@ -281,6 +316,21 @@ inline void GraphicsContext::SetGraphics32Constants(UINT rootIndex,
     const void *pData,
     UINT offset) {
     _pCommandList->SetGraphicsRoot32BitConstants(rootIndex, num32BitValuesToSet, pData, offset);
+}
+
+inline void GraphicsContext::SetGraphicsRootConstantBufferView(UINT rootIndex,
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetGraphicsRootConstantBufferView(rootIndex, bufferLocation);
+}
+
+inline void GraphicsContext::SetGraphicsRootShaderResourceView(UINT rootIndex,
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetGraphicsRootShaderResourceView(rootIndex, bufferLocation);
+}
+
+inline void GraphicsContext::SetGraphicsRootUnorderedAccessView(UINT rootIndex,
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
+    _pCommandList->SetGraphicsRootUnorderedAccessView(rootIndex, bufferLocation);
 }
 
 #pragma endregion
