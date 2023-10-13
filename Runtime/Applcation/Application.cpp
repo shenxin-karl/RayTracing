@@ -3,6 +3,7 @@
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Window.h"
 #include "Render/Renderer.h"
+#include "Render/TriangleRenderer.h"
 #include "Utils/AssetProjectSetting.h"
 
 Application::Application() {
@@ -22,7 +23,7 @@ void Application::OnCreate() {
     pInputSystem->OnCreate("RayTracing", 1280, 720);
 
     HWND hwnd = pInputSystem->pWindow->GetHWND();
-    _pRenderer = std::make_unique<Renderer>();
+    _pRenderer = std::make_unique<TriangleRenderer>();
     _pRenderer->OnCreate(3, hwnd);
 
 

@@ -37,6 +37,8 @@ add_requires("magic_enum v0.9.0")
 add_requires("stb 2023.01.30")
 
 target("RayTracing")
+    add_headerfiles("**.natvis")
+
     set_languages("c++latest")
     set_warnings("all")
     set_kind("binary")

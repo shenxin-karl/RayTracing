@@ -24,13 +24,24 @@
     #define ENABLE_D3D_COMPUTE_QUEUE 0
 #endif
 
+#ifndef ENALBE_D3D_11
+    #define ENABLE_D3D_11 1
+#endif
+
 namespace dx {
 
 // clang-format off
-// global config
-constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_12_0;
+// global
+#if ENABLE_D3D_11
+constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_11_0;
 using NativeDevice                                          = ID3D12Device;
+using NativeCommandList                                     = ID3D12GraphicsCommandList;
+#else
+constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_12_0;
+using NativeDevice                                          = ID3D12Device6;
 using NativeCommandList                                     = ID3D12GraphicsCommandList6;
+#endif
+
 constexpr inline std::size_t kMaxRootParameter              = 16;	
 constexpr inline std::size_t kMaxDescriptor                 = 256;	
 constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;
