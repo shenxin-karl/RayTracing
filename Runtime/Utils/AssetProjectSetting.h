@@ -34,11 +34,15 @@ public:
 
     static auto ToAssetPath(const stdfs::path &relativePath) -> stdfs::path {
         Assert(relativePath.is_relative());
-	    return GetInstance()->GetAssetAbsolutePath() / relativePath;
+        stdfs::path path = GetInstance()->GetAssetAbsolutePath() / relativePath;
+        path.make_preferred();
+        return path;
     }
     static auto ToCachePath(const stdfs::path &relativePath) -> stdfs::path {
         Assert(relativePath.is_relative());
-	    return GetInstance()->GetAssetCacheAbsolutePath() / relativePath;
+	    stdfs::path path = GetInstance()->GetAssetCacheAbsolutePath() / relativePath;
+        path.make_preferred();
+        return path;
     }
 private:
     constexpr static std::string_view sSerializePath = "AssetProjectSetting.json";

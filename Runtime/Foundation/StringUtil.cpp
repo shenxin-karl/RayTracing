@@ -18,7 +18,8 @@ std::string to_string(const wchar_t *pString) {
     if (pString == nullptr) {
         return std::string{};
     }
-    return converter.to_bytes(pString, pString + std::strlen(reinterpret_cast<const char *>(pString)));
+    std::wstring_view view = pString;
+    return converter.to_bytes(pString, pString + view.size());
 }
 
 std::wstring to_wstring(const std::string &string) {

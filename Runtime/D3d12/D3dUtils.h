@@ -25,7 +25,7 @@
 #endif
 
 #ifndef ENALBE_D3D_11
-    #define ENABLE_D3D_11 1
+    #define ENABLE_D3D_11 0
 #endif
 
 namespace dx {

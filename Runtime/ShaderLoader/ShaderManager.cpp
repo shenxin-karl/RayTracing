@@ -10,6 +10,7 @@
 #include <fstream>
 #include <magic_enum.hpp>
 
+#include "D3d12/Dxc/DxcModule.h"
 #include "Foundation/StreamUtil.h"
 
 #if defined(MODE_DEBUG)
@@ -35,11 +36,18 @@ void ShaderManager::OnCreate() {
     Exception::CondThrow(stdfs::is_directory(shaderCacheDir),
         "The cache path {} is occupied. Procedure",
         shaderCacheDir.string());
+
+    dx::DxcModule *pDxcModule = dx::DxcModule::OnInstanceCreate();
+    pDxcModule->OnCreate();
 }
 
 void ShaderManager::OnDestroy() {
     _shaderByteCodeMap.clear();
     _shaderDependencyMap.clear();
+
+    dx::DxcModule *pDxcModule = dx::DxcModule::GetInstance();
+    pDxcModule->OnDestroy();
+    dx::DxcModule::OnInstanceDestroy();
 }
 
 static bool ShaderIncludeCallBack(const std::string &path, std::string &fileContent) {
@@ -67,11 +75,14 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
     Exception::CondThrow(nstd::IsSubPath(AssetProjectSetting::GetInstance()->GetAssetAbsolutePath(), sourcePath),
         "Only shaders under the Asset path can be loaded");
 
-    std::string keyString = fmt::format("{}_{}_{}_{}",
-        sourcePath.string(),
-        loadInfo.entryPoint.data(),
-        magic_enum::enum_name(loadInfo.shaderType).data(),
-        loadInfo.pDefineList != nullptr ? loadInfo.pDefineList->ToString() : "");
+    std::string keyString = sourcePath.string();
+    if (!loadInfo.entryPoint.empty()) {
+	    keyString += fmt::format("_{}", loadInfo.entryPoint.data());
+    }
+    keyString += fmt::format("_{}", magic_enum::enum_name(loadInfo.shaderType));
+    if (loadInfo.pDefineList != nullptr) {
+	    keyString += fmt::format("_{}", loadInfo.pDefineList->ToString());
+    }
 
     UUID128 uuid = UUID128::New(keyString);
     if (auto iter = _shaderByteCodeMap.find(uuid); iter != _shaderByteCodeMap.end()) {
@@ -145,7 +156,7 @@ auto ShaderManager::LoadFromCache(UUID128 uuid, const stdfs::path &sourcePath, c
     ShaderDependency &dependency = GetShaderDependency(sourcePath);
     if (dependency.GetLastWriteTime() <= cacheLastWriteTime) {
         std::ifstream fin(cachePath, std::ios::binary);
-		std::size_t fileSize = nstd::GetFileSize(fin);
+        std::size_t fileSize = nstd::GetFileSize(fin);
         std::vector<std::byte> byteCode;
         byteCode.resize(fileSize);
         fin.read(reinterpret_cast<char *>(byteCode.data()), fileSize);

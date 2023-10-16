@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
 <Type Name="ReadonlyArraySpan&lt;*&gt;">
 <DisplayString>{{ Count={_count} }}</DisplayString>
   <Expand>
@@ -9,4 +10,9 @@
     </ArrayItems>
   </Expand>
 </Type>
+
+<Type Name="UUID128">
+  <DisplayString>{{{data[0],nvoXb}{data[1],nvoXb}{data[2],nvoXb}{data[3],nvoXb}-{data[4],nvoXb}{data[5],nvoXb}-{data[6],nvoXb}{data[7],nvoXb}-{data[8],nvoXb}{data[9],nvoXb}-{data[10],nvoXb}{data[11],nvoXb}{data[12],nvoXb}{data[13],nvoXb}{data[14],nvoXb}{data[15],nvoXb}}}</DisplayString>
+</Type>
+
 </AutoVisualizer>

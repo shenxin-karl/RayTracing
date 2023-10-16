@@ -166,6 +166,7 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
         break;
     case ShaderType::eLib:
         target = L"lib_6_3";
+        break;
     default:
         Exception::Throw("Error ShaderType");
         break;

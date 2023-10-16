@@ -4,6 +4,7 @@
 #include "InputSystem/Window.h"
 #include "Render/Renderer.h"
 #include "Render/TriangleRenderer.h"
+#include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
 Application::Application() {
@@ -14,18 +15,19 @@ Application::~Application() {
 
 void Application::OnCreate() {
     Logger::OnInstanceCreate();
-    InputSystem::OnInstanceCreate();
     AssetProjectSetting::OnInstanceCreate();
+    InputSystem::OnInstanceCreate();
+    ShaderManager::OnInstanceCreate();
 
     Logger::GetInstance()->OnCreate();
     AssetProjectSetting::GetInstance()->OnCreate();
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
+    ShaderManager::GetInstance()->OnCreate();
 
     HWND hwnd = pInputSystem->pWindow->GetHWND();
     _pRenderer = std::make_unique<TriangleRenderer>();
     _pRenderer->OnCreate(3, hwnd);
-
 
     // register resize call back
     pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
@@ -38,9 +40,11 @@ void Application::OnCreate() {
 
 void Application::OnDestroy() {
     _pRenderer->OnDestroy();
+    ShaderManager::GetInstance()->OnDestroy();
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
+    ShaderManager::OnInstanceDestroy();
     AssetProjectSetting::OnInstanceDestroy();
     InputSystem::OnInstanceDestroy();
     Logger::OnInstanceDestroy();
