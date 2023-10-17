@@ -42,12 +42,14 @@ void Texture::OnCreate(Device *pDevice,
 }
 
 void Texture::OnDestroy() {
-    _pResource = nullptr;
     if (_pAllocation != nullptr) {
         _pAllocation->Release();
         _pAllocation = nullptr;
     }
-    GlobalResourceState::RemoveResourceState(_pResource.Get());
+    if (_pResource != nullptr) {
+	    GlobalResourceState::RemoveResourceState(_pResource.Get());
+	    _pResource = nullptr;
+    }
 }
 
 void Texture::SetName(std::string_view name) {

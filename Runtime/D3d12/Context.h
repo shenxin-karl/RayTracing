@@ -48,6 +48,7 @@ public:
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
     void FlushResourceBarriers();
+    void CopyResource(ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource);
     auto GetCommandList() const -> NativeCommandList *;
 
     void SetPipelineState(ID3D12PipelineState *pPipelineState);
@@ -156,6 +157,11 @@ inline void Context::Transition(ID3D12Resource *pResource,
 
 inline void Context::FlushResourceBarriers() {
     _resourceStateTracker.FlushResourceBarriers(_pCommandList);
+}
+
+inline void Context::CopyResource(ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource) {
+    FlushResourceBarriers();
+    _pCommandList->CopyResource(pDstResource, pSrcResource);
 }
 
 inline auto Context::GetCommandList() const -> NativeCommandList * {

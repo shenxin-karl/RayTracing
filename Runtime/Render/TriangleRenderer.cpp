@@ -1,5 +1,7 @@
 #include "TriangleRenderer.h"
 #include "D3d12/Context.h"
+#include "D3d12/DescriptorManager.hpp"
+#include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
@@ -13,7 +15,6 @@
 enum RootIndex {
     AccelerationStructureSlot = 0,
     OutputRenderTarget = 1,
-    ConstantBuffer = 2,
 };
 
 static std::wstring_view RayGenShaderName = L"MyRaygenShader";
@@ -26,6 +27,7 @@ void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     CreateGeometry();
     CreateRootSignature();
     CreateRayTracingPipelineStateObject();
+    CreateRayTracingOutputResource();
 }
 
 void TriangleRenderer::OnDestroy() {
@@ -85,11 +87,15 @@ void TriangleRenderer::CreateGeometry() {
 }
 
 void TriangleRenderer::CreateRootSignature() {
-    _rootSignature.Reset(3, 0);
-    _rootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);
-    _rootSignature.At(OutputRenderTarget).InitAsBufferUAV(0);
-    _rootSignature.At(ConstantBuffer).InitAsBufferCBV(0);
-    _rootSignature.Finalize(_pDevice.get());
+    CD3DX12_DESCRIPTOR_RANGE range(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    _globalRootSignature.Reset(2, 0);
+    _globalRootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
+    _globalRootSignature.At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0
+    _globalRootSignature.Finalize(_pDevice.get());
+
+    _localRootSignature.Reset(1, 0);
+    _localRootSignature.At(0).InitAsBufferCBV(0);    // b0
+    _localRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
 void TriangleRenderer::CreateRayTracingPipelineStateObject() {
@@ -114,11 +120,47 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
     pHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
     auto *pShaderConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-    size_t payloadSize = 4 * sizeof(float);     // float4
+    size_t payloadSize = 4 * sizeof(float);    // float4
     size_t attributeSize = 2 * sizeof(float);
     pShaderConfig->Config(payloadSize, attributeSize);
 
     auto *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pLocalRootSignature->SetRootSignature(_rootSignature.GetRootSignature());
-    
+    pLocalRootSignature->SetRootSignature(_localRootSignature.GetRootSignature());
+
+    auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    pGlobalRootSignature->SetRootSignature(_globalRootSignature.GetRootSignature());
+
+    auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    pPipelineConfig->Config(1);
+
+    dx::NativeDevice *device = _pDevice->GetNativeDevice();
+    dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+}
+
+void TriangleRenderer::CreateRayTracingOutputResource() {
+    _rayTracingOutput.OnDestroy();
+
+    DXGI_FORMAT backBufferFormat = _pSwapChain->GetFormat();
+    CD3DX12_RESOURCE_DESC uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backBufferFormat,
+        _width,
+        _height,
+        1,
+        1,
+        1,
+        0,
+        D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    _rayTracingOutput.OnCreate(_pDevice.get(), uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
+    _rayTracingOutput.SetName("RayTracingOutput");
+
+    if (_rayTracingOutputView.IsNull()) {
+        _rayTracingOutputView = dx::DescriptorManager::Alloc<dx::UAV>();
+    }
+
+    dx::NativeDevice *device = _pDevice->GetNativeDevice();
+    D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
+    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    device->CreateUnorderedAccessView(_rayTracingOutput.GetResource(),
+        nullptr,
+        &viewDesc,
+        _rayTracingOutputView.GetCpuHandle());
 }

@@ -24,6 +24,9 @@ public:
     auto GetAllocatableSize(size_t align = 1) const -> size_t;
     void DoUpload();
 
+    auto GetCopyCommandList() const -> NativeCommandList * {
+        return _pCommandList.Get();
+    }
     auto CalcBufferOffset(const uint8_t *ptr) const -> size_t {
         return ptr - _pDataBegin;
     }
@@ -55,7 +58,7 @@ private:
     uint8_t                                 *_pDataEnd          = nullptr;
     uint8_t                                 *_pDataBegin        = nullptr;
     D3D12MA::Allocation                     *_pBufferAllocation = nullptr;
-    WRL::ComPtr<ID3D12GraphicsCommandList>   _pCommandList      = nullptr;
+    WRL::ComPtr<NativeCommandList>           _pCommandList      = nullptr;
     WRL::ComPtr<ID3D12CommandAllocator>      _pCommandAllocator = nullptr;
     std::vector<BufferCopy>                  _bufferCopies;
     std::vector<TextureCopy>                 _textureCopies;

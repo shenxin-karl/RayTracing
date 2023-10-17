@@ -7,7 +7,7 @@ class Device : NonCopyable {
 public:
     void OnCreate(bool validationEnabled);
     void OnDestroy();
-    auto GetNativeDevice() const -> ID3D12Device * {
+    auto GetNativeDevice() const -> NativeDevice * {
         return _pDevice.Get();
     }
     auto GetAdapter() const -> IDXGIAdapter * {
