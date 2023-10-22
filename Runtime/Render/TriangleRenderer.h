@@ -14,6 +14,7 @@ public:
 	void CreateRootSignature();
 	void CreateRayTracingPipelineStateObject();
 	void CreateRayTracingOutputResource();
+	void BuildAccelerationStructures();
 private:
 	// clang-format off
 	std::shared_ptr<dx::StaticBuffer>		_pTriangleStaticBuffer;
@@ -22,6 +23,8 @@ private:
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
 	dx::Texture								_rayTracingOutput;
 	dx::UAV									_rayTracingOutputView;
+	dx::WRL::ComPtr<D3D12MA::Allocation>	_pTopLevelAccelerationStructure;
+	dx::WRL::ComPtr<D3D12MA::Allocation>	_pBottomLevelAccelerationStructure;
 
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};

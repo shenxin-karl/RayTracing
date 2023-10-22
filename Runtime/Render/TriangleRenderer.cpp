@@ -7,6 +7,7 @@
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
+#include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 #include "ShaderLoader/ShaderManager.h"
@@ -163,4 +164,70 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
         nullptr,
         &viewDesc,
         _rayTracingOutputView.GetCpuHandle());
+}
+
+void TriangleRenderer::BuildAccelerationStructures() {
+    dx::NativeDevice *device = _pDevice->GetNativeDevice();
+    dx::NativeCommandList *pCmdList = _pUploadHeap->GetCopyCommandList();
+    ID3D12CommandAllocator *pCmdAllocator = _pUploadHeap->GetCommandAllocator();
+
+    auto CreateUAVBuffer = [=](size_t bufferSize, D3D12_RESOURCE_STATES initResourceStates, std::wstring_view name) {
+        dx::WRL::ComPtr<D3D12MA::Allocation> pAllocation;
+        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+        D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
+        D3D12MA::ALLOCATION_DESC allocationDesc = {};
+        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        dx::ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
+            &bufferDesc,
+            D3D12_RESOURCE_STATE_COMMON,
+            nullptr,
+            &pAllocation,
+            IID_NULL,
+            nullptr));
+        if (pAllocation != nullptr) {
+            pAllocation->GetResource()->SetName(name.data());
+        }
+        return pAllocation;
+    };
+
+    D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
+    geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+    geometryDesc.Triangles.IndexBuffer = _indexBufferView.BufferLocation;
+    geometryDesc.Triangles.IndexCount = _indexBufferView.SizeInBytes / sizeof(uint16_t);
+    geometryDesc.Triangles.IndexFormat = _indexBufferView.Format;
+    geometryDesc.Triangles.Transform3x4 = 0;
+    geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+    geometryDesc.Triangles.VertexCount = _vertexBufferView.SizeInBytes / _vertexBufferView.StrideInBytes;
+    geometryDesc.Triangles.VertexBuffer.StartAddress = _vertexBufferView.BufferLocation;
+    geometryDesc.Triangles.VertexBuffer.StrideInBytes = _vertexBufferView.StrideInBytes;
+    // Mark the geometry as opaque.
+    // PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
+    // Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
+    geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+
+    // Get required sizes for an acceleration structure.
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
+    buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
+    topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    topLevelInputs.Flags = buildFlags;
+    topLevelInputs.NumDescs = 1;
+    topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPreBuildInfo = {};
+    device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPreBuildInfo);
+    Assert(topLevelPreBuildInfo.ResultDataMaxSizeInBytes > 0);
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
+    bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelInputs.pGeometryDescs = &geometryDesc;
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPreBuildInfo = {};
+    device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPreBuildInfo);
+    Assert(bottomLevelPreBuildInfo.ResultDataMaxSizeInBytes > 0);
+
+    dx::WRL::ComPtr<D3D12MA::Allocation> pScratchResource = CreateUAVBuffer(
+        std::max<size_t>(topLevelPreBuildInfo.ScratchDataSizeInBytes, bottomLevelPreBuildInfo.ScratchDataSizeInBytes),
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        L"ScratchResource");
 }

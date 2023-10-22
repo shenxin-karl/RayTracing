@@ -27,6 +27,9 @@ public:
     auto GetCopyCommandList() const -> NativeCommandList * {
         return _pCommandList.Get();
     }
+    auto GetCommandAllocator() const -> ID3D12CommandAllocator * {
+	    return _pCommandAllocator.Get();
+    }
     auto CalcBufferOffset(const uint8_t *ptr) const -> size_t {
         return ptr - _pDataBegin;
     }

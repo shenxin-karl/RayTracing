@@ -43,12 +43,13 @@ private:
     // clang-format on
 };
 
-class RTV : public DescriptorHandle {};
-class DSV : public DescriptorHandle {};
-class SAMPLER : public DescriptorHandle {};
-class CBV_SRV_UAV : public DescriptorHandle {};
-class CBV : public CBV_SRV_UAV {};
-class UAV : public CBV_SRV_UAV {};
-class SRV : public CBV_SRV_UAV {};
+// clang-format off
+class RTV       final : public DescriptorHandle {};
+class DSV       final : public DescriptorHandle {};
+class SAMPLER   final : public DescriptorHandle {};
+class CBV       final : public DescriptorHandle {};
+class UAV       final : public DescriptorHandle {};
+class SRV       final : public DescriptorHandle {};
+// clang-format on
 
 }    // namespace dx
