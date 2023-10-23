@@ -30,11 +30,14 @@ includes("xmake/renderdoc.lua")
 add_requires("fmt 9.1.0")
 add_requires("spdlog v1.9.2") 
 add_requires("glm")
-add_requires("stduuid", {debug = isDebug})
 add_requires("jsoncpp 1.9.5", {debug = isDebug, configs = {shared = false}})
 add_requires("d3d12-memory-allocator v2.0.1")
 add_requires("magic_enum v0.9.0")
 add_requires("stb 2023.01.30")
+
+-- local package
+add_requires("dxc")
+add_requires("stduuid", {debug = isDebug})
 
 target("RayTracing")
     add_headerfiles("**.natvis")
@@ -61,7 +64,7 @@ target("RayTracing")
 
     -- local packages
     add_packages("stduuid")
-
+    add_packages("dxc")
 
     set_targetdir(BINARY_DIR)
 
@@ -76,14 +79,12 @@ target("RayTracing")
     set_values("dxcDir", dxcDir)
     link_dxc_compiler(dxcDir)
 
-        local renderdocLibDir = path.join(THIRD_PARTY_DIR, "renderdoc")
+    local renderdocLibDir = path.join(THIRD_PARTY_DIR, "renderdoc")
     set_values("renderdocLibDir", renderdocLibDir)
     link_renderdoc(renderdocLibDir)
 
-    set_values("on_install_dxc", on_install_dxc)
     set_values("on_install_renderdoc", on_install_renderdoc)
     on_install(function (target)
-        target:values("on_install_dxc")(target, target:values("dxcDir"))
         target:values("on_install_renderdoc")(target, target:values("renderdocLibDir"))
     end)
 target_end()

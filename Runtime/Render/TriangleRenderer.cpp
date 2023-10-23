@@ -29,6 +29,7 @@ void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     CreateRootSignature();
     CreateRayTracingPipelineStateObject();
     CreateRayTracingOutputResource();
+    BuildAccelerationStructures();
 }
 
 void TriangleRenderer::OnDestroy() {
@@ -166,7 +167,31 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
         _rayTracingOutputView.GetCpuHandle());
 }
 
+static void AllocateUploadBuffer(ID3D12Device *pDevice,
+    void *pData,
+    UINT64 datasize,
+    ID3D12Resource **ppResource,
+    const wchar_t *resourceName = nullptr) {
+    auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(datasize);
+    dx::ThrowIfFailed(pDevice->CreateCommittedResource(&uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &bufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(ppResource)));
+
+    if (resourceName) {
+        (*ppResource)->SetName(resourceName);
+    }
+    void *pMappedData;
+    (*ppResource)->Map(0, nullptr, &pMappedData);
+    memcpy(pMappedData, pData, datasize);
+    (*ppResource)->Unmap(0, nullptr);
+}
+
 void TriangleRenderer::BuildAccelerationStructures() {
+    _pUploadHeap->DoUpload();
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
     dx::NativeCommandList *pCmdList = _pUploadHeap->GetCopyCommandList();
     ID3D12CommandAllocator *pCmdAllocator = _pUploadHeap->GetCommandAllocator();
@@ -230,4 +255,48 @@ void TriangleRenderer::BuildAccelerationStructures() {
         std::max<size_t>(topLevelPreBuildInfo.ScratchDataSizeInBytes, bottomLevelPreBuildInfo.ScratchDataSizeInBytes),
         D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
         L"ScratchResource");
+
+    _pBottomLevelAccelerationStructure = CreateUAVBuffer(bottomLevelPreBuildInfo.ResultDataMaxSizeInBytes,
+        D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
+        L"BottomLevelAccelerationStructure");
+    _pTopLevelAccelerationStructure = CreateUAVBuffer(topLevelPreBuildInfo.ResultDataMaxSizeInBytes,
+        D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
+        L"TopLevelAccelerationStructure");
+
+    // Create an instance desc for the bottom-level acceleration structure.
+    Microsoft::WRL::ComPtr<ID3D12Resource> instanceDescs;
+    D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+    instanceDesc.InstanceMask = 1;
+    instanceDesc.AccelerationStructure = _pBottomLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
+    AllocateUploadBuffer(device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
+
+    // 填充底层加速结构的 desc 结构体
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+    {
+        bottomLevelBuildDesc.Inputs = bottomLevelInputs;
+        bottomLevelBuildDesc.DestAccelerationStructureData = _pBottomLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
+        bottomLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
+    }
+
+    // 填充顶层加速结构的 desc 结构体
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
+    {
+        topLevelInputs.InstanceDescs = instanceDescs->GetGPUVirtualAddress();
+        topLevelBuildDesc.Inputs = topLevelInputs;
+        topLevelBuildDesc.DestAccelerationStructureData = _pTopLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
+        topLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
+    }
+
+	// 构建加速结构
+    pCmdList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+    pCmdList->ResourceBarrier(1, dx::RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(_pBottomLevelAccelerationStructure->GetResource())));
+    pCmdList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+    dx::ThrowIfFailed(pCmdList->Close());
+
+    ID3D12CommandList *commandLists[] = { pCmdList }; 
+    _pDevice->GetCopyQueue()->ExecuteCommandLists(1, commandLists);
+    _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
+
+    dx::ThrowIfFailed(pCmdList->Reset(pCmdAllocator, nullptr));
 }
