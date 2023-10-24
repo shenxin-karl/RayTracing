@@ -38,6 +38,7 @@ add_requires("stb 2023.01.30")
 -- local package
 add_requires("dxc")
 add_requires("stduuid", {debug = isDebug})
+add_requires("renderdoc")
 
 target("RayTracing")
     add_headerfiles("**.natvis")
@@ -65,6 +66,7 @@ target("RayTracing")
     -- local packages
     add_packages("stduuid")
     add_packages("dxc")
+    add_packages("renderdoc")
 
     set_targetdir(BINARY_DIR)
 
@@ -73,18 +75,4 @@ target("RayTracing")
     add_syslinks("D3D12")
     add_syslinks("dxgi")
     add_syslinks("User32")
-
-    -- link
-    local dxcDir = path.join(THIRD_PARTY_DIR, "dxc")
-    set_values("dxcDir", dxcDir)
-    link_dxc_compiler(dxcDir)
-
-    local renderdocLibDir = path.join(THIRD_PARTY_DIR, "renderdoc")
-    set_values("renderdocLibDir", renderdocLibDir)
-    link_renderdoc(renderdocLibDir)
-
-    set_values("on_install_renderdoc", on_install_renderdoc)
-    on_install(function (target)
-        target:values("on_install_renderdoc")(target, target:values("renderdocLibDir"))
-    end)
 target_end()

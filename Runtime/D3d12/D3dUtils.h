@@ -20,11 +20,13 @@
 #include <bitset>
 #include <array>
 
+// #define ENABLE_D3D_11 1
+
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
     #define ENABLE_D3D_COMPUTE_QUEUE 0
 #endif
 
-#ifndef ENALBE_D3D_11
+#ifndef ENABLE_D3D_11
     #define ENABLE_D3D_11 0
 #endif
 

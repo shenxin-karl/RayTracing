@@ -1,10 +1,14 @@
-function link_renderdoc(libDir)
-    add_sysincludedirs(path.join(libDir, "inc", "app"), {public=true})
-end
+package("renderdoc")
+    on_load(function (package) 
+        package:set("installdir", path.join(os.projectdir(), "ThirdParty", "renderdoc"));
+    end)
 
-function on_install_renderdoc(target, libDir)
-    os.cp(path.join(binDir, "bin", "renderdoc.dll", target:installdir()))
-    os.cp(path.join(binDir, "bin", "renderdoc.lib", target:installdir()))
-    os.cp(path.join(binDir, "bin", "renderdoc.pdb", target:installdir()))
-end
-
+    on_fetch(function (package)
+        package:addenv("PATH", package:installdir("bin"))
+        local result = {}
+        result.links = { "renderdoc" }
+        result.includedirs = package:installdir("inc")
+        result.linkdirs = package:installdir("bin")
+        return result
+    end)
+package_end()
