@@ -18,7 +18,7 @@ enum RootIndex {
     OutputRenderTarget = 1,
 };
 
-static std::wstring_view RayGenShaderName = L"MyRaygenShader";
+static std::wstring_view RayGenShaderName = L"MyRayGenShader";
 static std::wstring_view ClosestHitShaderName = L"MyClosestHitShader";
 static std::wstring_view MissShaderName = L"MyMissShader";
 static std::wstring_view HitGroupName = L"MyHitGroup";
@@ -28,7 +28,6 @@ void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     CreateGeometry();
     CreateRootSignature();
     CreateRayTracingPipelineStateObject();
-    CreateRayTracingOutputResource();
     BuildAccelerationStructures();
 
     _rayGenConstantBuffer.viewport = {-1.0f, -1.0f, 1.0f, 1.0f};
@@ -99,7 +98,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 		UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
         size_t rayGenShaderTableSize = 1 * shaderIdentifierSize + sizeof(RayGenConstantBuffer);
-	    dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize);
+	    dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize, 64);
 	    uint8_t *ptr = rayGenAllocInfo.pBuffer;
         std::memcpy(ptr, pRayGenShaderIdentifier, shaderIdentifierSize);
         ptr += shaderIdentifierSize;
@@ -107,13 +106,13 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         dispatchRaysDesc.RayGenerationShaderRecord.StartAddress = rayGenAllocInfo.virtualAddress;
         dispatchRaysDesc.RayGenerationShaderRecord.SizeInBytes = rayGenShaderTableSize;
 
-	    dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize);
+	    dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
         std::memcpy(missShaderAllocInfo.pBuffer, pMissShaderIdentifier, shaderIdentifierSize);
         dispatchRaysDesc.MissShaderTable.StartAddress = missShaderAllocInfo.virtualAddress;
         dispatchRaysDesc.MissShaderTable.SizeInBytes = 1 * shaderIdentifierSize;
         dispatchRaysDesc.MissShaderTable.StrideInBytes = shaderIdentifierSize;
 
-        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize);
+        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
         std::memcpy(hitGroupShaderAllocInfo.pBuffer, pHitGroupShaderIdentifier, shaderIdentifierSize);
         dispatchRaysDesc.HitGroupTable.StartAddress = hitGroupShaderAllocInfo.virtualAddress;
         dispatchRaysDesc.HitGroupTable.SizeInBytes = 1 * shaderIdentifierSize;
@@ -280,13 +279,13 @@ void TriangleRenderer::BuildAccelerationStructures() {
 
     auto CreateUAVBuffer = [=](size_t bufferSize, D3D12_RESOURCE_STATES initResourceStates, std::wstring_view name) {
         dx::WRL::ComPtr<D3D12MA::Allocation> pAllocation;
-        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
         dx::ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
             &bufferDesc,
-            D3D12_RESOURCE_STATE_COMMON,
+            initResourceStates,
             nullptr,
             &pAllocation,
             IID_NULL,

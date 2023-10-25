@@ -121,9 +121,9 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
     std::vector<std::byte> byteCode;
     byteCode.resize(pShaderBlob->GetBufferSize());
     std::memcpy(byteCode.data(), pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize());
-    _shaderByteCodeMap[uuid] = std::move(byteCode);
+    auto &ret = _shaderByteCodeMap[uuid] = std::move(byteCode);
 
-    return D3D12_SHADER_BYTECODE{pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize()};
+    return D3D12_SHADER_BYTECODE{ret.data(), ret.size() };
 }
 
 auto ShaderManager::GetShaderDependency(stdfs::path path) -> ShaderDependency & {

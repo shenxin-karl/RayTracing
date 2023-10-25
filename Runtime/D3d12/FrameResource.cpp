@@ -100,30 +100,42 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
             // translation all sub resource to after state
             if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+                if (pResourceState->subResourceStateMap.empty() && barrier.Transition.StateAfter == pResourceState->state) {
+	                continue;
+                }
+
+				hashSet.insert(pResource);
+                D3D12_RESOURCE_STATES currentState = pResourceState->state;
+                pResourceState->state = barrier.Transition.StateAfter;
                 if (pResourceState->subResourceStateMap.empty() &&
-                    pResourceState->state == D3D12_RESOURCE_STATE_COMMON &&
+                    currentState == D3D12_RESOURCE_STATE_COMMON &&
                     ResourceStateTracker::OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
                     continue;
                 }
 
-                hashSet.insert(pResource);
                 if (pResourceState->subResourceStateMap.empty()) {
-                    barrier.Transition.StateBefore = pResourceState->state;
+                    barrier.Transition.StateBefore = currentState;
                     linkCommandListStateBarriers.push_back(barrier);
                     continue;
                 }
 
                 for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
-                    barrier.Transition.Subresource = subResource;
-                    barrier.Transition.StateBefore = subResourceState;
-                    linkCommandListStateBarriers.push_back(barrier);
+                    if (barrier.Transition.StateAfter != subResourceState) {
+	                    barrier.Transition.Subresource = subResource;
+	                    barrier.Transition.StateBefore = subResourceState;
+						linkCommandListStateBarriers.push_back(barrier);
+                    }
                 }
                 continue;
             }
 
-            hashSet.insert(pResource);
-            barrier.Transition.StateBefore = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
-            linkCommandListStateBarriers.push_back(barrier);
+            D3D12_RESOURCE_STATES currentState = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
+            if (currentState != barrier.Transition.StateAfter) {
+				hashSet.insert(pResource);
+	            barrier.Transition.StateBefore = currentState;
+                pResourceState->state = barrier.Transition.StateAfter;
+	            linkCommandListStateBarriers.push_back(barrier);
+            }
         }
 
         pendingResourceBarriers.clear();

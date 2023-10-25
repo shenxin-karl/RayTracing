@@ -63,7 +63,7 @@ public:
     auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
         -> D3D12_GPU_VIRTUAL_ADDRESS;
-    auto AllocBuffer(size_t sizeInByte) -> DynamicBufferAllocator::AllocInfo;
+    auto AllocBuffer(size_t sizeInByte, size_t addressAlignment = 1) -> DynamicBufferAllocator::AllocInfo;
 public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
@@ -223,8 +223,8 @@ inline auto Context::AllocStructuredBuffer(size_t numOfVertices, size_t strideIn
     return _dynamicBufferAllocator.AllocStructuredBuffer(numOfVertices, strideInBytes, pInitData);
 }
 
-inline auto Context::AllocBuffer(size_t sizeInByte) -> DynamicBufferAllocator::AllocInfo {
-    return _dynamicBufferAllocator.AllocBuffer(sizeInByte);
+inline auto Context::AllocBuffer(size_t sizeInByte, size_t addressAlignment) -> DynamicBufferAllocator::AllocInfo {
+    return _dynamicBufferAllocator.AllocBuffer(sizeInByte, addressAlignment);
 }
 
 #pragma endregion

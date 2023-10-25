@@ -179,7 +179,7 @@ void RootSignature::Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
             size_t descriptorTypeIndex = GetPerTableIndexByRangeType(
                 rootParameter.DescriptorTable.pDescriptorRanges[0].RangeType);
             for (size_t rangeIndex = 0; rangeIndex < rootParameter.DescriptorTable.NumDescriptorRanges; ++rangeIndex) {
-                const D3D12_DESCRIPTOR_RANGE &range = rootParameter.DescriptorTable.pDescriptorRanges[rootIndex];
+                const D3D12_DESCRIPTOR_RANGE &range = rootParameter.DescriptorTable.pDescriptorRanges[rangeIndex];
                 if (range.NumDescriptors <= 0) {
                     continue;
                 }

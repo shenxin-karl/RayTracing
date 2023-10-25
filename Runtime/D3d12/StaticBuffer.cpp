@@ -156,6 +156,7 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
     const void *pData,
     size_t dataSize) -> std::optional<BufferInResourceInfo> {
 
+    size_t originOffset = _offset;
     size_t bufferSize = numOfVertices * strideInBytes;
     size_t newOffset = _offset + bufferSize;
     if (newOffset > _pStaticBuffer->GetDesc().Width) {
@@ -178,7 +179,7 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
 
     BufferInResourceInfo info;
     info.bufferSize = bufferSize;
-    info.virtualAddress = _pStaticBuffer->GetResource()->GetGPUVirtualAddress() + _offset;
+    info.virtualAddress = _pStaticBuffer->GetResource()->GetGPUVirtualAddress() + originOffset;
     return std::make_optional(info);
 }
 

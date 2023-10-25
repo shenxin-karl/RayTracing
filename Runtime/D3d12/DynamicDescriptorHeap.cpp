@@ -27,7 +27,7 @@ void DynamicDescriptorHeap::ParseRootSignature(const RootSignature *pRootSignatu
             continue;
         }
 
-        uint8_t count = numDescriptorPreTable[rootIndex];
+        size_t count = numDescriptorPreTable[rootIndex];
         _descriptorTableCache[rootIndex].pBaseHandle = _descriptorHandleCache.data() + offset;
         _descriptorTableCache[rootIndex].numDescriptors = count;
         offset += count;
@@ -76,7 +76,7 @@ void DynamicDescriptorHeap::StageDescriptors(size_t rootParameterIndex,
 	    Exception::Throw("Invalid RootParameterIndex: {}", rootParameterIndex);
     }
     if (handles.Count() >= _numDescriptorsPreHeap || rootParameterIndex >= kMaxRootParameter ||
-        (offset + handles.Count()) >= _descriptorTableCache[rootParameterIndex].numDescriptors) {
+        (offset + handles.Count()) > _descriptorTableCache[rootParameterIndex].numDescriptors) {
         Exception::Throw("Out of range!");
     }
 

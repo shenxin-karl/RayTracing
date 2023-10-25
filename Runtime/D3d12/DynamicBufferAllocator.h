@@ -22,7 +22,7 @@ public:
     auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
         -> D3D12_GPU_VIRTUAL_ADDRESS;
-    auto AllocBuffer(size_t bufferSize) -> AllocInfo;
+    auto AllocBuffer(size_t bufferSize, size_t addressAlignment = 1) -> AllocInfo;
     void Reset();
 private:
     // clang-format off

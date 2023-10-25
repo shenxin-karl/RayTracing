@@ -72,31 +72,33 @@ auto DynamicBufferAllocator::AllocStructuredBuffer(size_t numOfVertices, size_t 
     return allocInfo.virtualAddress;
 }
 
-auto DynamicBufferAllocator::AllocBuffer(size_t bufferSize) -> AllocInfo {
+auto DynamicBufferAllocator::AllocBuffer(size_t bufferSize, size_t addressAlignment) -> AllocInfo {
     AllocInfo allocInfo = {};
     for (MemoryBlock &memoryBlock : _memoryBlockList) {
-        if ((memoryBlock.pEnd - memoryBlock.pCurrent) > bufferSize) {
-            size_t offset = memoryBlock.pCurrent - memoryBlock.pBegin;
-            allocInfo.pBuffer = memoryBlock.pCurrent;
+        uint8_t *pCurrent = reinterpret_cast<uint8_t *>(
+            AlignUp<std::ptrdiff_t>(reinterpret_cast<std::ptrdiff_t>(memoryBlock.pCurrent), addressAlignment));
+        if ((memoryBlock.pEnd - pCurrent) > bufferSize) {
+            size_t offset = pCurrent - memoryBlock.pBegin;
+            allocInfo.pBuffer = pCurrent;
             allocInfo.virtualAddress = memoryBlock.virtualAddress + offset;
-            memoryBlock.pCurrent += bufferSize;
+            memoryBlock.pCurrent = pCurrent + bufferSize;
             return allocInfo;
         }
     }
 
-    do {
+    while (_maxBufferSize < bufferSize) {
         _maxBufferSize *= 2;
-    } while (_maxBufferSize < bufferSize);
+    }
 
     MemoryBlock &block = _memoryBlockList.emplace_back();
     D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(_maxBufferSize);
 
     D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
     D3D12MA::ALLOCATION_DESC allocationDesc = {};
-    allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+    allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
     ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
         &block.pAllocation,
         IID_NULL,
