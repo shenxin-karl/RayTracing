@@ -38,10 +38,12 @@ namespace dx {
 constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_11_0;
 using NativeDevice                                          = ID3D12Device;
 using NativeCommandList                                     = ID3D12GraphicsCommandList;
+#define ENABLE_RAY_TRACING 0
 #else
 constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_12_0;
 using NativeDevice                                          = ID3D12Device6;
 using NativeCommandList                                     = ID3D12GraphicsCommandList6;
+#define ENABLE_RAY_TRACING 1
 #endif
 
 constexpr inline std::size_t kMaxRootParameter              = 16;	

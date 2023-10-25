@@ -30,6 +30,8 @@ void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     CreateRayTracingPipelineStateObject();
     CreateRayTracingOutputResource();
     BuildAccelerationStructures();
+
+    _rayGenConstantBuffer.viewport = {-1.0f, -1.0f, 1.0f, 1.0f};
 }
 
 void TriangleRenderer::OnDestroy() {
@@ -46,7 +48,9 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
     }
 
+#if 0
     _pFrameResourceRing->OnBeginFrame();
+
     dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
 
@@ -71,6 +75,84 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     _pFrameResourceRing->OnEndFrame();
     _pSwapChain->Present();
+#endif
+
+    _pFrameResourceRing->OnBeginFrame();
+    dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
+    std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
+
+    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
+    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot,
+        _pTopLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress());
+    pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
+    pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
+
+    // build dispatch rays desc
+    D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
+    {
+	    dx::WRL::ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
+	    dx::ThrowIfFailed(_pRayTracingPSO.As(&stateObjectProperties));
+	    void *pRayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(RayGenShaderName.data());
+        void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(MissShaderName.data());
+        void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
+		UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+
+        size_t rayGenShaderTableSize = 1 * shaderIdentifierSize + sizeof(RayGenConstantBuffer);
+	    dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize);
+	    uint8_t *ptr = rayGenAllocInfo.pBuffer;
+        std::memcpy(ptr, pRayGenShaderIdentifier, shaderIdentifierSize);
+        ptr += shaderIdentifierSize;
+        std::memcpy(ptr, &_rayGenConstantBuffer, sizeof(RayGenConstantBuffer));
+        dispatchRaysDesc.RayGenerationShaderRecord.StartAddress = rayGenAllocInfo.virtualAddress;
+        dispatchRaysDesc.RayGenerationShaderRecord.SizeInBytes = rayGenShaderTableSize;
+
+	    dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize);
+        std::memcpy(missShaderAllocInfo.pBuffer, pMissShaderIdentifier, shaderIdentifierSize);
+        dispatchRaysDesc.MissShaderTable.StartAddress = missShaderAllocInfo.virtualAddress;
+        dispatchRaysDesc.MissShaderTable.SizeInBytes = 1 * shaderIdentifierSize;
+        dispatchRaysDesc.MissShaderTable.StrideInBytes = shaderIdentifierSize;
+
+        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize);
+        std::memcpy(hitGroupShaderAllocInfo.pBuffer, pHitGroupShaderIdentifier, shaderIdentifierSize);
+        dispatchRaysDesc.HitGroupTable.StartAddress = hitGroupShaderAllocInfo.virtualAddress;
+        dispatchRaysDesc.HitGroupTable.SizeInBytes = 1 * shaderIdentifierSize;
+        dispatchRaysDesc.HitGroupTable.StrideInBytes = shaderIdentifierSize;
+
+        dispatchRaysDesc.Width = _width;
+        dispatchRaysDesc.Height = _height;
+        dispatchRaysDesc.Depth = 1;
+    }
+    pGraphicsCtx->DispatchRays(dispatchRaysDesc);     
+
+    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
+    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput.GetResource());
+
+    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
+    frameResource.ExecuteContexts(pGraphicsCtx.get());
+
+    _pFrameResourceRing->OnEndFrame();
+    _pSwapChain->Present();
+}
+
+void TriangleRenderer::OnResize(uint32_t width, uint32_t height) {
+    Renderer::OnResize(width, height);
+    CreateRayTracingOutputResource();
+
+    float border = 0.1f;
+    float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+    if (width <= height) {
+        _rayGenConstantBuffer.stencil = {-1 + border,
+            -1 + border * aspectRatio,
+            1.0f - border,
+            1 - border * aspectRatio};
+    } else {
+        _rayGenConstantBuffer.stencil = {-1 + border / aspectRatio,
+            -1 + border,
+            1 - border / aspectRatio,
+            1.0f - border};
+    }
 }
 
 void TriangleRenderer::CreateGeometry() {
@@ -275,7 +357,8 @@ void TriangleRenderer::BuildAccelerationStructures() {
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
     {
         bottomLevelBuildDesc.Inputs = bottomLevelInputs;
-        bottomLevelBuildDesc.DestAccelerationStructureData = _pBottomLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
+        bottomLevelBuildDesc.DestAccelerationStructureData = _pBottomLevelAccelerationStructure->GetResource()
+                                                                 ->GetGPUVirtualAddress();
         bottomLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
     }
 
@@ -284,17 +367,19 @@ void TriangleRenderer::BuildAccelerationStructures() {
     {
         topLevelInputs.InstanceDescs = instanceDescs->GetGPUVirtualAddress();
         topLevelBuildDesc.Inputs = topLevelInputs;
-        topLevelBuildDesc.DestAccelerationStructureData = _pTopLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
+        topLevelBuildDesc.DestAccelerationStructureData = _pTopLevelAccelerationStructure->GetResource()
+                                                              ->GetGPUVirtualAddress();
         topLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
     }
 
-	// 构建加速结构
+    // 构建加速结构
     pCmdList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-    pCmdList->ResourceBarrier(1, dx::RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(_pBottomLevelAccelerationStructure->GetResource())));
+    pCmdList->ResourceBarrier(1,
+        dx::RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(_pBottomLevelAccelerationStructure->GetResource())));
     pCmdList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
     dx::ThrowIfFailed(pCmdList->Close());
 
-    ID3D12CommandList *commandLists[] = { pCmdList }; 
+    ID3D12CommandList *commandLists[] = {pCmdList};
     _pDevice->GetCopyQueue()->ExecuteCommandLists(1, commandLists);
     _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
 

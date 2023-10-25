@@ -63,6 +63,7 @@ public:
     auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
         -> D3D12_GPU_VIRTUAL_ADDRESS;
+    auto AllocBuffer(size_t sizeInByte) -> DynamicBufferAllocator::AllocInfo;
 public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
@@ -87,6 +88,10 @@ public:
     void SetComputeRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+#if ENABLE_RAY_TRACING
+    void SetRayTracingPipelineState(ID3D12StateObject *pStateObject);
+    void DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc);
+#endif
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eCompute;
@@ -218,6 +223,10 @@ inline auto Context::AllocStructuredBuffer(size_t numOfVertices, size_t strideIn
     return _dynamicBufferAllocator.AllocStructuredBuffer(numOfVertices, strideInBytes, pInitData);
 }
 
+inline auto Context::AllocBuffer(size_t sizeInByte) -> DynamicBufferAllocator::AllocInfo {
+    return _dynamicBufferAllocator.AllocBuffer(sizeInByte);
+}
+
 #pragma endregion
 
 #pragma region ComputeContext
@@ -228,6 +237,8 @@ inline ComputeContext::~ComputeContext() {
 }
 
 inline void ComputeContext::SetComputeRootSignature(RootSignature *pRootSignature) {
+    _dynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
+    _dynamicSampleDescriptorHeap.ParseRootSignature(pRootSignature);
     _pCommandList->SetComputeRootSignature(pRootSignature->GetRootSignature());
 }
 
@@ -259,6 +270,20 @@ inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
     _pCommandList->SetComputeRootUnorderedAccessView(rootIndex, bufferLocation);
 }
+
+#if ENABLE_RAY_TRACING
+inline void ComputeContext::SetRayTracingPipelineState(ID3D12StateObject *pStateObject) {
+    _pCommandList->SetPipelineState1(pStateObject);
+}
+
+inline void ComputeContext::DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc) {
+    FlushResourceBarriers();
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    _pCommandList->DispatchRays(&dispatchRaysDesc);
+}
+#endif
+
 #pragma endregion
 
 #pragma region GraphicsContext

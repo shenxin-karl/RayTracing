@@ -6,6 +6,11 @@ namespace dx {
 
 class DynamicBufferAllocator : NonCopyable {
 public:
+    struct AllocInfo {
+        uint8_t                      *pBuffer;
+        D3D12_GPU_VIRTUAL_ADDRESS     virtualAddress;
+    };
+public:
     DynamicBufferAllocator();
     ~DynamicBufferAllocator();
 public:
@@ -17,6 +22,7 @@ public:
     auto AllocConstantBuffer(size_t strideInBytes, const void *pInitData) -> D3D12_GPU_VIRTUAL_ADDRESS;
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
         -> D3D12_GPU_VIRTUAL_ADDRESS;
+    auto AllocBuffer(size_t bufferSize) -> AllocInfo;
     void Reset();
 private:
     // clang-format off
@@ -27,12 +33,7 @@ private:
         D3D12_GPU_VIRTUAL_ADDRESS           virtualAddress  = static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(-1);
         WRL::ComPtr<D3D12MA::Allocation>    pAllocation     = nullptr;
     };
-    struct AllocInfo {
-        uint8_t                      *pBuffer;
-        D3D12_GPU_VIRTUAL_ADDRESS     virtualAddress;
-    };
     using MemoryBlockList = std::vector<MemoryBlock>;
-    auto AllocBuffer(size_t bufferSize) -> AllocInfo;
 private:
     Device          *_pDevice;
     size_t           _maxBufferSize;

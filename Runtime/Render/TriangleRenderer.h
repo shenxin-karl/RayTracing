@@ -9,12 +9,25 @@ private:
 	void OnCreate(uint32_t numBackBuffer, HWND hwnd) override;
 	void OnDestroy() override;
 	void OnRender(GameTimer &timer) override;
+	void OnResize(uint32_t width, uint32_t height) override;
 public:
 	void CreateGeometry();
 	void CreateRootSignature();
 	void CreateRayTracingPipelineStateObject();
 	void CreateRayTracingOutputResource();
 	void BuildAccelerationStructures();
+
+	struct Viewport {
+	    float left;
+	    float top;
+	    float right;
+	    float bottom;
+	};
+
+	struct RayGenConstantBuffer {
+	    Viewport viewport;
+	    Viewport stencil;
+	};
 private:
 	// clang-format off
 	std::shared_ptr<dx::StaticBuffer>		_pTriangleStaticBuffer;
@@ -25,7 +38,7 @@ private:
 	dx::UAV									_rayTracingOutputView;
 	dx::WRL::ComPtr<D3D12MA::Allocation>	_pTopLevelAccelerationStructure;
 	dx::WRL::ComPtr<D3D12MA::Allocation>	_pBottomLevelAccelerationStructure;
-
+	RayGenConstantBuffer					_rayGenConstantBuffer = {};
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};
 	// clang-format on
