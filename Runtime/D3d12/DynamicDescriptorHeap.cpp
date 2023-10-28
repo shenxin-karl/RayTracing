@@ -138,8 +138,6 @@ void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandLi
         (pCommandList->*commitFunc)(static_cast<UINT>(rootIndex), _currentGPUDescriptorHandle);
         _currentCPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
             static_cast<UINT>(_descriptorHandleIncrementSize));
-        _currentGPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
-            static_cast<UINT>(_descriptorHandleIncrementSize));
     }
     _staleDescriptorTableBitMask.reset();
 }

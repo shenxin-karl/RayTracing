@@ -27,13 +27,13 @@ void Renderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
 
     _pDevice->OnCreate(true);
     pDescriptorManger->OnCreate(_pDevice.get());
-    _pSwapChain->OnCreate(_pDevice.get(), _numBackBuffer, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);
+    _pSwapChain->OnCreate(_pDevice.get(), 3, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);
 
     dx::FrameResourceRingDesc frameResourceRingDesc;
     frameResourceRingDesc.pDevice = _pDevice.get();
     frameResourceRingDesc.numComputeCmdListPreFrame = 1;
     frameResourceRingDesc.numGraphicsCmdListPreFrame = 1;
-    frameResourceRingDesc.numFrameResource = 3;
+    frameResourceRingDesc.numFrameResource = 2;
     _pFrameResourceRing->OnCreate(frameResourceRingDesc);
     _pUploadHeap->OnCreate(_pDevice.get(), dx::GetMByte(64));
 }

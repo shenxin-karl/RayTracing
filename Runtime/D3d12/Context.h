@@ -145,6 +145,8 @@ inline void Context::Reset(NativeCommandList *pCommandList) {
     _pCommandList = pCommandList;
     _resourceStateTracker.Reset();
     _dynamicBufferAllocator.Reset();
+    _dynamicViewDescriptorHeap.Reset();
+    _dynamicSampleDescriptorHeap.Reset();
 }
 
 inline void Context::Transition(ID3D12Resource *pResource,

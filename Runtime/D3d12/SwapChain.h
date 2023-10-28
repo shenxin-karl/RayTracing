@@ -19,6 +19,7 @@ public:
     auto GetCurrentBackBuffer() const -> ID3D12Resource *;
     auto GetCurrentBackBufferRTV() const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     auto GetFormat() const -> DXGI_FORMAT;
+    auto GetHWND() const -> HWND;
     void SetVSync(bool bVSync);
 private:
     void CreateRtv();

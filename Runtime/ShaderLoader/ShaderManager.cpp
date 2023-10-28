@@ -90,9 +90,8 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
         return D3D12_SHADER_BYTECODE{byteCode.data(), byteCode.size()};
     }
 
-    std::string cacheFileName = fmt::format("{}.cso", uuid.ToString());
-    stdfs::path shaderCachePath = AssetProjectSetting::GetInstance()->GetAssetCacheAbsolutePath() /
-                                  sShaderCacheDirectory / cacheFileName;
+    stdfs::path cacheFileName = fmt::format("{}.cso", uuid.ToString());
+    stdfs::path shaderCachePath = AssetProjectSetting::ToCachePath(sShaderCacheDirectory / cacheFileName);
     if (std::optional<D3D12_SHADER_BYTECODE> pShaderByteCode = LoadFromCache(uuid, sourcePath, shaderCachePath)) {
         return pShaderByteCode.value();
     }
@@ -101,12 +100,18 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
         loadInfo.entryPoint,
         loadInfo.shaderType,
         loadInfo.pDefineList,
-        !CompileEnvInfo::IsModeRelWithDebInfo(),
+        !CompileEnvInfo::IsModeRelease(),
         &ShaderIncludeCallBack};
+
+    // In release mode, the pdb file is also generated
+    if constexpr (CompileEnvInfo::IsModeRelease()) {
+		stdfs::path pdbFileName = fmt::format("{}.pdb", uuid.ToString());
+	    desc.outputPDBPath = AssetProjectSetting::ToCachePath(sShaderCacheDirectory / pdbFileName);
+    }
 
     dx::ShaderCompiler shaderCompiler;
     if (!shaderCompiler.Compile(desc)) {
-        Logger::Warning("Compile shader {} error: the error message: {}",
+        Logger::Error("Compile shader {} error: the error message: {}",
             sourcePath.string(),
             shaderCompiler.GetErrorMessage());
         DEBUG_BREAK;
@@ -117,6 +122,13 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
     std::ofstream fileOutput(shaderCachePath, std::ios::binary);
     fileOutput.write(static_cast<const char *>(pShaderBlob->GetBufferPointer()), pShaderBlob->GetBufferSize());
     fileOutput.close();
+
+    if (!desc.outputPDBPath.empty()) {
+	    Microsoft::WRL::ComPtr<IDxcBlob> pPDBByteCode = shaderCompiler.GetPDB();
+	    fileOutput.open(desc.outputPDBPath, std::ios::binary);
+        fileOutput.write(static_cast<const char *>(pPDBByteCode->GetBufferPointer()), pPDBByteCode->GetBufferSize());
+		fileOutput.close();
+    }
 
     std::vector<std::byte> byteCode;
     byteCode.resize(pShaderBlob->GetBufferSize());

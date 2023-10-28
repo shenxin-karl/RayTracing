@@ -26,6 +26,7 @@ set_arch("x64")
 includes("xmake/dxc.lua")
 includes("xmake/stduuid.lua")
 includes("xmake/renderdoc.lua")
+includes("xmake/pix.lua")
 
 add_requires("fmt 9.1.0")
 add_requires("spdlog v1.9.2") 
@@ -39,6 +40,7 @@ add_requires("stb 2023.01.30")
 add_requires("dxc")
 add_requires("stduuid", {debug = isDebug})
 add_requires("renderdoc")
+add_requires("pix")
 
 target("RayTracing")
     add_headerfiles("**.natvis")
@@ -67,6 +69,7 @@ target("RayTracing")
     add_packages("stduuid")
     add_packages("dxc")
     add_packages("renderdoc")
+    add_packages("pix")
 
     set_targetdir(BINARY_DIR)
 

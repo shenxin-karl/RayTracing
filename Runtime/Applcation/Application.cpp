@@ -2,8 +2,10 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Window.h"
+#include "Pix/Pix.h"
 #include "Render/Renderer.h"
 #include "Render/TriangleRenderer.h"
+#include "Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -24,6 +26,8 @@ void Application::OnCreate() {
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
     ShaderManager::GetInstance()->OnCreate();
+    RenderDoc::Load();
+    Pix::Load();
 
     HWND hwnd = pInputSystem->pWindow->GetHWND();
     _pRenderer = std::make_unique<TriangleRenderer>();
@@ -44,6 +48,8 @@ void Application::OnDestroy() {
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
+    Pix::Free();
+    RenderDoc::Free();
     ShaderManager::OnInstanceDestroy();
     AssetProjectSetting::OnInstanceDestroy();
     InputSystem::OnInstanceDestroy();
@@ -56,36 +62,42 @@ bool Application::IsRunning() const {
 
 void Application::OnPreUpdate(GameTimer &timer) {
     ITick::OnPreUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PreUpdate);
     InputSystem::GetInstance()->OnPreUpdate(timer);
     _pRenderer->OnPreUpdate(timer);
 }
 
 void Application::OnUpdate(GameTimer &timer) {
     ITick::OnUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::OnUpdate);
     InputSystem::GetInstance()->OnUpdate(timer);
     _pRenderer->OnUpdate(timer);
 }
 
 void Application::OnPostUpdate(GameTimer &timer) {
     ITick::OnPostUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PostRender);
     InputSystem::GetInstance()->OnPostUpdate(timer);
     _pRenderer->OnPostUpdate(timer);
 }
 
 void Application::OnPreRender(GameTimer &timer) {
     ITick::OnPreRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PreRender);
     InputSystem::GetInstance()->OnPreRender(timer);
     _pRenderer->OnPreRender(timer);
 }
 
 void Application::OnRender(GameTimer &timer) {
     ITick::OnRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::OnRender);
     InputSystem::GetInstance()->OnRender(timer);
     _pRenderer->OnRender(timer);
 }
 
 void Application::OnPostRender(GameTimer &timer) {
     ITick::OnPostRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PostRender);
     InputSystem::GetInstance()->OnPostRender(timer);
     _pRenderer->OnPostRender(timer);
 }

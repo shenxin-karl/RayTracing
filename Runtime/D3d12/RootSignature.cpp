@@ -22,6 +22,16 @@ void RootParameter::Clear() {
     ParameterType = static_cast<D3D12_ROOT_PARAMETER_TYPE>(0xFFFFFFFF);
 }
 
+void RootParameter::InitAsConstants(UINT num32BitValues,
+    UINT shaderRegister,
+    UINT registerSpace,
+    D3D12_SHADER_VISIBILITY visibility) {
+
+    ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    ShaderVisibility = visibility;
+    CD3DX12_ROOT_CONSTANTS::Init(Constants, num32BitValues, shaderRegister, registerSpace);
+}
+
 void RootParameter::InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     ShaderVisibility = visibility;

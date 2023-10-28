@@ -22,7 +22,9 @@ public:
     void OnUpdate(GameTimer &timer) override;
     void OnPostUpdate(GameTimer &timer) override;
 public:
-    std::unique_ptr<Mouse> pMouse = {};
-    std::unique_ptr<Keyboard> pKeyboard = {};
-    std::unique_ptr<Window> pWindow = {};
+    // clang-format off
+    std::unique_ptr<Mouse>      pMouse      = nullptr;
+    std::unique_ptr<Keyboard>   pKeyboard   = nullptr;
+    std::unique_ptr<Window>     pWindow     = nullptr;
+    // clang-format on
 };

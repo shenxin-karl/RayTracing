@@ -174,6 +174,7 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
 
     std::wstring entryPointStr = nstd::to_wstring(entryPoint);
     std::vector<LPCWSTR> arguments = {fileName.c_str(), L"-T", target.data()};
+    std::vector<std::wstring> macros;
 
     if (type != ShaderType::eLib) {
 	    Assert(!entryPointStr.empty());
@@ -183,10 +184,16 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
 
     if (makeDebugInfo) {
         arguments.push_back(L"-Zi");
-        arguments.push_back(L"-O0");
+        arguments.push_back(L"-Od");
+        arguments.push_back(L"-Qembed_debug");
     }
 
-    std::vector<std::wstring> macros;
+    if (!desc.outputPDBPath.empty()) {
+        macros.push_back(desc.outputPDBPath.wstring());
+	    arguments.push_back(L"-Fd");
+        arguments.push_back(macros.back().c_str());
+    }
+
     if (pDefineList != nullptr) {
         for (auto &&[key, value] : *pDefineList) {
             std::string arg = fmt::format("-D{}={}", key, value);
@@ -221,7 +228,13 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
     }
 
     _result = pCompileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&_pByteCode), nullptr);
-    return SUCCEEDED(_result);
+    bool ret = SUCCEEDED(_result);
+
+    if (!desc.outputPDBPath.empty()) {
+		_result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&_pPDB), nullptr);
+        ret = ret && SUCCEEDED(_result);
+    }
+    return ret;
 }
 
 auto ShaderCompiler::GetErrorMessage() const -> const std::string & {
@@ -230,6 +243,10 @@ auto ShaderCompiler::GetErrorMessage() const -> const std::string & {
 
 auto ShaderCompiler::GetByteCode() const -> WRL::ComPtr<IDxcBlob> {
     return _pByteCode;
+}
+
+auto ShaderCompiler::GetPDB() const -> WRL::ComPtr<IDxcBlob> {
+    return _pPDB;
 }
 
 #pragma endregion

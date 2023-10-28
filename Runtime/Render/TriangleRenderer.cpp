@@ -10,6 +10,10 @@
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
+#include "InputSystem/InputSystem.h"
+#include "InputSystem/Keyboard.h"
+#include "Pix/Pix.h"
+#include "Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -38,6 +42,10 @@ void TriangleRenderer::OnDestroy() {
     Renderer::OnDestroy();
 }
 
+void TriangleRenderer::OnPreRender(GameTimer &timer) {
+	Renderer::OnPreRender(timer);
+}
+
 void TriangleRenderer::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
@@ -47,34 +55,11 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
     }
 
-#if 0
-    _pFrameResourceRing->OnBeginFrame();
+    InputSystem *pInputSystem = InputSystem::GetInstance();
 
-    dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
-    std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
-
-    CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.f, 0.f, static_cast<float>(_width), static_cast<float>(_height));
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-    pGraphicsCtx->SetViewport(viewport);
-    pGraphicsCtx->SetScissor(scissor);
-    pGraphicsCtx->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
-    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    pGraphicsCtx->FlushResourceBarriers();
-
-    glm::vec4 color = {
-        std::sin(timer.GetTotalTime()) * 0.5f + 0.5f,
-        std::cos(timer.GetTotalTime()) * 0.5f + 0.5f,
-        0.f,
-        1.f,
-    };
-
-    pGraphicsCtx->ClearRenderTargetView(_pSwapChain->GetCurrentBackBufferRTV(), color);
-    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
-    frameResource.ExecuteContexts(pGraphicsCtx.get());
-
-    _pFrameResourceRing->OnEndFrame();
-    _pSwapChain->Present();
-#endif
+    if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+    }
 
     _pFrameResourceRing->OnBeginFrame();
     dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
@@ -90,29 +75,30 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     // build dispatch rays desc
     D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
     {
-	    dx::WRL::ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
-	    dx::ThrowIfFailed(_pRayTracingPSO.As(&stateObjectProperties));
-	    void *pRayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(RayGenShaderName.data());
+        dx::WRL::ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
+        dx::ThrowIfFailed(_pRayTracingPSO.As(&stateObjectProperties));
+        void *pRayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(RayGenShaderName.data());
         void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(MissShaderName.data());
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
-		UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+        UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
         size_t rayGenShaderTableSize = 1 * shaderIdentifierSize + sizeof(RayGenConstantBuffer);
-	    dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize, 64);
-	    uint8_t *ptr = rayGenAllocInfo.pBuffer;
+        dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize, 64);
+        uint8_t *ptr = rayGenAllocInfo.pBuffer;
         std::memcpy(ptr, pRayGenShaderIdentifier, shaderIdentifierSize);
         ptr += shaderIdentifierSize;
         std::memcpy(ptr, &_rayGenConstantBuffer, sizeof(RayGenConstantBuffer));
         dispatchRaysDesc.RayGenerationShaderRecord.StartAddress = rayGenAllocInfo.virtualAddress;
         dispatchRaysDesc.RayGenerationShaderRecord.SizeInBytes = rayGenShaderTableSize;
 
-	    dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
+        dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
         std::memcpy(missShaderAllocInfo.pBuffer, pMissShaderIdentifier, shaderIdentifierSize);
         dispatchRaysDesc.MissShaderTable.StartAddress = missShaderAllocInfo.virtualAddress;
         dispatchRaysDesc.MissShaderTable.SizeInBytes = 1 * shaderIdentifierSize;
         dispatchRaysDesc.MissShaderTable.StrideInBytes = shaderIdentifierSize;
 
-        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
+        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize,
+            64);
         std::memcpy(hitGroupShaderAllocInfo.pBuffer, pHitGroupShaderIdentifier, shaderIdentifierSize);
         dispatchRaysDesc.HitGroupTable.StartAddress = hitGroupShaderAllocInfo.virtualAddress;
         dispatchRaysDesc.HitGroupTable.SizeInBytes = 1 * shaderIdentifierSize;
@@ -122,7 +108,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         dispatchRaysDesc.Height = _height;
         dispatchRaysDesc.Depth = 1;
     }
-    pGraphicsCtx->DispatchRays(dispatchRaysDesc);     
+    pGraphicsCtx->DispatchRays(dispatchRaysDesc);
 
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
@@ -130,9 +116,12 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
-
-    _pFrameResourceRing->OnEndFrame();
     _pSwapChain->Present();
+    _pFrameResourceRing->OnEndFrame();
+
+    if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+    }
 }
 
 void TriangleRenderer::OnResize(uint32_t width, uint32_t height) {
@@ -163,7 +152,9 @@ void TriangleRenderer::CreateGeometry() {
     glm::vec3 vertices[] = {{0, -offset, depthValue}, {-offset, offset, depthValue}, {offset, offset, depthValue}};
 
     _pTriangleStaticBuffer->OnCreate(_pDevice.get(), sizeof(indices) + sizeof(vertices));
-    dx::StaticBufferUploadHeap uploadHeap(*_pTriangleStaticBuffer, *_pUploadHeap);
+    _pTriangleStaticBuffer->SetName("Triangle Mesh");
+
+    dx::StaticBufferUploadHeap uploadHeap(*_pUploadHeap, *_pTriangleStaticBuffer);
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(glm::vec3), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
     uploadHeap.DoUpload();
@@ -177,7 +168,7 @@ void TriangleRenderer::CreateRootSignature() {
     _globalRootSignature.Finalize(_pDevice.get());
 
     _localRootSignature.Reset(1, 0);
-    _localRootSignature.At(0).InitAsBufferCBV(0);    // b0
+    _localRootSignature.At(0).InitAsConstants(dx::SizeofInUint32<RayGenConstantBuffer>(), 0);    // b0
     _localRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
@@ -207,8 +198,13 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
     size_t attributeSize = 2 * sizeof(float);
     pShaderConfig->Config(payloadSize, attributeSize);
 
-    auto *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
+        *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
     pLocalRootSignature->SetRootSignature(_localRootSignature.GetRootSignature());
+    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
+        CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
+    rootSignatureAssociation->AddExport(RayGenShaderName.data());
 
     auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
     pGlobalRootSignature->SetRootSignature(_globalRootSignature.GetRootSignature());
@@ -279,7 +275,8 @@ void TriangleRenderer::BuildAccelerationStructures() {
 
     auto CreateUAVBuffer = [=](size_t bufferSize, D3D12_RESOURCE_STATES initResourceStates, std::wstring_view name) {
         dx::WRL::ComPtr<D3D12MA::Allocation> pAllocation;
-        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize,
+            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;

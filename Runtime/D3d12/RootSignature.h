@@ -10,7 +10,8 @@ class RootParameter : public D3D12_ROOT_PARAMETER {
 public:
     RootParameter();
     ~RootParameter();
-    void Clear();
+    void Clear(); 
+	void InitAsConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
     void InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
     void InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
     void InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
@@ -35,8 +36,9 @@ public:
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;
     bool IsFinalized() const;
-    void Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-    auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const ->DescriptorTableBitMask;
+    void Finalize(Device *pDevice,
+        D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask;
     auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescriptorPreTable &;
 private:
     // clang-format off

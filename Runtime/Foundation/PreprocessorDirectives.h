@@ -182,3 +182,7 @@
 #define NON_COPYABLE(Type)                                                                                             \
     Type(const Type &) = delete;                                                                                       \
     Type &operator=(const Type &) = delete
+
+#ifndef ENABLE_RENDER_DOC
+    #define ENABLE_RENDER_DOC 0
+#endif

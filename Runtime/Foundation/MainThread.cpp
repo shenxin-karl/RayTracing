@@ -1,61 +1,55 @@
 #include "MainThread.h"
 #include "Exception.h"
+#include <magic_enum.hpp>
 
-std::thread::id MainThread::sMainThreadId = std::this_thread::get_id();
-std::vector<std::function<void()>> MainThread::sBeginFrameJobQueue{};
-std::vector<std::function<void()>> MainThread::sEndFrameJobQueue{};
-std::mutex MainThread::sBeginFrameJobMutex{};
-std::mutex MainThread::sEndFrameJobMutex{};
-
+static std::thread::id sMainThreadId = std::this_thread::get_id();
+static std::mutex sQueueMutex[magic_enum::enum_count<MainThread::JobWorkTime>()];
+static std::vector<MainThread::Job> sJobQueue[magic_enum::enum_count<MainThread::JobWorkTime>()];
 
 bool MainThread::IsMainThread() {
-	return std::this_thread::get_id() == sMainThreadId;
+    return std::this_thread::get_id() == sMainThreadId;
 }
 
 void MainThread::EnsureMainThread(std::string_view message, std::source_location sl) {
-	if (message.empty()) {
-	    Exception::CondThrow(IsMainThread(), 
-			"{}({},{}) EnsureMainThread failed!", 
-			sl.file_name(), 
-			sl.line(), 
-			sl.column()
-		);
-	} else {
-		FormatAndLocation formatAndLocation { message, sl };
-	    Exception::CondThrow(IsMainThread(), formatAndLocation);
-	}
+    if (message.empty()) {
+        Exception::CondThrow(IsMainThread(),
+            "{}({},{}) EnsureMainThread failed!",
+            sl.file_name(),
+            sl.line(),
+            sl.column());
+    } else {
+        FormatAndLocation formatAndLocation{message, sl};
+        Exception::CondThrow(IsMainThread(), formatAndLocation);
+    }
 }
 
 auto MainThread::GetMainThreadId() -> std::thread::id {
-	return sMainThreadId;
+    return sMainThreadId;
 }
 
-void MainThread::AddBeginFrameJob(std::function<void()> job) {
-	std::lock_guard lock(sBeginFrameJobMutex);
-	sBeginFrameJobQueue.push_back(std::move(job));
+void MainThread::AddMainThreadJob(JobWorkTime jobWorkTime, Job job) {
+    size_t index = magic_enum::enum_index(jobWorkTime).value();
+    std::unique_lock lock(sQueueMutex[index]);
+    sJobQueue[index].push_back(std::move(job));
 }
 
-void MainThread::AddEndFrameJob(std::function<void()> job) {
-	std::lock_guard lock(sEndFrameJobMutex);
-	sEndFrameJobQueue.push_back(std::move(job));
-}
+void MainThread::ExecuteMainThreadJob(JobWorkTime jobWorkTime) {
+    EnsureMainThread();
+    size_t index = magic_enum::enum_index(jobWorkTime).value();
+    std::unique_lock lock(sQueueMutex[index]);
+    std::vector<Job> queue = std::move(sJobQueue[index]);
+    sJobQueue[index].clear();
+    lock.unlock();
 
-void MainThread::ExecuteBeginFrameJob() {
-	EnsureMainThread();
-	std::unique_lock lock(sBeginFrameJobMutex);
-	std::vector<std::function<void()>> queue = std::move(sBeginFrameJobQueue);
-	lock.unlock();
-	for (auto &job : queue) {
-		job();
-	}
-}
+    std::vector<Job> nextFrameExecuteJob;
+    for (Job &job : queue) {
+	    JobStatus status = job();
+        if (status == JobStatus::ExecuteInNextFrame) {
+	        nextFrameExecuteJob.push_back(std::move(job));
+        }
+    }
 
-void MainThread::ExecuteEndFrameJob() {
-	EnsureMainThread();
-	std::unique_lock lock(sEndFrameJobMutex);
-	std::vector<std::function<void()>> queue = std::move(sEndFrameJobQueue);
-	lock.unlock();
-	for (auto &job : queue) {
-		job();
-	}
+    lock.lock();
+    sJobQueue[index].insert(sJobQueue[index].end(), nextFrameExecuteJob.begin(), nextFrameExecuteJob.end());
+    lock.unlock();
 }

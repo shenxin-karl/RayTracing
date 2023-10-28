@@ -49,8 +49,9 @@ void StaticBuffer::OnDestroy() {
     _pDevice = nullptr;
 }
 
-StaticBufferUploadHeap::StaticBufferUploadHeap(StaticBuffer &staticBuffer, UploadHeap &uploadHeap) {
+StaticBufferUploadHeap::StaticBufferUploadHeap(UploadHeap &uploadHeap, StaticBuffer &staticBuffer, size_t staticBufferOffset) {
     _pStaticBuffer = &staticBuffer;
+    _dstOffset = staticBufferOffset;
     _pUploadHeap = &uploadHeap;
     _pUploadHeap->AddPreUploadTranslation(_pStaticBuffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST);
 }
@@ -128,7 +129,7 @@ auto StaticBufferUploadHeap::AllocStructuredBuffer(size_t numOfVertices, size_t 
 	desc.Format = _pStaticBuffer->GetDesc().Format;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-    desc.Buffer.FirstElement = _offset / strideInBytes;
+    desc.Buffer.FirstElement = _srcOffset / strideInBytes;
 	desc.Buffer.NumElements = static_cast<UINT>(numOfVertices);
 	desc.Buffer.StructureByteStride = static_cast<UINT>(strideInBytes);
 	desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
@@ -156,9 +157,9 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
     const void *pData,
     size_t dataSize) -> std::optional<BufferInResourceInfo> {
 
-    size_t originOffset = _offset;
+    size_t originOffset = _srcOffset;
     size_t bufferSize = numOfVertices * strideInBytes;
-    size_t newOffset = _offset + bufferSize;
+    size_t newOffset = _srcOffset + bufferSize;
     if (newOffset > _pStaticBuffer->GetDesc().Width) {
         return std::nullopt;
     }
@@ -169,11 +170,14 @@ auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,
     }
 
     std::memcpy(pBuffer, pData, dataSize);
-    _offset = newOffset;
+    size_t originDstOffset = _dstOffset;
+    _srcOffset = newOffset;
+    _dstOffset += bufferSize;
 
     UploadHeap::BufferCopy bufferCopy;
     bufferCopy.size = bufferSize;
-    bufferCopy.offset = _pUploadHeap->CalcBufferOffset(pBuffer);
+    bufferCopy.srcOffset = _pUploadHeap->CalcBufferOffset(pBuffer);
+    bufferCopy.dstOffset = originDstOffset;
     bufferCopy.pDestBuffer = _pStaticBuffer->GetResource();
     _pUploadHeap->AddBufferCopy(bufferCopy);
 

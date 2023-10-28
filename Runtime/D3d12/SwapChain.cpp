@@ -76,6 +76,10 @@ auto SwapChain::GetFormat() const -> DXGI_FORMAT {
     return _swapChainDesc.Format;
 }
 
+auto SwapChain::GetHWND() const -> HWND {
+    return _hwnd;
+}
+
 void SwapChain::SetVSync(bool bVSync) {
     _bVSyncOn = bVSync;
 }

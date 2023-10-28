@@ -150,7 +150,7 @@ void UploadHeap::DoUpload() {
     }
 
     for (const BufferCopy &c : _bufferCopies) {
-        _pCommandList->CopyBufferRegion(c.pDestBuffer, 0, GetResource(), c.offset, c.size);
+        _pCommandList->CopyBufferRegion(c.pDestBuffer, c.dstOffset, GetResource(), c.srcOffset, c.size);
     }
 
     if (!_postUploadBarriers.empty()) {

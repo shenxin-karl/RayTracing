@@ -64,15 +64,11 @@ private:
 class GameTimer;
 class Keyboard : public ITick {
 public:
-    static constexpr int kMaxKeyCodeSize = 0xff;
-    static constexpr int kMaxQueueSize = 0xff;
-    std::bitset<kMaxKeyCodeSize> _keyState;
-    std::bitset<kMaxKeyCodeSize> _characterState;
-    std::queue<KeyEvent> _keycodeQueue;
-    std::queue<CharEvent> _characterQueue;
-public:
     Keyboard();
 
+    bool IsKeyRelease(unsigned char key) const {
+	    return _preFrameKeyState.test(key) && !_keyState.test(key);
+    }
     bool IsKeyPressed(unsigned char key) const {
         return _keyState.test(key);
     }
@@ -89,6 +85,15 @@ public:
 
     void HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnPostUpdate(GameTimer &timer) override;
+private:
+    static constexpr int kMaxKeyCodeSize    = 0xff;
+    static constexpr int kMaxQueueSize      = 0xff;
+    std::bitset<kMaxKeyCodeSize>    _keyState;
+    std::bitset<kMaxKeyCodeSize>    _characterState;
+    std::bitset<kMaxKeyCodeSize>    _preFrameKeyState;
+    std::bitset<kMaxKeyCodeSize>    _preFrameCharacterState;
+    std::queue<KeyEvent>            _keycodeQueue;
+    std::queue<CharEvent>           _characterQueue;
 };
 
 

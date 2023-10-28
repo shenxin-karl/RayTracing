@@ -76,6 +76,7 @@ struct ShaderCompilerDesc {
     const DefineList       *pDefineList = nullptr;
     bool                    makeDebugInfo = !CompileEnvInfo::IsModeRelWithDebInfo();
     ShaderIncludeCallback   includeCallback;
+    stdfs::path             outputPDBPath;
 };
 // clang-format on
 
@@ -84,11 +85,13 @@ public:
     bool Compile(const ShaderCompilerDesc &desc);
     auto GetErrorMessage() const -> const std::string &;
     auto GetByteCode() const -> WRL::ComPtr<IDxcBlob>;
+    auto GetPDB() const -> WRL::ComPtr<IDxcBlob>;
 private:
     // clang-format off
     HRESULT                 _result = 0;
     std::string             _errorMessage;
     WRL::ComPtr<IDxcBlob>   _pByteCode;
+    WRL::ComPtr<IDxcBlob>   _pPDB;
     // clang-format on
 };
 #pragma endregion

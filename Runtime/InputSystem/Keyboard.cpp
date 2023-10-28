@@ -47,4 +47,9 @@ void Keyboard::TryDiscardEvent(std::queue<T> &queue) {
 void Keyboard::OnPostUpdate(GameTimer &timer) {
     TryDiscardEvent(_keycodeQueue);
     TryDiscardEvent(_characterQueue);
+
+    _preFrameKeyState = _keyState;
+    _preFrameCharacterState = _characterState;
+    _keyState.reset();
+    _characterState.reset();
 }

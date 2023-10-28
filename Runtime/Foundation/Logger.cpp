@@ -40,6 +40,7 @@ void Logger::LogMessage(DebugLevel level, const std::source_location &location, 
 
 #if PLATFORM_WIN
     OutputDebugStringA(output.c_str());
+    OutputDebugStringA("\n");
 #endif
 }
 

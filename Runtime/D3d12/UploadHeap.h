@@ -10,7 +10,8 @@ public:
 public:
     struct BufferCopy {
         size_t size = 0;
-        size_t offset = 0;
+        size_t srcOffset = 0;
+        size_t dstOffset = 0;
         ID3D12Resource *pDestBuffer = nullptr;
     };
     struct TextureCopy {

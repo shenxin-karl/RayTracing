@@ -28,7 +28,7 @@ bool IsInsideViewport(float2 p, Viewport viewport) {
 
 [shader("raygeneration")]
 void MyRayGenShader() {
-    float2 lerpValues = (float)DispatchRaysIndex() / (float2)DispatchRaysDimensions();
+    float2 lerpValues = (float2)DispatchRaysIndex() / (float2)DispatchRaysDimensions();
     float3 rayDir = float3(0, 0, 1);
     float3 origin = float3(
         lerp(gRayGenCB.viewport.left, gRayGenCB.viewport.right, lerpValues.x),

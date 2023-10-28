@@ -126,4 +126,14 @@ Inline(2) constexpr size_t GetMByte(size_t num) {
     return num * 1024 * 1024;
 }
 
+template<typename T>
+Inline(2) constexpr size_t SizeofInUint32(const T &obj) {
+	return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
+}
+
+template<typename T>
+Inline(2) constexpr size_t SizeofInUint32() {
+	return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
+}
+
 }    // namespace dx

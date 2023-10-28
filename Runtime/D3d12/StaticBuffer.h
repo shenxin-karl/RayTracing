@@ -40,7 +40,7 @@ private:
 
 class StaticBufferUploadHeap {
 public:
-    StaticBufferUploadHeap(StaticBuffer &staticBuffer, UploadHeap &uploadHeap);
+    StaticBufferUploadHeap(UploadHeap &uploadHeap, StaticBuffer &staticBuffer, size_t staticBufferOffset = 0);
     ~StaticBufferUploadHeap();
 public:
     [[nodiscard]]
@@ -91,7 +91,8 @@ private:
     // clang-format off
     StaticBuffer   *_pStaticBuffer      = nullptr;
     UploadHeap     *_pUploadHeap        = nullptr;
-    size_t          _offset             = 0;
+    size_t          _srcOffset          = 0;
+    size_t          _dstOffset          = 0;
     bool            _uploadFinished     = false;
     bool            _vertexBuffer       = false;
     bool            _indexBuffer        = false;

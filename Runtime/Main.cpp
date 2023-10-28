@@ -16,7 +16,7 @@ int main() {
             timer.StartNewFrame();
             pApp->OnPreUpdate(timer);
             pApp->OnUpdate(timer);
-            pApp->OnPostRender(timer);
+            pApp->OnPostUpdate(timer);
 
             pApp->OnPreRender(timer);
             pApp->OnRender(timer);

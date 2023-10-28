@@ -79,6 +79,7 @@ auto FrameResource::AllocComputeContext() -> std::shared_ptr<ComputeContext> {
 void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     using ResourceBarriers = ResourceStateTracker::ResourceBarriers;
     using ResourceState = ResourceStateTracker::ResourceState;
+    using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
 
     for (Context *pContext : contexts) {
         pContext->FlushResourceBarriers();
@@ -100,15 +101,15 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
             // translation all sub resource to after state
             if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
-                if (pResourceState->subResourceStateMap.empty() && barrier.Transition.StateAfter == pResourceState->state) {
-	                continue;
+                if (pResourceState->subResourceStateMap.empty() &&
+                    barrier.Transition.StateAfter == pResourceState->state) {
+                    continue;
                 }
 
-				hashSet.insert(pResource);
+                hashSet.insert(pResource);
                 D3D12_RESOURCE_STATES currentState = pResourceState->state;
                 pResourceState->state = barrier.Transition.StateAfter;
-                if (pResourceState->subResourceStateMap.empty() &&
-                    currentState == D3D12_RESOURCE_STATE_COMMON &&
+                if (pResourceState->subResourceStateMap.empty() && currentState == D3D12_RESOURCE_STATE_COMMON &&
                     ResourceStateTracker::OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
                     continue;
                 }
@@ -121,9 +122,9 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
                 for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
                     if (barrier.Transition.StateAfter != subResourceState) {
-	                    barrier.Transition.Subresource = subResource;
-	                    barrier.Transition.StateBefore = subResourceState;
-						linkCommandListStateBarriers.push_back(barrier);
+                        barrier.Transition.Subresource = subResource;
+                        barrier.Transition.StateBefore = subResourceState;
+                        linkCommandListStateBarriers.push_back(barrier);
                     }
                 }
                 continue;
@@ -131,11 +132,17 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
             D3D12_RESOURCE_STATES currentState = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
             if (currentState != barrier.Transition.StateAfter) {
-				hashSet.insert(pResource);
-	            barrier.Transition.StateBefore = currentState;
+                hashSet.insert(pResource);
+                barrier.Transition.StateBefore = currentState;
                 pResourceState->state = barrier.Transition.StateAfter;
-	            linkCommandListStateBarriers.push_back(barrier);
+                linkCommandListStateBarriers.push_back(barrier);
             }
+        }
+
+        const ResourceStateMap &finalResourceMap = resourceStateTracker.GetFinalResourceStateMap();
+        for (auto &&[pResource, resourceState] : finalResourceMap) {
+	        auto *pGlobalResourceState = GlobalResourceState::FindResourceState(pResource);
+            *pGlobalResourceState = resourceState;
         }
 
         pendingResourceBarriers.clear();
@@ -152,12 +159,6 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         } else {
             pCmdList = contexts[i - 1]->GetCommandList();
             pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
-        }
-
-        for (const D3D12_RESOURCE_BARRIER barrier : pendingResourceBarriers) {
-            ID3D12Resource *pResource = barrier.Transition.pResource;
-            ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
-            pResourceState->SetSubResourceState(barrier.Transition.Subresource, barrier.Transition.StateAfter);
         }
     }
 
@@ -184,17 +185,17 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     }
 #endif
 
-    for (ID3D12Resource *pResource : hashSet) {
-        ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
-        for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
-            if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
-                subResourceState = D3D12_RESOURCE_STATE_COMMON;
-            }
-        }
-        if (ResourceStateTracker::OptimizeResourceBarrierState(pResourceState->state)) {
-            pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
-        }
-    }
+    //for (ID3D12Resource *pResource : hashSet) {
+    //    ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
+    //    for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
+    //        if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
+    //            subResourceState = D3D12_RESOURCE_STATE_COMMON;
+    //        }
+    //    }
+    //    if (ResourceStateTracker::OptimizeResourceBarrierState(pResourceState->state)) {
+    //        pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
+    //    }
+    //}
 
     GlobalResourceState::UnLock();
 }
