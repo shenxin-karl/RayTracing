@@ -84,7 +84,8 @@ public:
     static void TryDiscardEvent(std::queue<T> &queue);
 
     void HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    void OnPostUpdate(GameTimer &timer) override;
+    void OnPreUpdate(GameTimer &timer) override;
+    void OnPostRender(GameTimer &timer) override;
 private:
     static constexpr int kMaxKeyCodeSize    = 0xff;
     static constexpr int kMaxQueueSize      = 0xff;

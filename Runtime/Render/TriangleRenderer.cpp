@@ -49,16 +49,24 @@ void TriangleRenderer::OnPreRender(GameTimer &timer) {
 void TriangleRenderer::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
+    static bool needOpenCaptureUI = false;
     static uint64_t frameCount = 0;
     if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
         Logger::Info("fps {}", timer.GetFPS());
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
+
+        if (needOpenCaptureUI) {
+	        Pix::OpenCaptureInUI();
+	        needOpenCaptureUI = false;
+        }
     }
 
     InputSystem *pInputSystem = InputSystem::GetInstance();
 
     if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+        _pDevice->WaitForGPUFlush();
         Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        needOpenCaptureUI = true;
     }
 
     _pFrameResourceRing->OnBeginFrame();
@@ -121,6 +129,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
         Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        _pDevice->WaitForGPUFlush();
     }
 }
 

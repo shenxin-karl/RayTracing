@@ -76,7 +76,7 @@ void Application::OnUpdate(GameTimer &timer) {
 
 void Application::OnPostUpdate(GameTimer &timer) {
     ITick::OnPostUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PostRender);
+    MainThread::ExecuteMainThreadJob(MainThread::PostUpdate);
     InputSystem::GetInstance()->OnPostUpdate(timer);
     _pRenderer->OnPostUpdate(timer);
 }

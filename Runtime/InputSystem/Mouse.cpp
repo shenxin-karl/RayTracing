@@ -58,7 +58,7 @@ void Mouse::HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		_events.push(mouseEvent);
 }
 
-void Mouse::OnPostUpdate(GameTimer &timer) {
+void Mouse::OnPostRender(GameTimer &timer) {
 	while (_events.size() > kEventMaxSize) {
 		_events.pop();
 	}

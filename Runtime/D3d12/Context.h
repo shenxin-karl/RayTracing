@@ -180,9 +180,9 @@ inline void Context::SetPipelineState(ID3D12PipelineState *pPipelineState) {
 }
 
 inline void Context::SetDynamicViews(size_t rootIndex,
-                                     size_t numDescriptors,
-                                     const DescriptorHandle &handle,
-                                     size_t offset) {
+    size_t numDescriptors,
+    const DescriptorHandle &handle,
+    size_t offset) {
 
     _dynamicViewDescriptorHeap.StageDescriptors(rootIndex, numDescriptors, handle.GetCpuHandle(), offset);
 }

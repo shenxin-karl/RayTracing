@@ -41,13 +41,9 @@ void Pix::BeginFrameCapture(void *pNativeWindowHandle, void *pDevice) {
 
 void Pix::EndFrameCapture(void *pNativeWindowHandle, void *pDevice) {
     dx::ThrowIfFailed(PIXEndCapture(false));
-    MainThread::AddMainThreadJob(MainThread::PostRender, []() {
-	    if (PIXGetCaptureState() == PIX_CAPTURE_GPU) {
-		    return MainThread::ExecuteInNextFrame;
-	    }
+}
 
-	    std::wstring path = AssetProjectSetting::ToCachePath("CaptureFrame/PixCapture.wpix").wstring();
-	    PIXOpenCaptureInUI(path.c_str());
-	    return MainThread::Finished;
-    });
+void Pix::OpenCaptureInUI() {
+    std::wstring path = AssetProjectSetting::ToCachePath("CaptureFrame/PixCapture.wpix").wstring();
+    PIXOpenCaptureInUI(path.c_str());
 }

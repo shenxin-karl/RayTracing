@@ -21,20 +21,32 @@ CharEvent Keyboard::GetCharEvent() {
 }
 
 void Keyboard::HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    bool repeatFilter = false;(lParam & 0x80000000) != 0;     // // filter auto repeat
     switch (msg) {
     case WM_KEYDOWN:
-        _keyState.set(wParam);
-        _keycodeQueue.emplace(KeyState::ePressed, static_cast<char>(wParam));
+	case WM_SYSKEYDOWN:
+        if (!repeatFilter) {
+	        _keyState.set(wParam);
+	        _keycodeQueue.emplace(KeyState::ePressed, static_cast<char>(wParam));
+        }
         break;
     case WM_KEYUP:
-        _keyState.set(wParam, false);
-        _keycodeQueue.emplace(KeyState::eReleased, static_cast<char>(wParam));
+	case WM_SYSKEYUP:
+        if (!repeatFilter) {
+	        _keyState.set(wParam, false);
+	        _keycodeQueue.emplace(KeyState::eReleased, static_cast<char>(wParam));
+        }
         break;
     case WM_CHAR:
         _characterState.set(wParam);
         _characterQueue.emplace(KeyState::ePressed, static_cast<char>(wParam));
         break;
+    default:
+        break;
     }
+}
+
+void Keyboard::OnPreUpdate(GameTimer &timer) {
 }
 
 template<typename T>
@@ -44,12 +56,10 @@ void Keyboard::TryDiscardEvent(std::queue<T> &queue) {
     }
 }
 
-void Keyboard::OnPostUpdate(GameTimer &timer) {
+void Keyboard::OnPostRender(GameTimer &timer) {
     TryDiscardEvent(_keycodeQueue);
     TryDiscardEvent(_characterQueue);
-
+	ITick::OnPostRender(timer);
     _preFrameKeyState = _keyState;
     _preFrameCharacterState = _characterState;
-    _keyState.reset();
-    _characterState.reset();
 }

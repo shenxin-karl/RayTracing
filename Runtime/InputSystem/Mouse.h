@@ -40,7 +40,7 @@ class Mouse : public ITick {
 public:
 	Mouse(InputSystem *pInputSystem);
 	void HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	void OnPostUpdate(GameTimer &timer) override;
+	void OnPostRender(GameTimer &timer) override;
 	auto GetEvent() -> MouseEvent;
 	bool GetShowCursor() const;
 	void SetShowCursor(bool bShow);

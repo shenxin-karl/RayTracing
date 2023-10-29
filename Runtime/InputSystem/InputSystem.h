@@ -20,7 +20,7 @@ public:
     bool ShouldClose() const;
     void OnPreUpdate(GameTimer &timer) override;
     void OnUpdate(GameTimer &timer) override;
-    void OnPostUpdate(GameTimer &timer) override;
+    void OnPostRender(GameTimer &timer) override;
 public:
     // clang-format off
     std::unique_ptr<Mouse>      pMouse      = nullptr;

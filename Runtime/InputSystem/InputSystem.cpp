@@ -40,8 +40,9 @@ void InputSystem::OnUpdate(GameTimer &timer) {
     pKeyboard->OnUpdate(timer);
 }
 
-void InputSystem::OnPostUpdate(GameTimer &timer) {
-    pWindow->OnPostUpdate(timer);
-    pMouse->OnPostUpdate(timer);
-    pKeyboard->OnPostUpdate(timer);
+void InputSystem::OnPostRender(GameTimer &timer) {
+	ITick::OnPostRender(timer);
+    pWindow->OnPostRender(timer);
+    pMouse->OnPostRender(timer);
+    pKeyboard->OnPostRender(timer);
 }

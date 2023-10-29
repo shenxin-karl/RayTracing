@@ -80,8 +80,11 @@ void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, void *pDevice) {
         return;
     }
     sRenderDocApi->EndFrameCapture(pDevice, pNativeWindowHandle);
+#endif ENABLE_RENDER_DOC
+}
+
+void RenderDoc::OpenCaptureInUI() {
     if (!sRenderDocApi->IsRemoteAccessConnected()) {
         sRenderDocApi->LaunchReplayUI(true, "");
     }
-#endif ENABLE_RENDER_DOC
 }
