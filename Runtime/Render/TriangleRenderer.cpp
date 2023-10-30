@@ -4,7 +4,9 @@
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
+#include "D3d12/RGShaderRecodeGenerator.h"
 #include "D3d12/ShaderCompiler.h"
+#include "D3d12/ShaderTableGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
@@ -88,29 +90,17 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         void *pRayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(RayGenShaderName.data());
         void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(MissShaderName.data());
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
-        UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
-        size_t rayGenShaderTableSize = 1 * shaderIdentifierSize + sizeof(RayGenConstantBuffer);
-        dx::DynamicBufferAllocator::AllocInfo rayGenAllocInfo = pGraphicsCtx->AllocBuffer(rayGenShaderTableSize, 64);
-        uint8_t *ptr = rayGenAllocInfo.pBuffer;
-        std::memcpy(ptr, pRayGenShaderIdentifier, shaderIdentifierSize);
-        ptr += shaderIdentifierSize;
-        std::memcpy(ptr, &_rayGenConstantBuffer, sizeof(RayGenConstantBuffer));
-        dispatchRaysDesc.RayGenerationShaderRecord.StartAddress = rayGenAllocInfo.virtualAddress;
-        dispatchRaysDesc.RayGenerationShaderRecord.SizeInBytes = rayGenShaderTableSize;
+        dx::RGShaderRecodeGenerator rayGenShaderRecode(pRayGenShaderIdentifier, _rayGenConstantBuffer);
+        dispatchRaysDesc.RayGenerationShaderRecord = rayGenShaderRecode.Generate(pGraphicsCtx.get());
 
-        dx::DynamicBufferAllocator::AllocInfo missShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize, 64);
-        std::memcpy(missShaderAllocInfo.pBuffer, pMissShaderIdentifier, shaderIdentifierSize);
-        dispatchRaysDesc.MissShaderTable.StartAddress = missShaderAllocInfo.virtualAddress;
-        dispatchRaysDesc.MissShaderTable.SizeInBytes = 1 * shaderIdentifierSize;
-        dispatchRaysDesc.MissShaderTable.StrideInBytes = shaderIdentifierSize;
+        dx::ShaderTableGenerator missShaderTable;
+        missShaderTable.AddShaderIdentifier(pMissShaderIdentifier);
+        dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
 
-        dx::DynamicBufferAllocator::AllocInfo hitGroupShaderAllocInfo = pGraphicsCtx->AllocBuffer(shaderIdentifierSize,
-            64);
-        std::memcpy(hitGroupShaderAllocInfo.pBuffer, pHitGroupShaderIdentifier, shaderIdentifierSize);
-        dispatchRaysDesc.HitGroupTable.StartAddress = hitGroupShaderAllocInfo.virtualAddress;
-        dispatchRaysDesc.HitGroupTable.SizeInBytes = 1 * shaderIdentifierSize;
-        dispatchRaysDesc.HitGroupTable.StrideInBytes = shaderIdentifierSize;
+        dx::ShaderTableGenerator hitGroupShaderTable;
+        hitGroupShaderTable.AddShaderIdentifier(pHitGroupShaderIdentifier);
+        dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
 
         dispatchRaysDesc.Width = _width;
         dispatchRaysDesc.Height = _height;
