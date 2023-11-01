@@ -72,6 +72,9 @@ class CommandListPool;
 class FrameResource;
 class FrameResourceRing;
 
+class BottomLevelAS;
+class TopLevelAS;
+
 class RTV;
 class DSV;
 class CBV;
