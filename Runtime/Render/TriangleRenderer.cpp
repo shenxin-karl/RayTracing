@@ -1,4 +1,6 @@
 #include "TriangleRenderer.h"
+
+#include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
 #include "D3d12/DescriptorManager.hpp"
 #include "D3d12/Device.h"
@@ -9,6 +11,7 @@
 #include "D3d12/ShaderTableGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
+#include "D3d12/TopLevelASGenerator.h"
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
@@ -41,34 +44,33 @@ void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
 
 void TriangleRenderer::OnDestroy() {
     _pTriangleStaticBuffer->OnDestroy();
+    _pASBuilder->OnDestroy();
+    _bottomLevelAs.OnDestroy();
+    _topLevelAs.OnDestroy();
     Renderer::OnDestroy();
 }
 
 void TriangleRenderer::OnPreRender(GameTimer &timer) {
-	Renderer::OnPreRender(timer);
+    Renderer::OnPreRender(timer);
 }
 
 void TriangleRenderer::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
-    static bool needOpenCaptureUI = false;
     static uint64_t frameCount = 0;
     if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
         Logger::Info("fps {}", timer.GetFPS());
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
-
-        if (needOpenCaptureUI) {
-	        Pix::OpenCaptureInUI();
-	        needOpenCaptureUI = false;
-        }
     }
 
+    static bool waitCaptureFrameFinished = false;
+    bool beginCapture = false;
     InputSystem *pInputSystem = InputSystem::GetInstance();
-
-    if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
         _pDevice->WaitForGPUFlush();
         Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
-        needOpenCaptureUI = true;
+        waitCaptureFrameFinished = true;
+        beginCapture = true;
     }
 
     _pFrameResourceRing->OnBeginFrame();
@@ -77,8 +79,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
-    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot,
-        _pTopLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress());
+    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs.GetGPUVirtualAddress());
     pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
@@ -117,9 +118,18 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     _pSwapChain->Present();
     _pFrameResourceRing->OnEndFrame();
 
-    if (pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+    if (beginCapture) {
         Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
         _pDevice->WaitForGPUFlush();
+        float totalTime = timer.GetTotalTime();
+        MainThread::AddMainThreadJob(MainThread::PreUpdate, [=](GameTimer &gameTimer) -> MainThread::JobStatus {
+            if (gameTimer.GetTotalTime() >= totalTime + 5.f) {
+                waitCaptureFrameFinished = false;
+                Pix::OpenCaptureInUI();
+                return MainThread::Finished;
+            }
+            return MainThread::ExecuteInNextFrame;
+        });
     }
 }
 
@@ -198,7 +208,7 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
     pShaderConfig->Config(payloadSize, attributeSize);
 
     CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
-        *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
     pLocalRootSignature->SetRootSignature(_localRootSignature.GetRootSignature());
     CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
         CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
@@ -243,140 +253,19 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
         _rayTracingOutputView.GetCpuHandle());
 }
 
-static void AllocateUploadBuffer(ID3D12Device *pDevice,
-    void *pData,
-    UINT64 datasize,
-    ID3D12Resource **ppResource,
-    const wchar_t *resourceName = nullptr) {
-    auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(datasize);
-    dx::ThrowIfFailed(pDevice->CreateCommittedResource(&uploadHeapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &bufferDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(ppResource)));
-
-    if (resourceName) {
-        (*ppResource)->SetName(resourceName);
-    }
-    void *pMappedData;
-    (*ppResource)->Map(0, nullptr, &pMappedData);
-    memcpy(pMappedData, pData, datasize);
-    (*ppResource)->Unmap(0, nullptr);
-}
-
 void TriangleRenderer::BuildAccelerationStructures() {
-    _pUploadHeap->DoUpload();
-    dx::NativeDevice *device = _pDevice->GetNativeDevice();
-    dx::NativeCommandList *pCmdList = _pUploadHeap->GetCopyCommandList();
-    ID3D12CommandAllocator *pCmdAllocator = _pUploadHeap->GetCommandAllocator();
+    _pASBuilder = std::make_unique<dx::ASBuilder>();
+    _pASBuilder->OnCreate(_pDevice.get());
 
-    auto CreateUAVBuffer = [=](size_t bufferSize, D3D12_RESOURCE_STATES initResourceStates, std::wstring_view name) {
-        dx::WRL::ComPtr<D3D12MA::Allocation> pAllocation;
-        D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize,
-            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        D3D12MA::Allocator *pAllocator = _pDevice->GetAllocator();
-        D3D12MA::ALLOCATION_DESC allocationDesc = {};
-        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-        dx::ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
-            &bufferDesc,
-            initResourceStates,
-            nullptr,
-            &pAllocation,
-            IID_NULL,
-            nullptr));
-        if (pAllocation != nullptr) {
-            pAllocation->GetResource()->SetName(name.data());
-        }
-        return pAllocation;
-    };
+    dx::BottomLevelASGenerator bottomLevelAsGenerator;
+    bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
+    bottomLevelAsGenerator.ComputeASBufferSizes(_pASBuilder.get());
 
-    D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
-    geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    geometryDesc.Triangles.IndexBuffer = _indexBufferView.BufferLocation;
-    geometryDesc.Triangles.IndexCount = _indexBufferView.SizeInBytes / sizeof(uint16_t);
-    geometryDesc.Triangles.IndexFormat = _indexBufferView.Format;
-    geometryDesc.Triangles.Transform3x4 = 0;
-    geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-    geometryDesc.Triangles.VertexCount = _vertexBufferView.SizeInBytes / _vertexBufferView.StrideInBytes;
-    geometryDesc.Triangles.VertexBuffer.StartAddress = _vertexBufferView.BufferLocation;
-    geometryDesc.Triangles.VertexBuffer.StrideInBytes = _vertexBufferView.StrideInBytes;
-    // Mark the geometry as opaque.
-    // PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
-    // Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
-    geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+    dx::TopLevelASGenerator topLevelAsGenerator;
+    topLevelAsGenerator.AddInstance(&_bottomLevelAs, glm::mat3x4(1.f), 0, 0);
+    topLevelAsGenerator.ComputeAsBufferSizes(_pASBuilder.get());
 
-    // Get required sizes for an acceleration structure.
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
-    buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
-    topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = 1;
-    topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPreBuildInfo = {};
-    device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPreBuildInfo);
-    Assert(topLevelPreBuildInfo.ResultDataMaxSizeInBytes > 0);
-
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
-    bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelInputs.pGeometryDescs = &geometryDesc;
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPreBuildInfo = {};
-    device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPreBuildInfo);
-    Assert(bottomLevelPreBuildInfo.ResultDataMaxSizeInBytes > 0);
-
-    dx::WRL::ComPtr<D3D12MA::Allocation> pScratchResource = CreateUAVBuffer(
-        std::max<size_t>(topLevelPreBuildInfo.ScratchDataSizeInBytes, bottomLevelPreBuildInfo.ScratchDataSizeInBytes),
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-        L"ScratchResource");
-
-    _pBottomLevelAccelerationStructure = CreateUAVBuffer(bottomLevelPreBuildInfo.ResultDataMaxSizeInBytes,
-        D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
-        L"BottomLevelAccelerationStructure");
-    _pTopLevelAccelerationStructure = CreateUAVBuffer(topLevelPreBuildInfo.ResultDataMaxSizeInBytes,
-        D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
-        L"TopLevelAccelerationStructure");
-
-    // Create an instance desc for the bottom-level acceleration structure.
-    Microsoft::WRL::ComPtr<ID3D12Resource> instanceDescs;
-    D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
-    instanceDesc.InstanceMask = 1;
-    instanceDesc.AccelerationStructure = _pBottomLevelAccelerationStructure->GetResource()->GetGPUVirtualAddress();
-    AllocateUploadBuffer(device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
-
-    // 填充底层加速结构的 desc 结构体
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
-    {
-        bottomLevelBuildDesc.Inputs = bottomLevelInputs;
-        bottomLevelBuildDesc.DestAccelerationStructureData = _pBottomLevelAccelerationStructure->GetResource()
-                                                                 ->GetGPUVirtualAddress();
-        bottomLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
-    }
-
-    // 填充顶层加速结构的 desc 结构体
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
-    {
-        topLevelInputs.InstanceDescs = instanceDescs->GetGPUVirtualAddress();
-        topLevelBuildDesc.Inputs = topLevelInputs;
-        topLevelBuildDesc.DestAccelerationStructureData = _pTopLevelAccelerationStructure->GetResource()
-                                                              ->GetGPUVirtualAddress();
-        topLevelBuildDesc.ScratchAccelerationStructureData = pScratchResource->GetResource()->GetGPUVirtualAddress();
-    }
-
-    // 构建加速结构
-    pCmdList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-    pCmdList->ResourceBarrier(1,
-        dx::RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(_pBottomLevelAccelerationStructure->GetResource())));
-    pCmdList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-    dx::ThrowIfFailed(pCmdList->Close());
-
-    ID3D12CommandList *commandLists[] = {pCmdList};
-    _pDevice->GetCopyQueue()->ExecuteCommandLists(1, commandLists);
-    _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
-
-    dx::ThrowIfFailed(pCmdList->Reset(pCmdAllocator, nullptr));
+    _bottomLevelAs = bottomLevelAsGenerator.Generate(_pASBuilder.get());
+    _topLevelAs = topLevelAsGenerator.Generate(_pASBuilder.get());
+    _pASBuilder->BuildFinish();
 }

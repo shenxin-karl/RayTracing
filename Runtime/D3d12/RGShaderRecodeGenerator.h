@@ -3,6 +3,7 @@
 
 namespace dx {
 
+// Ray Generation Shader Recode Generator
 class RGShaderRecodeGenerator : public NonCopyable {
 public:
     template<typename T>

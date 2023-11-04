@@ -33,7 +33,7 @@ void MainThread::AddMainThreadJob(JobWorkTime jobWorkTime, Job job) {
     sJobQueue[index].push_back(std::move(job));
 }
 
-void MainThread::ExecuteMainThreadJob(JobWorkTime jobWorkTime) {
+void MainThread::ExecuteMainThreadJob(JobWorkTime jobWorkTime, GameTimer &gameTimer) {
     EnsureMainThread();
     size_t index = magic_enum::enum_index(jobWorkTime).value();
     std::unique_lock lock(sQueueMutex[index]);
@@ -43,7 +43,7 @@ void MainThread::ExecuteMainThreadJob(JobWorkTime jobWorkTime) {
 
     std::vector<Job> nextFrameExecuteJob;
     for (Job &job : queue) {
-	    JobStatus status = job();
+	    JobStatus status = job(gameTimer);
         if (status == JobStatus::ExecuteInNextFrame) {
 	        nextFrameExecuteJob.push_back(std::move(job));
         }

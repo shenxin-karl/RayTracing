@@ -74,6 +74,7 @@ class FrameResourceRing;
 
 class BottomLevelAS;
 class TopLevelAS;
+class ASBuilder;
 
 class RTV;
 class DSV;

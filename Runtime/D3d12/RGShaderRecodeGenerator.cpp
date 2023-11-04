@@ -8,7 +8,9 @@ RGShaderRecodeGenerator::RGShaderRecodeGenerator(const void *pShaderIdentifier,
     size_t bufferSize)
     : _startAddress(0) {
 
-    _buffer.resize(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + bufferSize);
+    unsigned long long capacity = AlignUp(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + bufferSize,
+        D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    _buffer.resize(capacity, std::byte(0));
     std::memcpy(_buffer.data(), pShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
     std::memcpy(_buffer.data() + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES, pConstantBuffer, bufferSize);
 }

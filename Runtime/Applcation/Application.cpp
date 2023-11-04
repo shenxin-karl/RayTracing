@@ -62,42 +62,42 @@ bool Application::IsRunning() const {
 
 void Application::OnPreUpdate(GameTimer &timer) {
     ITick::OnPreUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PreUpdate);
+    MainThread::ExecuteMainThreadJob(MainThread::PreUpdate, timer);
     InputSystem::GetInstance()->OnPreUpdate(timer);
     _pRenderer->OnPreUpdate(timer);
 }
 
 void Application::OnUpdate(GameTimer &timer) {
     ITick::OnUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::OnUpdate);
+    MainThread::ExecuteMainThreadJob(MainThread::OnUpdate, timer);
     InputSystem::GetInstance()->OnUpdate(timer);
     _pRenderer->OnUpdate(timer);
 }
 
 void Application::OnPostUpdate(GameTimer &timer) {
     ITick::OnPostUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PostUpdate);
+    MainThread::ExecuteMainThreadJob(MainThread::PostUpdate, timer);
     InputSystem::GetInstance()->OnPostUpdate(timer);
     _pRenderer->OnPostUpdate(timer);
 }
 
 void Application::OnPreRender(GameTimer &timer) {
     ITick::OnPreRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PreRender);
+    MainThread::ExecuteMainThreadJob(MainThread::PreRender, timer);
     InputSystem::GetInstance()->OnPreRender(timer);
     _pRenderer->OnPreRender(timer);
 }
 
 void Application::OnRender(GameTimer &timer) {
     ITick::OnRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::OnRender);
+    MainThread::ExecuteMainThreadJob(MainThread::OnRender, timer);
     InputSystem::GetInstance()->OnRender(timer);
     _pRenderer->OnRender(timer);
 }
 
 void Application::OnPostRender(GameTimer &timer) {
     ITick::OnPostRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PostRender);
+    MainThread::ExecuteMainThreadJob(MainThread::PostRender, timer);
     InputSystem::GetInstance()->OnPostRender(timer);
     _pRenderer->OnPostRender(timer);
 }

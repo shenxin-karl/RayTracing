@@ -1,8 +1,10 @@
 #pragma once
 #include "Renderer.h"
+#include "D3d12/AccelerationStructure.h"
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
+#include "D3d12/ASBuilder.h"
 
 class TriangleRenderer : public Renderer {
 private:
@@ -37,9 +39,12 @@ private:
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
 	dx::Texture								_rayTracingOutput;
 	dx::UAV									_rayTracingOutputView;
-	dx::WRL::ComPtr<D3D12MA::Allocation>	_pTopLevelAccelerationStructure;
-	dx::WRL::ComPtr<D3D12MA::Allocation>	_pBottomLevelAccelerationStructure;
 	RayGenConstantBuffer					_rayGenConstantBuffer = {};
+
+	dx::BottomLevelAS						_bottomLevelAs;
+	dx::TopLevelAS							_topLevelAs;
+	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
+
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};
 	// clang-format on

@@ -52,7 +52,7 @@ bool RenderDoc::Load() {
 
     InitRenderDocApi("renderdoc.dll");
     return sRenderDocApi != nullptr;
-#endif ENABLE_RENDER_DOC
+#endif
     return false;
 }
 
@@ -62,7 +62,7 @@ void RenderDoc::Free() {
         FreeModule(sRenderDocDllModule);
         sRenderDocDllModule = nullptr;
     }
-#endif ENABLE_RENDER_DOC
+#endif
 }
 
 void RenderDoc::BeginFrameCapture(void *pNativeWindowHandle, void *pDevice) {
@@ -71,7 +71,7 @@ void RenderDoc::BeginFrameCapture(void *pNativeWindowHandle, void *pDevice) {
         return;
     }
     sRenderDocApi->StartFrameCapture(pDevice, pNativeWindowHandle);
-#endif ENABLE_RENDER_DOC
+#endif
 }
 
 void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, void *pDevice) {
@@ -80,11 +80,13 @@ void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, void *pDevice) {
         return;
     }
     sRenderDocApi->EndFrameCapture(pDevice, pNativeWindowHandle);
-#endif ENABLE_RENDER_DOC
+#endif
 }
 
 void RenderDoc::OpenCaptureInUI() {
+#if ENABLE_RENDER_DOC
     if (!sRenderDocApi->IsRemoteAccessConnected()) {
         sRenderDocApi->LaunchReplayUI(true, "");
     }
+#endif
 }
