@@ -11,7 +11,8 @@ public:
     void OnCreate(Device *pDevice, std::string_view name);
     void OnDestroy();
     auto IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t;
-    void CpuWaitForFence(uint64_t olderFence);
+    void CpuWaitForFence();
+    void CpuWaitForFence(uint64_t waitFenceValue);
     void GpuWaitForFence(ID3D12CommandQueue *pCommandQueue);
 private:
     // clang-format off

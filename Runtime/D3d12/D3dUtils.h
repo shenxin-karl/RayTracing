@@ -19,6 +19,7 @@
 #include <queue>
 #include <bitset>
 #include <array>
+#include <glm/glm.hpp>
 
 // #define ENABLE_D3D_11 1
 
@@ -91,6 +92,13 @@ namespace WRL = Microsoft::WRL;
 enum class ContextType {
     eGraphics = 0,
     eCompute = 1,
+};
+
+struct ASInstance {
+	ID3D12Resource *pBottomLevelAs	 = nullptr;
+	glm::mat4x4	    transform		 = glm::mat3x4(1.0);
+	uint32_t	    instanceID		 = 0;	
+	uint32_t	    hitGroupIndex	 = 0;
 };
 
 Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {

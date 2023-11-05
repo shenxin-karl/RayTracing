@@ -257,15 +257,16 @@ void TriangleRenderer::BuildAccelerationStructures() {
     _pASBuilder = std::make_unique<dx::ASBuilder>();
     _pASBuilder->OnCreate(_pDevice.get());
 
+    _pASBuilder->BeginBuild();
     dx::BottomLevelASGenerator bottomLevelAsGenerator;
     bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-    bottomLevelAsGenerator.ComputeASBufferSizes(_pASBuilder.get());
+    _bottomLevelAs = bottomLevelAsGenerator.Generate(_pASBuilder.get());
 
     dx::TopLevelASGenerator topLevelAsGenerator;
-    topLevelAsGenerator.AddInstance(&_bottomLevelAs, glm::mat3x4(1.f), 0, 0);
-    topLevelAsGenerator.ComputeAsBufferSizes(_pASBuilder.get());
+    topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat3x4(1.f), 0, 0);
 
-    _bottomLevelAs = bottomLevelAsGenerator.Generate(_pASBuilder.get());
     _topLevelAs = topLevelAsGenerator.Generate(_pASBuilder.get());
-    _pASBuilder->BuildFinish();
+    _pASBuilder->EndBuild();
+
+    _pASBuilder->GetBuildFinishedFence().CpuWaitForFence();
 }

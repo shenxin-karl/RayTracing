@@ -15,15 +15,7 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS transformBuffer,
         bool isOpaque = true);
 
-    void ComputeASBufferSizes(ASBuilder *pUploadHeap);
     auto Generate(ASBuilder *pUploadHeap) -> BottomLevelAS;
-
-    auto GetScratchSizeInBytes() const -> size_t {
-        return _scratchSizeInBytes;
-    }
-    auto GetResultSizeInBytes() const -> size_t {
-        return _resultSizeInBytes;
-    }
 private:
     void AddGeometryInternal(D3D12_VERTEX_BUFFER_VIEW *pVbv,
         DXGI_FORMAT vertexFormat, 
@@ -32,8 +24,6 @@ private:
         bool isOpaque);
 private:
     // clang-format off
-	size_t												_scratchSizeInBytes	= 0;
-	size_t												_resultSizeInBytes	= 0;
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>			_vertexBuffers		= {};
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS _flags				= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     // clang-format on

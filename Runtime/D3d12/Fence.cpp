@@ -18,8 +18,10 @@ void Fence::OnCreate(Device *pDevice, std::string_view name) {
 }
 
 void Fence::OnDestroy() {
-    CloseHandle(_event);
-    _event = nullptr;
+    if (_event != nullptr) {
+	    CloseHandle(_event);
+	    _event = nullptr;
+    }
 }
 
 auto Fence::IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t {
@@ -28,10 +30,14 @@ auto Fence::IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t {
     return _fenceCounter;
 }
 
-void Fence::CpuWaitForFence(uint64_t olderFence) {
+void Fence::CpuWaitForFence() {
+    CpuWaitForFence(_fenceCounter);
+}
+
+void Fence::CpuWaitForFence(uint64_t waitFenceValue) {
 	UINT64 completedValue = _pFence->GetCompletedValue();
-    if (completedValue < olderFence) {
-        ThrowIfFailed(_pFence->SetEventOnCompletion(olderFence, _event));
+    if (completedValue < waitFenceValue) {
+        ThrowIfFailed(_pFence->SetEventOnCompletion(waitFenceValue, _event));
         WaitForSingleObject(_event, INFINITE);
     }
 }

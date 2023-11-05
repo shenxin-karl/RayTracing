@@ -31,7 +31,7 @@ void BottomLevelASGenerator::AddGeometry(D3D12_VERTEX_BUFFER_VIEW vbv,
     return AddGeometryInternal(&vbv, vertexFormat, &ibv, &transformBuffer, isOpaque);
 }
 
-void BottomLevelASGenerator::ComputeASBufferSizes(ASBuilder *pUploadHeap) {
+auto BottomLevelASGenerator::Generate(ASBuilder *pUploadHeap) -> BottomLevelAS {
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc;
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
@@ -43,19 +43,10 @@ void BottomLevelASGenerator::ComputeASBufferSizes(ASBuilder *pUploadHeap) {
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
     device->GetRaytracingAccelerationStructurePrebuildInfo(&preBuildDesc, &info);
     Assert(info.ResultDataMaxSizeInBytes > 0);
-
-    _scratchSizeInBytes = AlignUp(info.ScratchDataSizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-    _resultSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-
-    pUploadHeap->UpdateScratchBufferSize(_scratchSizeInBytes);
-}
-
-auto BottomLevelASGenerator::Generate(ASBuilder *pUploadHeap) -> BottomLevelAS {
-    Exception::CondThrow(_resultSizeInBytes > 0,
-        "The size of the acceleration structure must be computed by calling ComputeASBufferSizes");
+    info.ResultDataMaxSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
     BottomLevelAS result;
-    result.OnCreate(pUploadHeap->GetDevice(), _resultSizeInBytes);
+    result.OnCreate(pUploadHeap->GetDevice(), info.ResultDataMaxSizeInBytes);
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
     buildDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
@@ -64,10 +55,9 @@ auto BottomLevelASGenerator::Generate(ASBuilder *pUploadHeap) -> BottomLevelAS {
     buildDesc.Inputs.pGeometryDescs = _vertexBuffers.data();
     buildDesc.Inputs.Flags = _flags;
     buildDesc.DestAccelerationStructureData = result.GetResource()->GetGPUVirtualAddress();
-    buildDesc.ScratchAccelerationStructureData = pUploadHeap->GetScratchBufferGPUAddress();
+    buildDesc.ScratchAccelerationStructureData = 0;
     buildDesc.SourceAccelerationStructureData = 0;
-
-    pUploadHeap->BuildRayTracingAccelerationStructure(buildDesc, result.GetResource());
+    pUploadHeap->BuildBottomAS(buildDesc, info.ScratchDataSizeInBytes, result.GetResource());
     return result;
 }
 
