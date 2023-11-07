@@ -3,11 +3,17 @@
 
 namespace dx {
 
-ShaderTableGenerator::ShaderTableGenerator() : _startAddress(0) {
+ShaderTableGenerator::ShaderTableGenerator() {
 }
 
 auto ShaderTableGenerator::Generate(Context *pContext) -> D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE {
     constexpr size_t kAddressAlignment = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES * 2;
+    Assert(!_shaderRecodes.empty());
+    size_t stride = 0;
+    for (ShaderRecode &shaderRecode : _shaderRecodes) {
+	    stride = std::max(stride, shaderRecode.GetStride());
+    }
+
     size_t shaderIdentifierSize = GetSizeInBytes();
     DynamicBufferAllocator::AllocInfo allocInfo = pContext->AllocBuffer(shaderIdentifierSize, kAddressAlignment);
 
