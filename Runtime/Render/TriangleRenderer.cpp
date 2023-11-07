@@ -1,24 +1,20 @@
 #include "TriangleRenderer.h"
-
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
 #include "D3d12/DescriptorManager.hpp"
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
-#include "D3d12/RGShaderRecodeGenerator.h"
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/ShaderTableGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
-#include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
 #include "Pix/Pix.h"
-#include "Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -92,15 +88,15 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(MissShaderName.data());
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
 
-        dx::RGShaderRecodeGenerator rayGenShaderRecode(pRayGenShaderIdentifier, _rayGenConstantBuffer);
-        dispatchRaysDesc.RayGenerationShaderRecord = rayGenShaderRecode.Generate(pGraphicsCtx.get());
+        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, _rayGenConstantBuffer);
+        dispatchRaysDesc.RayGenerationShaderRecord = dx::MakeRayGenShaderRecode(pGraphicsCtx.get(), rayGenShaderRecode);
 
         dx::ShaderTableGenerator missShaderTable;
-        missShaderTable.AddShaderIdentifier(pMissShaderIdentifier);
+        missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
         dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
 
         dx::ShaderTableGenerator hitGroupShaderTable;
-        hitGroupShaderTable.AddShaderIdentifier(pHitGroupShaderIdentifier);
+        hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier);
         dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
 
         dispatchRaysDesc.Width = _width;

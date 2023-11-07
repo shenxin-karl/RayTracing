@@ -5,7 +5,7 @@
 
 namespace dx {
 
-TopLevelASGenerator::TopLevelASGenerator() : _allowUpdate(false), _scratchSizeInBytes(0), _resultSizeInBytes(0) {
+TopLevelASGenerator::TopLevelASGenerator() : _allowUpdate(false) {
 }
 
 void TopLevelASGenerator::AddInstance(const ASInstance &instance) {

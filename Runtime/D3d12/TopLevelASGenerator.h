@@ -23,8 +23,6 @@ public:
 private:
     // clang-format off
 	bool				    _allowUpdate;
-	size_t					_scratchSizeInBytes;
-	size_t					_resultSizeInBytes;
 	std::vector<ASInstance> _instances;
     // clang-format on
 };

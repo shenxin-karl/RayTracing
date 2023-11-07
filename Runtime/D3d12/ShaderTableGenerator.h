@@ -9,7 +9,7 @@ public:
     ShaderRecode(void *pShaderIdentifier) : _pShaderIdentifier(pShaderIdentifier) {
     }
     template<typename... Args>
-    ShaderRecode(void *pShaderIdentify, Args &&...args) : _pShaderIdentifier(nullptr) {
+    ShaderRecode(void *pShaderIdentifier, Args &&...args) : _pShaderIdentifier(pShaderIdentifier) {
         if constexpr (sizeof...(Args) > 0) {
             _memoryStream.Reverse(GetSize<Args...>());
             AppendObject(std::forward<Args>(args)...);
@@ -24,6 +24,7 @@ public:
         return AlignUp<size_t>(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + _memoryStream.GetSize(),
             D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
     }
+    void CopyToBuffer(void *pDest, size_t destBufferSize) const;
 private:
     template<typename T, typename... Args>
     constexpr static size_t GetSize() {
@@ -34,7 +35,7 @@ private:
     }
     template<typename T, typename... Args>
     void AppendObject(T &&arg, Args &&...args) {
-        _memoryStream.Append(std::forward<T>(args));
+        _memoryStream.Append(std::forward<T>(arg));
         if constexpr (sizeof...(Args) > 0) {
             AppendObject(std::forward<Args>(args)...);
         }
@@ -46,18 +47,18 @@ private:
     // clang-format on
 };
 
-class ShaderTableGenerator : NonCopyable {
+class ShaderTableGenerator : public NonCopyable {
 public:
     ShaderTableGenerator();
     //void AddShaderRecode(ShaderRecode )
     auto Generate(Context *pContext) -> D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE;
 
-    void Add(ShaderRecode &&shaderRecode) {
+    void AddShaderRecode(ShaderRecode &&shaderRecode) {
 	    _shaderRecodes.push_back(std::move(shaderRecode));
     }
     template<typename ...Args>
-    void Emplace(Args&&...args) -> ShaderRecode & {
-	    _shaderRecodes.emplace_back(std::forward<Args>(args)...);
+    auto EmplaceShaderRecode(void *pShaderIdentifier, Args&&...args) -> ShaderRecode & {
+	    _shaderRecodes.emplace_back(pShaderIdentifier, std::forward<Args>(args)...);
         return _shaderRecodes.back();
     }
 private:
@@ -65,5 +66,7 @@ private:
 	std::vector<ShaderRecode> _shaderRecodes;
     // clang-format on
 };
+
+D3D12_GPU_VIRTUAL_ADDRESS_RANGE MakeRayGenShaderRecode(Context *pContext, const ShaderRecode &shaderRecode);
 
 }    // namespace dx

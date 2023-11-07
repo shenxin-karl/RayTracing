@@ -16,7 +16,6 @@ public:
     void Resize(size_t size, std::byte value = std::byte{0});
 
     template<typename T>
-        requires(std::is_trivially_copyable_v<T>)
     void Append(T &&obj) {
         Append(&obj, sizeof(T));
     }
