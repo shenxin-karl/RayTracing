@@ -99,6 +99,7 @@ struct ASInstance {
 	glm::mat4x4	    transform		 = glm::mat3x4(1.0);
 	uint32_t	    instanceID		 = 0;	
 	uint32_t	    hitGroupIndex	 = 0;
+    uint16_t        instanceMask     = 0xff;
 };
 
 Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {

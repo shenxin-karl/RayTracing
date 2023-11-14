@@ -83,7 +83,7 @@ void ASBuilder::EndBuild() {
 	        pInstance->AccelerationStructure = instance.pBottomLevelAs->GetGPUVirtualAddress();
             glm::mat4x4 matrix = glm::transpose(instance.transform);        
 	        std::memcpy(pInstance->Transform, glm::value_ptr(matrix), sizeof(pInstance->Transform));
-	        pInstance->InstanceMask = 0xFF;                // Visibility mask, always visible here
+	        pInstance->InstanceMask = instance.instanceMask;               
             ++pInstance;
         }
         topBuildItem.desc.ScratchAccelerationStructureData = scratchBufferAddress;

@@ -16,8 +16,9 @@ void TopLevelASGenerator::AddInstance(const ASInstance &instance) {
 void TopLevelASGenerator::AddInstance(ID3D12Resource *pBottomLevelAs,
     const glm::mat4x4 &transform,
     uint32_t instanceID,
-    uint32_t hitGroupIndex) {
-    AddInstance(ASInstance{pBottomLevelAs, transform, instanceID, hitGroupIndex});
+    uint32_t hitGroupIndex,
+    uint16_t instanceMask) {
+    AddInstance(ASInstance{pBottomLevelAs, transform, instanceID, hitGroupIndex, instanceMask});
 }
 
 auto TopLevelASGenerator::Generate(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult, bool cleanUpInstances)

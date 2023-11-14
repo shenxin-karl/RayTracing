@@ -89,7 +89,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
 
         dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, _rayGenConstantBuffer);
-        dispatchRaysDesc.RayGenerationShaderRecord = dx::MakeRayGenShaderRecode(pGraphicsCtx.get(), rayGenShaderRecode);
+        dispatchRaysDesc.RayGenerationShaderRecord = MakeRayGenShaderRecode(pGraphicsCtx.get(), rayGenShaderRecode);
 
         dx::ShaderTableGenerator missShaderTable;
         missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
