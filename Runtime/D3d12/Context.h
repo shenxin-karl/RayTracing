@@ -64,6 +64,11 @@ public:
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pInitData)
         -> D3D12_GPU_VIRTUAL_ADDRESS;
     auto AllocBuffer(size_t sizeInByte, size_t addressAlignment = 1) -> DynamicBufferAllocator::AllocInfo;
+
+    template<typename T>
+    auto AllocConstantBuffer(const T &data) -> D3D12_GPU_VIRTUAL_ADDRESS {
+	    return AllocConstantBuffer(sizeof(T), &data);
+    }
 public:
     virtual auto GetContextType() const -> ContextType = 0;
 protected:
@@ -88,6 +93,10 @@ public:
     void SetComputeRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+
+    template<typename T>
+    void SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data);
+
 #if ENABLE_RAY_TRACING
     void SetRayTracingPipelineState(ID3D12StateObject *pStateObject);
     void DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc);
@@ -271,6 +280,12 @@ inline void ComputeContext::SetComputeRootShaderResourceView(UINT rootIndex, D3D
 inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
     _pCommandList->SetComputeRootUnorderedAccessView(rootIndex, bufferLocation);
+}
+
+template<typename T>
+void ComputeContext::SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data) {
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLoc = _dynamicBufferAllocator.AllocConstantBuffer(sizeof(T), &data);
+    _pCommandList->SetComputeRootConstantBufferView(rootIndex, bufferLoc);
 }
 
 #if ENABLE_RAY_TRACING

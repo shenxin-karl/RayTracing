@@ -33,8 +33,7 @@ ConstantBuffer<CubeConstantBuffer>  gCubeCB     : register(b1);
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 
 // Load three 16 bit indices from a byte addressed buffer.
-uint3 Load3x16BitIndices(uint offsetBytes)
-{
+uint3 Load3x16BitIndices(uint offsetBytes) {
     uint3 indices;
     // ByteAdressBuffer loads must be aligned at a 4 byte boundary.
     // Since we need to read three 16 bit indices: { 0, 1, 2 } 
@@ -67,8 +66,7 @@ float3 HitWorldPosition() {
 }
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
-inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
-{
+inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction) {
     float2 xy = index + 0.5f; // center in the middle of the pixel.
     float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
 
@@ -84,8 +82,7 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 [shader("raygeneration")]
-void MyRaygenShader()
-{
+void MyRaygenShader() {
     float3 rayDir;
     float3 origin;
     
@@ -108,9 +105,20 @@ void MyRaygenShader()
     gOutput[DispatchRaysIndex().xy] = payload.color;
 }
 
+// Diffuse lighting calculation.
+float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal) {
+    float3 pixelToLight = normalize(gSceneCB.lightPosition.xyz - hitPosition);
+    // Diffuse contribution.
+    float fNDotL = max(0.0f, dot(pixelToLight, normal));
+    return gCubeCB.albedo * gSceneCB.lightDiffuseColor * fNDotL;
+}
+
+inline float4 CalculateAmbientLighting() {
+    return gCubeCB.albedo * gSceneCB.lightAmbientColor;
+}
+
 [shader("closesthit")]
-void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
-{
+void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
     float3 hitPosition = HitWorldPosition();
 
     // Get the base index of the triangle's first 16 bit index.
@@ -134,13 +142,13 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
     float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
-    float4 color = gSceneCB.lightAmbientColor + diffuseColor;
+    float4 ambientColor = CalculateAmbientLighting();
+    float4 color = ambientColor + diffuseColor;
     payload.color = color;
 }
 
 [shader("miss")]
-void MyMissShader(inout RayPayload payload)
-{
+void MyMissShader(inout RayPayload payload) {
     float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
     payload.color = background;
 }

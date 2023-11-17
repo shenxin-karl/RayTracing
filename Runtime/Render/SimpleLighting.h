@@ -4,6 +4,7 @@
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
+#include "Foundation/Camera.h"
 
 struct Vertex {
     glm::vec3 position;
@@ -22,22 +23,6 @@ struct SceneConstantBuffer {
     glm::vec4 lightDiffuseColor;
 };
 
-namespace GlobalRootParams {
-enum {
-	Output = 0,
-	AccelerationStructure = 1,
-	SceneConstantBuffer = 2,
-	VertexBufferSlot = 3,
-	Count
-};
-}
-
-namespace LocalRootParams {
-
-
-
-}
-
 class SimpleLighting : public Renderer {
 public:
     void OnCreate(uint32_t numBackBuffer, HWND hwnd) override;
@@ -47,6 +32,7 @@ public:
     void OnRender(GameTimer &timer) override;
     void OnResize(uint32_t width, uint32_t height) override;
 public:
+    void SetupCamera();
     void BuildGeometry();
     void CreateRayTracingOutput();
     void CreateRootSignature();
@@ -58,7 +44,7 @@ private:
 	dx::UAV									_rayTracingOutputHandle;
 
 	dx::RootSignature						_globalRootSignature;
-	dx::RootSignature						_localRootSignature;
+	dx::RootSignature						_closestLocalRootSignature;
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
 
 	std::shared_ptr<dx::StaticBuffer>		_pMeshBuffer;
@@ -68,5 +54,8 @@ private:
 	dx::BottomLevelAS						_bottomLevelAs;
 	dx::TopLevelAS							_topLevelAs;
 	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
+
+    std::unique_ptr<Camera>                 _pCamera;
+    SceneConstantBuffer                     _sceneConstantBuffer = {};
     // clang-format on
 };
