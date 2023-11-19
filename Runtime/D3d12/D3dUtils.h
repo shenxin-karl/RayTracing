@@ -87,6 +87,9 @@ class SAMPLER;
 class StaticBuffer;
 class DynamicDescriptorHeap;
 
+class TopLevelASGenerator;
+class BottomLevelASGenerator;
+
 namespace WRL = Microsoft::WRL;
 
 enum class ContextType {

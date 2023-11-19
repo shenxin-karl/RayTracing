@@ -4,6 +4,7 @@
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
+#include "D3d12/ASBuilder.h"
 #include "Foundation/Camera.h"
 
 struct Vertex {
@@ -38,6 +39,7 @@ public:
     void CreateRootSignature();
     void CreateRayTracingPipeline();
     void BuildAccelerationStructure();
+    void LoadCubeMap();
 private:
     // clang-format off
 	dx::Texture								_rayTracingOutput;

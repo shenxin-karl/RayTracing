@@ -1,5 +1,3 @@
-#pragma once
-
 struct SceneConstantBuffer {
     float4x4 projectionToWorld;
     float4 cameraPosition;
@@ -74,7 +72,7 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
     screenPos.y = -screenPos.y;
 
     // Unproject the pixel coordinate into a ray.
-    float4 world = mul(float4(screenPos, 0, 1), gSceneCB.projectionToWorld);
+    float4 world = mul(gSceneCB.projectionToWorld, float4(screenPos, 0, 1));
 
     world.xyz /= world.w;
     origin = gSceneCB.cameraPosition.xyz;
@@ -117,6 +115,12 @@ inline float4 CalculateAmbientLighting() {
     return gCubeCB.albedo * gSceneCB.lightAmbientColor;
 }
 
+inline float3 HitAttribute(float3 vertexAttribute[3], BuiltInTriangleIntersectionAttributes attr) {
+    return vertexAttribute[0] +
+        attr.barycentrics.x * (vertexAttribute[1] - vertexAttribute[0]) +
+        attr.barycentrics.y * (vertexAttribute[2] - vertexAttribute[0]);
+}
+
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
     float3 hitPosition = HitWorldPosition();
@@ -132,9 +136,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexNormals[3] = { 
-        Vertices[indices[0]].normal, 
-        Vertices[indices[1]].normal, 
-        Vertices[indices[2]].normal 
+        gVertices[indices[0]].normal, 
+        gVertices[indices[1]].normal, 
+        gVertices[indices[2]].normal 
     };
 
     // Compute the triangle's normal.
@@ -149,6 +153,6 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload) {
-    float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
+    float4 background = float4(0.0f, 0.0f, 0.0f, 1.0f);
     payload.color = background;
 }

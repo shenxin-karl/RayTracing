@@ -64,8 +64,16 @@ void ASBuilder::EndBuild() {
 
     D3D12_GPU_VIRTUAL_ADDRESS scratchBufferAddress = _pScratchBuffer->GetResource()->GetGPUVirtualAddress();
     for (BottomASBuildItem &bottomBuildItem : _bottomAsBuildItems) {
-        bottomBuildItem.desc.ScratchAccelerationStructureData = scratchBufferAddress;
-        _pCommandList->BuildRaytracingAccelerationStructure(&bottomBuildItem.desc, 0, nullptr);
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+		buildDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+	    buildDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	    buildDesc.Inputs.NumDescs = bottomBuildItem.vertexBuffers.size();
+	    buildDesc.Inputs.pGeometryDescs = bottomBuildItem.vertexBuffers.data();
+	    buildDesc.Inputs.Flags = bottomBuildItem.flags;
+	    buildDesc.DestAccelerationStructureData = bottomBuildItem.pResource->GetGPUVirtualAddress();
+	    buildDesc.ScratchAccelerationStructureData = scratchBufferAddress;
+	    buildDesc.SourceAccelerationStructureData = 0;
+        _pCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
         _pCommandList->ResourceBarrier(1, RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(bottomBuildItem.pResource)));
     }
     _bottomAsBuildItems.clear();
@@ -101,19 +109,6 @@ void ASBuilder::EndBuild() {
     ID3D12CommandList *cmdList[] = {_pCommandList.Get()};
     _pDevice->GetCopyQueue()->ExecuteCommandLists(1, cmdList);
     _buildFinishedFence.IssueFence(_pDevice->GetCopyQueue());
-}
-
-void ASBuilder::BuildBottomAS(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC &desc,
-    size_t scratchBufferSize,
-    ID3D12Resource *pOutputResource) {
-    _bottomAsBuildItems.push_back({desc, scratchBufferSize, pOutputResource});
-}
-
-void ASBuilder::BuildTopAS(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC &desc,
-    size_t scratchBufferSize,
-    std::vector<ASInstance> instances,
-    ID3D12Resource *pOutputResource) {
-    _topAsBuildItems.push_back({desc, scratchBufferSize, std::move(instances), pOutputResource});
 }
 
 void ASBuilder::ConditionalGrowInstanceBuffer(size_t instanceCount) {

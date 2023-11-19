@@ -4,10 +4,12 @@
 #include "InputSystem/Window.h"
 #include "Pix/Pix.h"
 #include "Render/Renderer.h"
-#include "Render/TriangleRenderer.h"
 #include "Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
+
+//#include "Render/TriangleRenderer.h"
+#include "Render/SimpleLighting.h"
 
 Application::Application() {
 }
@@ -30,7 +32,8 @@ void Application::OnCreate() {
     Pix::Load();
 
     HWND hwnd = pInputSystem->pWindow->GetHWND();
-    _pRenderer = std::make_unique<TriangleRenderer>();
+    //_pRenderer = std::make_unique<TriangleRenderer>();
+    _pRenderer = std::make_unique<SimpleLighting>();
     _pRenderer->OnCreate(3, hwnd);
 
     // register resize call back

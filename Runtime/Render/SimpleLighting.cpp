@@ -12,6 +12,11 @@
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
 #include "Foundation/ColorUtil.hpp"
+#include "Foundation/GameTimer.h"
+#include "Foundation/Logger.h"
+#include "InputSystem/InputSystem.h"
+#include "InputSystem/Keyboard.h"
+#include "Pix/Pix.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -40,14 +45,15 @@ enum {
 
 void SimpleLighting::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     Renderer::OnCreate(numBackBuffer, hwnd);
+    SetupCamera();
     BuildGeometry();
-    CreateRayTracingOutput();
     CreateRootSignature();
     CreateRayTracingPipeline();
     BuildAccelerationStructure();
 }
 
 void SimpleLighting::OnDestroy() {
+    _pDevice->WaitForGPUFlush();
     _rayTracingOutput.OnDestroy();
     _rayTracingOutputHandle.Release();
     _pMeshBuffer->OnDestroy();
@@ -74,6 +80,23 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
 }
 
 void SimpleLighting::OnRender(GameTimer &timer) {
+
+    static uint64_t frameCount = 0;
+    if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
+        Logger::Info("fps {}", timer.GetFPS());
+        frameCount = static_cast<uint64_t>(timer.GetTotalTime());
+    }
+
+    static bool waitCaptureFrameFinished = false;
+    bool beginCapture = false;
+    InputSystem *pInputSystem = InputSystem::GetInstance();
+    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+        _pDevice->WaitForGPUFlush();
+        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        waitCaptureFrameFinished = true;
+        beginCapture = true;
+    }
+
     Renderer::OnRender(timer);
 
     _pFrameResourceRing->OnBeginFrame();
@@ -116,9 +139,29 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         dispatchRaysDesc.Depth = 1;
     }
     pGraphicsCtx->DispatchRays(dispatchRaysDesc);
+    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
+    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput.GetResource());
+    pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
+    frameResource.ExecuteContexts(pGraphicsCtx.get());
 
     _pSwapChain->Present();
     _pFrameResourceRing->OnEndFrame();
+
+
+    if (beginCapture) {
+        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        _pDevice->WaitForGPUFlush();
+        float totalTime = timer.GetTotalTime();
+        MainThread::AddMainThreadJob(MainThread::PreUpdate, [=](GameTimer &gameTimer) -> MainThread::JobStatus {
+            if (gameTimer.GetTotalTime() >= totalTime + 5.f) {
+                waitCaptureFrameFinished = false;
+                Pix::OpenCaptureInUI();
+                return MainThread::Finished;
+            }
+            return MainThread::ExecuteInNextFrame;
+        });
+    }
 }
 
 void SimpleLighting::OnResize(uint32_t width, uint32_t height) {
@@ -233,20 +276,20 @@ void SimpleLighting::CreateRayTracingOutput() {
 
 void SimpleLighting::CreateRootSignature() {
     // clang-format off
-    _closestLocalRootSignature.Reset(2);
+    _closestLocalRootSignature.Reset(3);
     {
-        _closestLocalRootSignature.At(LocalRootParams::CubeCB).InitAsBufferCBV(0);                      // gCubeCB
-        _closestLocalRootSignature.At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices
-        _closestLocalRootSignature.At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices
+        _closestLocalRootSignature.At(LocalRootParams::CubeCB).InitAsBufferCBV(1);                      // gCubeCB(b1)
+        _closestLocalRootSignature.At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices(t1)
+        _closestLocalRootSignature.At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices(t2)
     }
     _closestLocalRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 
     _globalRootSignature.Reset(3);
     {
-        _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene
-        _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB;
+        _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
+        _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
         _globalRootSignature.At(GlobalRootParams::Output).InitAsDescriptorTable({ 
-            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0) // gOutput;
+            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0) // gOutput(u0);
         });          
     }
     _globalRootSignature.Finalize(_pDevice.get());
@@ -298,6 +341,7 @@ void SimpleLighting::CreateRayTracingPipeline() {
 
 void SimpleLighting::BuildAccelerationStructure() {
     _pASBuilder = std::make_unique<dx::ASBuilder>();
+    _pASBuilder->OnCreate(_pDevice.get());
     _pASBuilder->BeginBuild();
     {
         dx::BottomLevelASGenerator bottomLevelAsGenerator;

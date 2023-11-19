@@ -48,16 +48,12 @@ auto BottomLevelASGenerator::Generate(ASBuilder *pUploadHeap) -> BottomLevelAS {
     BottomLevelAS result;
     result.OnCreate(pUploadHeap->GetDevice(), info.ResultDataMaxSizeInBytes);
 
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
-    buildDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    buildDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    buildDesc.Inputs.NumDescs = static_cast<UINT>(_vertexBuffers.size());
-    buildDesc.Inputs.pGeometryDescs = _vertexBuffers.data();
-    buildDesc.Inputs.Flags = _flags;
-    buildDesc.DestAccelerationStructureData = result.GetResource()->GetGPUVirtualAddress();
-    buildDesc.ScratchAccelerationStructureData = 0;
-    buildDesc.SourceAccelerationStructureData = 0;
-    pUploadHeap->BuildBottomAS(buildDesc, info.ScratchDataSizeInBytes, result.GetResource());
+    ASBuilder::BottomASBuildItem buildItem;
+    buildItem.scratchBufferSize = info.ScratchDataSizeInBytes;
+    buildItem.pResource = result.GetResource();
+    buildItem.vertexBuffers = std::move(_vertexBuffers);
+    buildItem.flags = _flags;
+    pUploadHeap->AddBuildItem(std::move(buildItem));
     return result;
 }
 

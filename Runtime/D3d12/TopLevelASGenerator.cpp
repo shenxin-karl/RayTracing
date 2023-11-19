@@ -59,12 +59,18 @@ auto TopLevelASGenerator::Generate(ASBuilder *pUploadHeap, TopLevelAS *pPrevious
         buildDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
     }
 
+    ASBuilder::TopASBuildItem buildItem;
+    buildItem.desc = buildDesc;
+    buildItem.scratchBufferSize = info.ScratchDataSizeInBytes;
     if (cleanUpInstances) {
-        pUploadHeap->BuildTopAS(buildDesc, info.ScratchDataSizeInBytes, std::move(_instances), result.GetResource());
+		buildItem.instances =  std::move(_instances);
     } else {
-        pUploadHeap->BuildTopAS(buildDesc, info.ScratchDataSizeInBytes, _instances, result.GetResource());
+        buildItem.instances = _instances;
+		_allowUpdate = true;
     }
-    _allowUpdate = true;
+
+    buildItem.pResource = result.GetResource();
+    pUploadHeap->AddBuildItem(std::move(buildItem));
     return result;
 }
 
