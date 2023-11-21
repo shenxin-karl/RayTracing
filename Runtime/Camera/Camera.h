@@ -7,7 +7,7 @@ struct CameraData {
 	float		aspect;
 	float		zNear;
 	float		zFar;
-	glm::vec3	lookForm;
+	glm::vec3	lookFrom;
 	glm::vec3	lookUp;
 	glm::vec3	lookAt;
 	glm::mat4x4 matView;
@@ -35,8 +35,8 @@ class Camera {
 public:
 	Camera(const CameraDesc &desc);
 	void Update();
-	void SetLookForm(const glm::vec3 &lookForm) {
-		_cameraData.lookForm = lookForm;
+	void SetLookFrom(const glm::vec3 &lookForm) {
+		_cameraData.lookFrom = lookForm;
 	}
 	void SetLookUp(const glm::vec3 &lookUp) {
 		_cameraData.lookUp = lookUp;

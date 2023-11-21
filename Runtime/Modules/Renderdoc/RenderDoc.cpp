@@ -9,6 +9,7 @@
 #endif
 
 static RENDERDOC_API_1_0_0 *sRenderDocApi = nullptr;
+[[maybe_unused]]
 static HINSTANCE sRenderDocDllModule = nullptr;
 
 bool RenderDoc::IsLoaded() {

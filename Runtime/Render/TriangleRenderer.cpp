@@ -14,7 +14,7 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
-#include "Pix/Pix.h"
+#include "Modules/Pix/Pix.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 

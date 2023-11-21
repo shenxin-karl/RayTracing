@@ -16,7 +16,7 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
-#include "Pix/Pix.h"
+#include "Modules/Pix/Pix.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -73,7 +73,7 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
 
     const CameraData &cameraData = _pCamera->GetCameraData();
     _sceneConstantBuffer.projectToWorld = cameraData.matInvVewProj;
-    _sceneConstantBuffer.cameraPosition = glm::vec4(cameraData.lookForm, 1.0f);
+    _sceneConstantBuffer.cameraPosition = glm::vec4(cameraData.lookFrom, 1.0f);
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);
     _sceneConstantBuffer.lightAmbientColor = glm::vec4(0.1f);
     _sceneConstantBuffer.lightDiffuseColor = glm::vec4(0.9f);

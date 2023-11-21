@@ -1,14 +1,14 @@
 #include "Camera.h"
-#include "Exception.h"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include "Foundation/Exception.h"
 
 Camera::Camera(const CameraDesc &desc) {
     glm::vec3 w = normalize(glm::vec3(desc.lookAt) - glm::vec3(desc.lookFrom));
     glm::vec3 u = normalize(cross(glm::vec3(desc.lookUp), w));
     glm::vec3 v = cross(w, u);
 
-    _cameraData.lookForm = desc.lookFrom;
+    _cameraData.lookFrom = desc.lookFrom;
     _cameraData.lookUp = v;
     _cameraData.lookAt = desc.lookAt;
     _cameraData.zNear = desc.nearClip;
@@ -22,7 +22,7 @@ Camera::Camera(const CameraDesc &desc) {
 }
 
 void Camera::Update() {
-    glm::mat4x4 view = glm::lookAt(_cameraData.lookForm, _cameraData.lookAt, _cameraData.lookUp);
+    glm::mat4x4 view = glm::lookAt(_cameraData.lookFrom, _cameraData.lookAt, _cameraData.lookUp);
     glm::mat4x4 proj = glm::perspective(glm::radians(_cameraData.fov),
         _cameraData.aspect,
         _cameraData.zNear,

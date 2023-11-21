@@ -5,7 +5,7 @@
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
 #include "D3d12/ASBuilder.h"
-#include "Foundation/Camera.h"
+#include "Camera/Camera.h"
 
 struct Vertex {
     glm::vec3 position;

@@ -21,7 +21,7 @@ CharEvent Keyboard::GetCharEvent() {
 }
 
 void Keyboard::HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    bool repeatFilter = false;(lParam & 0x80000000) != 0;     // // filter auto repeat
+    bool repeatFilter = false; //(lParam & 0x80000000) != 0;     // // filter auto repeat
     switch (msg) {
     case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:

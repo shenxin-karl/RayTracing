@@ -2,9 +2,9 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Window.h"
-#include "Pix/Pix.h"
+#include "Modules/Pix/Pix.h"
 #include "Render/Renderer.h"
-#include "Renderdoc/RenderDoc.h"
+#include "Modules/Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
