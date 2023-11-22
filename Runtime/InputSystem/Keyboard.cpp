@@ -57,8 +57,11 @@ void Keyboard::TryDiscardEvent(std::queue<T> &queue) {
 }
 
 void Keyboard::OnPostRender(GameTimer &timer) {
-    TryDiscardEvent(_keycodeQueue);
-    TryDiscardEvent(_characterQueue);
+    //TryDiscardEvent(_keycodeQueue);
+    //TryDiscardEvent(_characterQueue);
+    _keycodeQueue = {};
+    _characterQueue = {};
+
 	ITick::OnPostRender(timer);
     _preFrameKeyState = _keyState;
     _preFrameCharacterState = _characterState;

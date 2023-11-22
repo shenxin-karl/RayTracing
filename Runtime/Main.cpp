@@ -13,6 +13,10 @@ int main() {
         Application *pApp = Application::GetInstance();
         pApp->OnCreate();
         while (pApp->IsRunning()) {
+            if (pApp->PollEvent(timer)) {
+	            continue;
+            }
+
             timer.StartNewFrame();
             pApp->OnPreUpdate(timer);
             pApp->OnUpdate(timer);

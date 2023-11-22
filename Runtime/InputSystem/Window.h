@@ -25,7 +25,8 @@ public:
     auto GetAspectRatio() const -> float;
     auto GetTitle() const -> const std::string &;
     void SetShowTitle(const std::string &title);
-    bool IsPause() const;
+    bool IsPaused() const;
+    bool PollEvent(GameTimer &timer);
     void OnPreUpdate(GameTimer &timer) override;
     void SetCanPause(bool bPause);
 private:

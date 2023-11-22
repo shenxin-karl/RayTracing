@@ -65,7 +65,7 @@ void SimpleLighting::OnDestroy() {
 
 void SimpleLighting::OnUpdate(GameTimer &timer) {
     Renderer::OnUpdate(timer);
-    _pCamera->Update();
+    _pCameraController->Update(timer);
 }
 
 void SimpleLighting::OnPreRender(GameTimer &timer) {
@@ -125,7 +125,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
         dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
 
-        auto cubeCB = pGraphicsCtx->AllocConstantBuffer(Colors::Magenta);
+        auto cubeCB = pGraphicsCtx->AllocConstantBuffer(Colors::Yellow);
 
         dx::ShaderTableGenerator hitGroupShaderTable;
         hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier,
@@ -179,7 +179,8 @@ void SimpleLighting::SetupCamera() {
     cameraDesc.nearClip = 0.1f;
     cameraDesc.farClip = 100.f;
     cameraDesc.aspect = static_cast<float>(_width) / static_cast<float>(_height);
-    _pCamera = std::make_unique<Camera>(cameraDesc);
+    _pCamera = std::make_shared<Camera>(cameraDesc);
+    _pCameraController = std::make_unique<CameraController>(_pCamera);
 }
 
 void SimpleLighting::BuildGeometry() {

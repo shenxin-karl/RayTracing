@@ -63,6 +63,14 @@ bool Application::IsRunning() const {
     return !InputSystem::GetInstance()->ShouldClose();
 }
 
+bool Application::IsPaused() const {
+    return InputSystem::GetInstance()->IsPaused();
+}
+
+bool Application::PollEvent(GameTimer &timer) {
+    return InputSystem::GetInstance()->PollEvent(timer);
+}
+
 void Application::OnPreUpdate(GameTimer &timer) {
     ITick::OnPreUpdate(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PreUpdate, timer);

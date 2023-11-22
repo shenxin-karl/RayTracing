@@ -52,6 +52,8 @@ void Logger::OnCreate() {
     _pLogger = spdlog::basic_logger_mt("basic_logger", "logs/basic-log.txt");
     _pConsoleLogger = spdlog::stdout_color_mt("console");
     spdlog::set_pattern(_pattern.c_str());
+    _pLogger ->set_level(spdlog::level::trace);
+    _pConsoleLogger ->set_level(spdlog::level::trace);
 }
 
 void Logger::OnDestroy() {

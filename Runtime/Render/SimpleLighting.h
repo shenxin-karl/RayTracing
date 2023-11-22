@@ -6,6 +6,7 @@
 #include "D3d12/Texture.h"
 #include "D3d12/ASBuilder.h"
 #include "Camera/Camera.h"
+#include "Camera/CameraController.h"
 
 struct Vertex {
     glm::vec3 position;
@@ -39,7 +40,6 @@ public:
     void CreateRootSignature();
     void CreateRayTracingPipeline();
     void BuildAccelerationStructure();
-    void LoadCubeMap();
 private:
     // clang-format off
 	dx::Texture								_rayTracingOutput;
@@ -57,7 +57,8 @@ private:
 	dx::TopLevelAS							_topLevelAs;
 	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
 
-    std::unique_ptr<Camera>                 _pCamera;
+    std::shared_ptr<Camera>                 _pCamera;
+    std::unique_ptr<CameraController>       _pCameraController;
     SceneConstantBuffer                     _sceneConstantBuffer = {};
     // clang-format on
 };

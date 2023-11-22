@@ -9,7 +9,7 @@ class InputSystem;
 class CameraController {
 public:
     CameraController(std::shared_ptr<Camera> pCamera);
-    void Update(std::shared_ptr<InputSystem> pInputSystem, GameTimer &timer);
+    void Update(GameTimer &timer);
     void SetPitch(float pitch);
     void SetYaw(float yaw);
     void SetRoll(float roll);

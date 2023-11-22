@@ -102,29 +102,36 @@ void Window::SetShowTitle(const std::string &title) {
     }
 }
 
-bool Window::IsPause() const {
+bool Window::IsPaused() const {
     return _paused;
 }
 
-void Window::OnPreUpdate(GameTimer &timer) {
+bool Window::PollEvent(GameTimer &timer) {
     _pGameTimer = &timer;
+
     MSG msg;
+    bool paused = _paused;
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             _shouldClose = true;
             _result = static_cast<int>(msg.wParam);
-            return;
+            return true;
         }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    return paused;
+}
+
+void Window::OnPreUpdate(GameTimer &timer) {
     if (_resizeDirty && _width > 0 && _height > 0) {
         _resizeDirty = false;
         _resizeCallback(_width, _height);
     }
 
-    if (!_pInputSystem->pMouse->GetShowCursor())
+    if (!_pInputSystem->pMouse->GetShowCursor()) {
         _pInputSystem->pMouse->AdjustCursorPosition();
+    }
 }
 
 void Window::SetCanPause(bool bPause) {

@@ -23,7 +23,7 @@ template<>
 struct TransferHelper<InstanceID> {
     template<TransferContextConcept Transfer>
     static void Transfer(Transfer &transfer, std::string_view name, InstanceID &data) {
-        transfer.transfer(name, data._instanceId);
+        transfer.Transfer(name, data._instanceId);
     }
 };
 

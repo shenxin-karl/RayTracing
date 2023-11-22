@@ -13,6 +13,8 @@ public:
     void OnCreate();
     void OnDestroy();
     bool IsRunning() const;
+    bool IsPaused() const;
+    bool PollEvent(GameTimer &timer);
     void OnPreUpdate(GameTimer &timer) override;
     void OnUpdate(GameTimer &timer) override;
     void OnPostUpdate(GameTimer &timer) override;

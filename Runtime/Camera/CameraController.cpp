@@ -4,12 +4,13 @@
 #include "InputSystem/Mouse.h"
 #include "InputSystem/Keyboard.h"
 #include "Foundation/GameTimer.h"
+#include "Foundation/Logger.h"
 
 CameraController::CameraController(std::shared_ptr<Camera> pCamera) : _pCamera(std::move(pCamera)) {
     const CameraData &cameraData = _pCamera->GetCameraData();
     const glm::vec3 &lookAt = cameraData.lookAt;
     const glm::vec3 &lookFrom = cameraData.lookFrom;
-    const glm::vec3 &lookUp = cameraData.lookFrom;
+    const glm::vec3 &lookUp = cameraData.lookUp;
     glm::vec3 target = normalize(lookAt - lookFrom);
     glm::vec3 upDir = normalize(lookUp);
     _pitch = std::clamp(glm::degrees(std::asin(target.y)), -89.9f, +89.9f);
@@ -17,7 +18,8 @@ CameraController::CameraController(std::shared_ptr<Camera> pCamera) : _pCamera(s
     _roll = glm::degrees(std::asin(upDir.y));
 }
 
-void CameraController::Update(std::shared_ptr<InputSystem> pInputSystem, GameTimer &timer) {
+void CameraController::Update(GameTimer &timer) {
+	InputSystem *pInputSystem = InputSystem::GetInstance(); 
     const CameraData &cameraData = _pCamera->GetCameraData();
     while (MouseEvent event = pInputSystem->pMouse->GetEvent()) {
         if (event.IsRPress()) {
@@ -82,15 +84,17 @@ void CameraController::Update(std::shared_ptr<InputSystem> pInputSystem, GameTim
 
     glm::vec3 lookFrom = cameraData.lookFrom;
     if (advance != 0.f || deviation != 0.f) {
-        const glm::vec3 &lookAt = cameraData.lookAt;
-        const glm::vec3 &lookUp = cameraData.lookUp;
-        glm::vec3 right = cross(lookUp, lookAt);
-        glm::vec3 motor = normalize(lookAt * advance + right * deviation) * (deltaTime * cameraMoveSpeed);
+        glm::vec3 targetDir = normalize(cameraData.lookAt - cameraData.lookFrom);
+        glm::vec3 lookUpDir = normalize(cameraData.lookUp);
+        glm::vec3 forwardDir = normalize(cameraData.lookAt - cameraData.lookFrom);
+        glm::vec3 right = cross(lookUpDir, forwardDir);
+        glm::vec3 motor = normalize(targetDir * advance + right * deviation) * (deltaTime * cameraMoveSpeed);
         lookFrom += motor;
     }
 
-    if (elevationRise != 0.f)
+    if (elevationRise != 0.f) {
         lookFrom.y = lookFrom.y + elevationRise * cameraMoveSpeed * deltaTime;
+    }
 
     _pCamera->SetLookFrom(lookFrom);
     float radianPitch = glm::radians(_pitch);
@@ -110,7 +114,7 @@ void CameraController::Update(std::shared_ptr<InputSystem> pInputSystem, GameTim
     float cosRoll = std::cos(radianRoll);
     glm::vec3 lookUp = glm::vec3(cosRoll, sinRoll, 0.f);
 
-    _pCamera->SetLookAt(target);
+    _pCamera->SetLookAt(lookFrom + target);
     _pCamera->SetLookUp(lookUp);
     _pCamera->Update();
 }
