@@ -1,11 +1,13 @@
 #pragma once
-#include "TypeTraits.hpp"
+#include "Foundation/TypeTraits.hpp"
 #include "Foundation/NonCopyable.h"
+#include <string_view>
 
 #define DECLARE_TYPEID(type) kTypeId##type
 enum TypeId {
     DECLARE_TYPEID(TypeBase) = 0,
     DECLARE_TYPEID(AssetProjectSetting) = 1,
+    DECLARE_TYPEID(Object) = 50,
 };
 #undef DECLARE_TYPEID
 

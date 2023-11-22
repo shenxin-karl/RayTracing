@@ -1,8 +1,8 @@
 #pragma once
 #include "Foundation/NamespeceAlias.h"
 #include "Foundation/Singleton.hpp"
-#include "Foundation/TypeBase.hpp"
 #include "Serialize/Transfer.hpp"
+#include "Object/TypeBase.hpp"
 
 class AssetProjectSetting
     : public TypeBase
