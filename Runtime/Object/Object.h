@@ -8,9 +8,7 @@ public:
 	DECLARE_VIRTUAL_SERIALIZER(Object);
 public:
 	Object();
-	void SetInstanceID(InstanceID instanceID) {
-		_instanceId = instanceID;
-	}
+	void InitInstanceId();
 	void SetName(std::string name) {
 		_name = std::move(name);
 	}

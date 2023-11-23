@@ -6,11 +6,15 @@
 
 #define DECLARE_TYPEID(type) kTypeId##type
 enum TypeId {
-    DECLARE_TYPEID(TypeBase) = 0,
-    DECLARE_TYPEID(AssetProjectSetting) = 1,
-    DECLARE_TYPEID(Object) = 50,
+    // clang-format off
+    DECLARE_TYPEID(TypeBase)                = 0,
+    DECLARE_TYPEID(AssetProjectSetting)     = 1,
+    DECLARE_TYPEID(Object)                  = 50,
+    DECLARE_TYPEID(GameObject)              = 51,
 
-    DECLARE_TYPEID(Component) = 200,
+    DECLARE_TYPEID(Component)               = 200,
+    DECLARE_TYPEID(Transform)               = 201,
+    // clang-format on
 };
 #undef DECLARE_TYPEID
 

@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 
-
 struct InstanceID {
 public:
 	void Set(int64_t id) {
