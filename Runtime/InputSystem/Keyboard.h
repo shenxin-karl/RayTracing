@@ -66,11 +66,14 @@ class Keyboard : public ITick {
 public:
     Keyboard();
 
-    bool IsKeyRelease(unsigned char key) const {
+    bool IsKeyClicked(unsigned char key) const {
 	    return _preFrameKeyState.test(key) && !_keyState.test(key);
     }
     bool IsKeyPressed(unsigned char key) const {
         return _keyState.test(key);
+    }
+    bool IsKeyRelease(unsigned char key) const {
+	    return _keyState.test(key);
     }
     bool IsCharPressed(unsigned char key) const {
         return _characterState.test(key);

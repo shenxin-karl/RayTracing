@@ -21,12 +21,13 @@ Transform::~Transform() {
     if (_pParent != nullptr) {
 		SetParent(nullptr);
     }
+
     for (auto it = _children.begin(); it != _children.end(); ++it) {
         auto *pChild = *it;
         pChild->_pParent = nullptr;
         pChild->_dirtyFlag = SetFlags(pChild->_dirtyFlag, eWorldAttribute);
-        _children.erase(it);
     }
+    _children.clear();
 }
 
 void Transform::SetLocalPosition(const glm::vec3 &translate) {
@@ -81,6 +82,14 @@ void Transform::SetWorldMatrix(const glm::mat4x4 &matrix) {
     _dirtyFlag = ClearFlags(_dirtyFlag, eWorldMatrix | eLocalMatrix);
 }
 
+void Transform::SetLocalTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {
+    SetLocalMatrix(MakeAffineMatrix(translation, rotation, scale));
+}
+
+void Transform::SetWorldTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {
+    SetWorldMatrix(MakeAffineMatrix(translation, rotation, scale));
+}
+
 void Transform::SetParent(Transform *pTransform) {
     if (_pParent != pTransform) {
         if (_pParent != nullptr) {
@@ -107,9 +116,7 @@ void Transform::RemoveChild(Transform *pTransform) {
 
 auto Transform::GetLocalMatrix() const -> const glm::mat4x4 & {
     if (HasFlag(_dirtyFlag, eLocalMatrix)) {
-        // TRS
-        _matWorld = glm::scale(glm::mat4_cast(_rotation), _scale);
-        _matWorld = glm::translate(glm::identity<glm::mat4>(), _translation) * _matWorld;
+        _matWorld = MakeAffineMatrix(_translation, _rotation, _scale);
         _dirtyFlag = ClearFlags(_dirtyFlag, eLocalMatrix);
     }
     return _matWorld;
@@ -121,7 +128,7 @@ auto Transform::GetWorldMatrix() const -> const glm::mat4x4 & {
         if (_pParent != nullptr) {
             parentMatrix = _pParent->GetWorldMatrix();
         }
-        _matWorld = GetLocalMatrix() * parentMatrix;
+        _matWorld = parentMatrix * GetLocalMatrix();
         _dirtyFlag = ClearFlags(_dirtyFlag, eWorldMatrix);
     }
     return _matWorld;
@@ -156,6 +163,25 @@ auto Transform::GetWorldScale() const -> const glm::vec3 & {
 auto Transform::GetWorldRotation() const -> const glm::quat & {
     ConditionUpdateWorldAttribute();
     return _worldRotation;
+}
+
+void Transform::GetLocalTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const {
+    translation = _translation;
+    rotation = _rotation;
+    scale = _scale;
+}
+
+void Transform::GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const {
+    ConditionUpdateWorldAttribute();
+    translation = _worldTranslation;
+    rotation = _worldRotation;
+    scale = _worldScale;
+}
+
+glm::mat4x4 Transform::MakeAffineMatrix(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {
+	glm::mat4x4 matrix = glm::scale(glm::mat4_cast(rotation), scale);
+    matrix = glm::translate(glm::identity<glm::mat4>(), translation) * matrix;
+    return matrix;
 }
 
 void Transform::SetParentImpl(Transform *pParent, Transform *pChild) {

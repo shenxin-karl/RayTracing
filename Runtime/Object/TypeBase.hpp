@@ -1,60 +1,105 @@
 #pragma once
-#include "Foundation/TypeTraits.hpp"
 #include "Foundation/NonCopyable.h"
 #include <string_view>
 #include <typeindex>
+#include "Foundation/TypeSafeWrapper.hpp"
 
-#define DECLARE_TYPEID(type) kTypeId##type
-enum TypeId {
-    // clang-format off
-    DECLARE_TYPEID(TypeBase)                = 0,
-    DECLARE_TYPEID(AssetProjectSetting)     = 1,
-    DECLARE_TYPEID(Object)                  = 50,
-    DECLARE_TYPEID(GameObject)              = 51,
-
-    DECLARE_TYPEID(Component)               = 200,
-    DECLARE_TYPEID(Transform)               = 201,
-    // clang-format on
-};
-#undef DECLARE_TYPEID
+using TypeID = TypeSafeWrapper<std::uint64_t>;
 
 class TypeBase : private NonCopyable {
 public:
     using SuperType = void;
     using ThisType = TypeBase;
-    virtual ~TypeBase() {
-    }
-    virtual auto GetTypeId() const -> TypeId {
-        return kTypeIdTypeBase;
-    }
-    virtual auto GetTypeName() const -> std::string_view {
-        return "TypeBase";
-    }
-    virtual auto GetTypeIndex() const -> std::type_index {
-        return typeid(TypeBase);
-    }
+    virtual ~TypeBase() = default;
+    virtual auto GetClassTypeID() const -> TypeID;
+    virtual auto GetClassTypeName() const -> std::string_view;
+    virtual auto GetClassTypeIndex() const -> std::type_index;
 };
+
+namespace TypeIDDetail {
+
+// See http://www.isthe.com/chongo/tech/comp/fnv/#FNV-param
+constexpr std::uint64_t fnv_basis = 14695981039346656037ull;
+constexpr std::uint64_t fnv_prime = 1099511628211ull;
+
+// FNV-1a 64 bit hash
+constexpr std::uint64_t fnv1a_hash(std::size_t n, const char *str, std::uint64_t hash = fnv_basis) {
+    return n > 0 ? fnv1a_hash(n - 1, str + 1, (hash ^ *str) * fnv_prime) : hash;
+}
+
+constexpr std::uint64_t fnv1a_hash(std::string_view sv) {
+    return fnv1a_hash(sv.length(), sv.data());
+}
+
+}    // namespace TypeIDDetail
+
+template<typename T>
+consteval auto GetTypeName() -> std::string_view {
+    std::string_view name;
+#ifdef __clang__
+    name = __PRETTY_FUNCTION__;
+    auto start = name.find("T = ") + 4;    // 4 is length of "T = "
+    auto end = name.find_last_of(']');
+    return std::string_view{name.data() + start, end - start};
+
+#elif defined(__GNUC__)
+    name = __PRETTY_FUNCTION__;
+    auto start = name.find("T = ") + 4;    // 4 is length of "T = "
+    auto end = name.find_last_of(']');
+    return std::string_view{name.data() + start, end - start};
+
+#elif defined(_MSC_VER)
+    name = __FUNCSIG__;
+    auto start = name.find("GetTypeName<") + 12;    // 10 is length of "GetTypeName<"
+    auto end = name.find_last_of('>');
+    return std::string_view{name.data() + start, end - start};
+#endif
+}
+
+template<typename T>
+auto GetTypeIndex() -> std::type_index {
+    return std::type_index(typeid(T));
+}
+
+inline auto GetTypeIndex(const TypeBase *pObject) -> std::type_index {
+    return pObject->GetClassTypeIndex();
+}
+
+template<typename T>
+consteval auto GetTypeID() -> TypeID {
+    return TypeID(TypeIDDetail::fnv1a_hash(GetTypeName<T>()));
+}
+
+constexpr auto GetTypeID(std::string_view typeName) -> TypeID {
+    return TypeID(TypeIDDetail::fnv1a_hash(typeName));
+}
+
+inline auto GetTypeID(const TypeBase *pObject) -> TypeID {
+    return pObject->GetClassTypeID();
+}
+
+inline auto TypeBase::GetClassTypeID() const -> TypeID {
+    return ::GetTypeID<TypeBase>();
+}
+
+inline auto TypeBase::GetClassTypeName() const -> std::string_view {
+    return ::GetTypeName<TypeBase>();
+}
+
+inline auto TypeBase::GetClassTypeIndex() const -> std::type_index {
+    return std::type_index(typeid(TypeBase));
+}
 
 #define DECLARE_CLASS(Type)                                                                                            \
 public:                                                                                                                \
     using SuperType = ThisType;                                                                                        \
     using ThisType = Type;                                                                                             \
-    auto GetTypeId() const->TypeId override {                                                                          \
-        return kTypeId##Type;                                                                                          \
+    auto GetClassTypeID() const->TypeID override {                                                                     \
+        return ::GetTypeID<Type>();                                                                                    \
     }                                                                                                                  \
-    auto GetTypeName() const->std::string_view override {                                                              \
-        return #Type;                                                                                                  \
+    auto GetClassTypeName() const->std::string_view override {                                                         \
+        return ::GetTypeName<Type>();                                                                                  \
     }                                                                                                                  \
-    auto GetTypeIndex() const->std::type_index override {                                                              \
-        return typeid(Type);                                                                                           \
+    auto GetClassTypeIndex() const->std::type_index override {                                                         \
+        return std::type_index(typeid(Type));                                                                          \
     }
-
-template<typename T>
-auto GetTypeIndex() -> std::type_index {
-	return std::type_index(typeid(T));
-}
-
-template<typename T> requires(std::is_base_of_v<TypeBase, T>)
-auto GetTypeIndex(const TypeBase *pObject) -> std::type_index {
-	return pObject->GetTypeIndex();
-} 

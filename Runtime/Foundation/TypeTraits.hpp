@@ -115,27 +115,3 @@ struct GetStdMapPair<std::unordered_multimap<Key, Value, Args...>> {
 
 template<typename T>
 concept Enumerable = std::is_enum_v<T>;
-
-
-template<typename T>
-consteval auto GetTypeName() -> std::string_view {
-    std::string_view name;
-#ifdef __clang__
-    name = __PRETTY_FUNCTION__;
-    auto start = name.find("T = ") + 4; // 4 is length of "T = "
-    auto end = name.find_last_of(']');
-    return std::string_view{ name.data() + start, end - start };
-
-#elif defined(__GNUC__)
-    name = __PRETTY_FUNCTION__;
-    auto start = name.find("T = ") + 4; // 4 is length of "T = "
-    auto end = name.find_last_of(']');
-    return std::string_view{ name.data() + start, end - start };
-
-#elif defined(_MSC_VER)
-    name = __FUNCSIG__;
-    auto start = name.find("type_name<") + 10; // 10 is length of "type_name<"
-    auto end = name.find_last_of('>');
-    return std::string_view{ name.data() + start, end - start };
-#endif
-}

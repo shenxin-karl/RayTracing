@@ -10,6 +10,7 @@
 
 //#include "Render/TriangleRenderer.h"
 #include "Render/SimpleLighting.h"
+#include "Utils/GlobalCallbacks.h"
 
 Application::Application() {
 }
@@ -73,46 +74,53 @@ bool Application::PollEvent(GameTimer &timer) {
 
 void Application::OnPreUpdate(GameTimer &timer) {
     ITick::OnPreUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PreUpdate, timer);
     InputSystem::GetInstance()->OnPreUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PreUpdate, timer);
+    GlobalCallbacks::Get().onPreUpdate.Invoke(std::ref(timer));
     _pRenderer->OnPreUpdate(timer);
 }
 
 void Application::OnUpdate(GameTimer &timer) {
     ITick::OnUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::OnUpdate, timer);
     InputSystem::GetInstance()->OnUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::OnUpdate, timer);
+    GlobalCallbacks::Get().onUpdate.Invoke(std::ref(timer));
     _pRenderer->OnUpdate(timer);
 }
 
 void Application::OnPostUpdate(GameTimer &timer) {
     ITick::OnPostUpdate(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PostUpdate, timer);
     InputSystem::GetInstance()->OnPostUpdate(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PostUpdate, timer);
+    GlobalCallbacks::Get().onPostUpdate.Invoke(std::ref(timer));
     _pRenderer->OnPostUpdate(timer);
 }
 
 void Application::OnPreRender(GameTimer &timer) {
     ITick::OnPreRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PreRender, timer);
     InputSystem::GetInstance()->OnPreRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PreRender, timer);
+    GlobalCallbacks::Get().onPreRender.Invoke(std::ref(timer));
     _pRenderer->OnPreRender(timer);
 }
 
 void Application::OnRender(GameTimer &timer) {
     ITick::OnRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::OnRender, timer);
     InputSystem::GetInstance()->OnRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::OnRender, timer);
+    GlobalCallbacks::Get().onRender.Invoke(std::ref(timer));
     _pRenderer->OnRender(timer);
 }
 
 void Application::OnPostRender(GameTimer &timer) {
     ITick::OnPostRender(timer);
-    MainThread::ExecuteMainThreadJob(MainThread::PostRender, timer);
     InputSystem::GetInstance()->OnPostRender(timer);
+    MainThread::ExecuteMainThreadJob(MainThread::PostRender, timer);
+    GlobalCallbacks::Get().onPostRender.Invoke(std::ref(timer));
     _pRenderer->OnPostRender(timer);
 }
 
 void Application::OnResize(uint32_t width, uint32_t height) {
+    GlobalCallbacks::Get().onResize.Invoke(width, height);
     _pRenderer->OnResize(width, height);
 }

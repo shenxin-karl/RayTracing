@@ -8,7 +8,7 @@ class Transform : public Component {
     DECLARE_CLASS(Transform);
 public:
     static constexpr float kEpsilon = 0.00001f;
-    enum TransformDirtyFlag : uint32_t {
+    enum TransformDirtyFlag {
         // clang-format off
 		eLocalMatrix		= 1 << 0,
 		eWorldMatrix		= 1 << 1,
@@ -18,7 +18,7 @@ public:
         eWorldRotation      = 1 << 5,
         eWorldScale         = 1 << 6,
         eWorldAttribute     = (eWorldMatrix | eInverseWorldMatrix | eWorldTranslation | eWorldRotation | eWorldScale),
-        eAllDirty           = (~0),
+        eAllDirty           = (eWorldAttribute | eLocalMatrix | eInverseLocalMatrix),
         // clang-format on
     };
     ENUM_FLAGS_AS_MEMBER(TransformDirtyFlag);
@@ -31,6 +31,8 @@ public:
     void SetLocalRotation(const glm::quat &rotate);
     void SetLocalMatrix(const glm::mat4x4 &matrix);
     void SetWorldMatrix(const glm::mat4x4 &matrix);
+    void SetLocalTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
+    void SetWorldTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
     void SetParent(Transform *pTransform);
     void AddChild(Transform *pTransform);
     void RemoveChild(Transform *pTransform);
@@ -41,6 +43,8 @@ public:
     auto GetWorldPosition() const -> const glm::vec3 &;
     auto GetWorldScale() const -> const glm::vec3 &;
     auto GetWorldRotation() const -> const glm::quat &;
+    void GetLocalTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const;
+    void GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const;
     auto GetLocalPosition() const -> const glm::vec3 & {
         return _translation;
     }
@@ -53,9 +57,13 @@ public:
     auto GetParent() const -> Transform * {
         return _pParent;
     }
+    auto GetChildCount() const -> size_t {
+	    return _children.size();
+    }
     auto GetChildren() const -> const std::vector<Transform *> & {
         return _children;
     }
+    static glm::mat4x4 MakeAffineMatrix(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
 private:
     static void SetParentImpl(Transform *pParent, Transform *pChild);
     static void RemoveChildImpl(Transform *pParent, Transform *pChild);

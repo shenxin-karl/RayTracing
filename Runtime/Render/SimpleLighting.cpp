@@ -90,7 +90,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     static bool waitCaptureFrameFinished = false;
     bool beginCapture = false;
     InputSystem *pInputSystem = InputSystem::GetInstance();
-    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyRelease(VK_F11)) {
+    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyClicked(VK_F11)) {
         _pDevice->WaitForGPUFlush();
         Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
         waitCaptureFrameFinished = true;

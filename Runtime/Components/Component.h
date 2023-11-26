@@ -1,5 +1,6 @@
 #pragma once
 #include "Object/Object.h"
+#include "Utils/GlobalCallbacks.h"
 
 class GameObject;
 class Component : public Object {
@@ -14,6 +15,10 @@ public:
     virtual void OnAddToGameObject() {
     }
     virtual void OnRemoveFormGameObject() {
+    }
+    virtual void OnAddToScene() {
+    }
+    virtual void OnRemoveFormScene() {
     }
 private:
     friend class GameObject;
