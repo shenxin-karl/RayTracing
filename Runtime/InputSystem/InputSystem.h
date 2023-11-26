@@ -19,7 +19,7 @@ public:
     void OnDestroy();
     bool IsPaused();
     bool ShouldClose() const;
-    bool PollEvent(GameTimer &timer);
+    void PollEvent(GameTimer &timer);
     void OnPreUpdate(GameTimer &timer) override;
     void OnUpdate(GameTimer &timer) override;
     void OnPostRender(GameTimer &timer) override;

@@ -26,9 +26,8 @@ public:
     auto GetTitle() const -> const std::string &;
     void SetShowTitle(const std::string &title);
     bool IsPaused() const;
-    bool PollEvent(GameTimer &timer);
+    void PollEvent(GameTimer &timer);
     void OnPreUpdate(GameTimer &timer) override;
-    void SetCanPause(bool bPause);
 private:
     static void CenterWindow(HWND hwnd);
     static LRESULT CALLBACK HandleMsgSetup(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -49,7 +48,6 @@ private:
     std::function<void(int x, int y)> _resizeCallback;
     GameTimer *_pGameTimer = nullptr;
 public:
-    bool _canPause = true;
     bool _paused = false;
     bool _minimized = false;
     bool _maximized = false;

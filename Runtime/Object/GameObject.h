@@ -7,10 +7,12 @@ class Component;
 class GameObject : public Object {
     DECLARE_CLASS(GameObject);
 private:
-    GameObject() = default;
+    GameObject();
 public:
     ~GameObject() override;
-
+    void OnAddToScene();
+    void OnRemoveFormScene();
+public:
     static auto Create() -> std::shared_ptr<GameObject> {
         struct MakeGameObject : public GameObject {
             using GameObject::GameObject;
@@ -65,9 +67,28 @@ public:
                 return true;
             }
         }
+		return false;
+    }
+    bool HasComponent(TypeID typeId) const {
+        for (auto it = _components.begin(); it != _components.end(); ++it) {
+            if ((*it)->GetClassTypeID() == typeId) {
+                return true;
+            }
+        }
 	    return false;
+    }
+    auto GetSceneID() const -> int32_t {
+	    return _sceneID;
     }
 private:
     using ComponentContainer = std::vector<std::unique_ptr<Component>>;
+    friend class Scene;
+    void SetSceneID(int sceneID) {
+	    _sceneID = sceneID;
+    }
+private:
+    // clang-format off
+    int32_t            _sceneID;
     ComponentContainer _components;
+    // clang-format on
 };

@@ -106,21 +106,19 @@ bool Window::IsPaused() const {
     return _paused;
 }
 
-bool Window::PollEvent(GameTimer &timer) {
+void Window::PollEvent(GameTimer &timer) {
     _pGameTimer = &timer;
 
     MSG msg;
-    bool paused = _paused;
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             _shouldClose = true;
             _result = static_cast<int>(msg.wParam);
-            return true;
+            return;
         }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    return paused;
 }
 
 void Window::OnPreUpdate(GameTimer &timer) {
@@ -132,10 +130,6 @@ void Window::OnPreUpdate(GameTimer &timer) {
     if (!_pInputSystem->pMouse->GetShowCursor()) {
         _pInputSystem->pMouse->AdjustCursorPosition();
     }
-}
-
-void Window::SetCanPause(bool bPause) {
-    _canPause = bPause;
 }
 
 void Window::CenterWindow(HWND hwnd) {
@@ -227,7 +221,7 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 void Window::Stop() {
-    if (_canPause && !_paused) {
+    if (!_paused) {
         _paused = true;
         if (_pGameTimer != nullptr) {
             _pGameTimer->Stop();

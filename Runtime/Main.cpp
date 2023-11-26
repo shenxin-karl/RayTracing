@@ -13,18 +13,19 @@ int main() {
         Application *pApp = Application::GetInstance();
         pApp->OnCreate();
         while (pApp->IsRunning()) {
-            if (pApp->PollEvent(timer)) {
-	            continue;
-            }
-
+            pApp->PollEvent(timer);
             timer.StartNewFrame();
-            pApp->OnPreUpdate(timer);
-            pApp->OnUpdate(timer);
-            pApp->OnPostUpdate(timer);
+            if (pApp->IsPaused()) {
+	            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            } else {
+	            pApp->OnPreUpdate(timer);
+	            pApp->OnUpdate(timer);
+	            pApp->OnPostUpdate(timer);
 
-            pApp->OnPreRender(timer);
-            pApp->OnRender(timer);
-            pApp->OnPostRender(timer);
+	            pApp->OnPreRender(timer);
+	            pApp->OnRender(timer);
+	            pApp->OnPostRender(timer);
+            }
         }
         pApp->OnDestroy();
         Application::OnInstanceDestroy();

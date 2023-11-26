@@ -32,8 +32,8 @@ bool InputSystem::ShouldClose() const {
     return pWindow->ShouldClose();
 }
 
-bool InputSystem::PollEvent(GameTimer &timer) {
-    return pWindow->PollEvent(timer);
+void InputSystem::PollEvent(GameTimer &timer) {
+    pWindow->PollEvent(timer);
 }
 
 void InputSystem::OnPreUpdate(GameTimer &timer) {
