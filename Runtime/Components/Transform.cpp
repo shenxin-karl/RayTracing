@@ -83,7 +83,11 @@ void Transform::SetWorldMatrix(const glm::mat4x4 &matrix) {
 }
 
 void Transform::SetLocalTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {
-    SetLocalMatrix(MakeAffineMatrix(translation, rotation, scale));
+    _translation = translation;
+    _rotation = rotation;
+    _scale = scale;
+    _dirtyFlag = SetFlags(_dirtyFlag, eInverseLocalMatrix | eLocalMatrix | eWorldAttribute);
+    MakeChildrenDirty(eWorldAttribute);
 }
 
 void Transform::SetWorldTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {

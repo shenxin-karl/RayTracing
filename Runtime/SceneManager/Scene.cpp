@@ -5,7 +5,7 @@ void Scene::AddGameObject(std::shared_ptr<GameObject> pGameObject) {
 	if (pGameObject->GetSceneID() == _sceneID) {
 		return;
 	}
-	pGameObject->OnAddToScene();
+	pGameObject->OnAddToScene(_sceneID);
 	_gameObjects.push_back(std::move(pGameObject));
 }
 

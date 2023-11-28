@@ -17,8 +17,15 @@
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
 #include "Modules/Pix/Pix.h"
+
+#include "Object/GameObject.h"
+#include "SceneManager/Scene.h"
+#include "SceneManager/SceneManager.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
+
+#include "Components/Camera.h"
+#include "Components/CameraColtroller.h"
 
 static const wchar_t *sMyRayGenShader = L"MyRaygenShader";
 static const wchar_t *sClosestHitShader = L"MyClosestHitShader";
@@ -43,13 +50,19 @@ enum {
 
 }
 
+SimpleLighting::SimpleLighting() {
+}
+
+SimpleLighting::~SimpleLighting() {
+}
+
 void SimpleLighting::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     Renderer::OnCreate(numBackBuffer, hwnd);
-    SetupCamera();
     BuildGeometry();
     CreateRootSignature();
     CreateRayTracingPipeline();
     BuildAccelerationStructure();
+    InitScene();
 }
 
 void SimpleLighting::OnDestroy() {
@@ -65,15 +78,15 @@ void SimpleLighting::OnDestroy() {
 
 void SimpleLighting::OnUpdate(GameTimer &timer) {
     Renderer::OnUpdate(timer);
-    _pCameraController->Update(timer);
 }
 
 void SimpleLighting::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    const CameraData &cameraData = _pCamera->GetCameraData();
-    _sceneConstantBuffer.projectToWorld = cameraData.matInvVewProj;
-    _sceneConstantBuffer.cameraPosition = glm::vec4(cameraData.lookFrom, 1.0f);
+    Camera *pCamera = _pGameObject->GetComponent<Camera>();
+    Transform *pTransform = _pGameObject->GetComponent<Transform>();
+    _sceneConstantBuffer.projectToWorld = pCamera->GetInverseViewProjectionMatrix();
+    _sceneConstantBuffer.cameraPosition = glm::vec4(pTransform->GetWorldPosition(), 1.0f);
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);
     _sceneConstantBuffer.lightAmbientColor = glm::vec4(0.1f);
     _sceneConstantBuffer.lightDiffuseColor = glm::vec4(0.9f);
@@ -129,9 +142,9 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
         dx::ShaderTableGenerator hitGroupShaderTable;
         hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier,
-            cubeCB,                             // gCubeCB
-            _indexBufferView.BufferLocation,    // gIndices
-            _vertexBufferView.BufferLocation);  // gVertices
+            cubeCB,                               // gCubeCB
+            _indexBufferView.BufferLocation,      // gIndices
+            _vertexBufferView.BufferLocation);    // gVertices
         dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
 
         dispatchRaysDesc.Width = _width;
@@ -147,7 +160,6 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     _pSwapChain->Present();
     _pFrameResourceRing->OnEndFrame();
-
 
     if (beginCapture) {
         Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
@@ -167,20 +179,6 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 void SimpleLighting::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
     CreateRayTracingOutput();
-    _pCamera->SetAspect(static_cast<float>(width) / static_cast<float>(height));
-}
-
-void SimpleLighting::SetupCamera() {
-    CameraDesc cameraDesc;
-    cameraDesc.lookFrom = glm::vec3(5, 0, 0);
-    cameraDesc.lookUp = glm::vec3(0, 1, 0);
-    cameraDesc.lookAt = glm::vec3(0);
-    cameraDesc.fov = 45.f;
-    cameraDesc.nearClip = 0.1f;
-    cameraDesc.farClip = 100.f;
-    cameraDesc.aspect = static_cast<float>(_width) / static_cast<float>(_height);
-    _pCamera = std::make_shared<Camera>(cameraDesc);
-    _pCameraController = std::make_unique<CameraController>(_pCamera);
 }
 
 void SimpleLighting::BuildGeometry() {
@@ -355,4 +353,21 @@ void SimpleLighting::BuildAccelerationStructure() {
     }
     _pASBuilder->EndBuild();
     _pASBuilder->GetBuildFinishedFence().CpuWaitForFence();
+}
+
+void SimpleLighting::InitScene() {
+    _pScene = SceneManager::GetInstance()->CreateScene("Scene");
+    _pGameObject = GameObject::Create();
+    _pGameObject->AddComponent<Camera>();
+    _pGameObject->AddComponent<CameraController>();
+
+    glm::vec3 lookFrom(5.f, 0, 0);
+    glm::vec3 lookAt(0.f);
+
+    glm::vec3 direction = glm::normalize(lookAt - lookFrom);
+    float angle = acos(glm::dot(direction, glm::vec3(0, 0, 1)));
+    glm::quat quaternion = glm::angleAxis(angle, glm::cross(glm::vec3(0, 0, 1), direction));
+    _pGameObject->GetComponent<Transform>()->SetWorldTRS(lookFrom, quaternion, glm::vec3(1.f));
+
+    _pScene->AddGameObject(_pGameObject);
 }

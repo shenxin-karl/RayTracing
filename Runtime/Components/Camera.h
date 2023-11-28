@@ -9,6 +9,24 @@ public:
     ~Camera() override;
 public:
 	static auto GetAvailableCameras() -> const std::vector<Camera *> &;
+	auto GetViewMatrix() const -> const glm::mat4x4 & {
+		return _matView;
+	}
+	auto GetProjectionMatrix() const -> const glm::mat4x4 & {
+		return _matProj;
+	}
+	auto GetViewProjectionMatrix() const -> const glm::mat4x4 & {
+		return _matViewProj;
+	}
+	auto GetInverseViewMatrix() const -> const glm::mat4x4 & {
+		return _matInvView;
+	}
+	auto GetInverseProjectionMatrix() const -> const glm::mat4x4 & {
+		return _matInvProj;
+	}
+	auto GetInverseViewProjectionMatrix() const -> const glm::mat4x4 & {
+		return _matInvViewProj;
+	}
 private:
     void OnAddToScene() override;
     void OnRemoveFormScene() override;

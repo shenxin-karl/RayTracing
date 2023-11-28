@@ -4,8 +4,8 @@
 class Scene;
 class SceneManager : public Singleton<SceneManager>{
 public:
-	SceneManager() = default;
-	~SceneManager() override = default;
+	SceneManager();
+	~SceneManager() override;
 public:
 	void OnCreate();
 	void OnDestroy();

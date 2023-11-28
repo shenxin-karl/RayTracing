@@ -22,9 +22,9 @@ void GameTimer::Start() {
 		return;
 
 	_stopped = false;
-	auto currTime = stdchrono::steady_clock::now();
-	_prevTime = currTime;
-	stdchrono::duration<float> diff = currTime - _stoppedTime;
+	auto currentTime = stdchrono::steady_clock::now();
+	_prevTime = currentTime;
+	stdchrono::duration<float> diff = currentTime - _stoppedTime;
 	_pausedTime += diff.count();
 }
 
@@ -41,11 +41,11 @@ void GameTimer::StartNewFrame() {
 	if (_stopped)
 		return;
 
-	auto currTime = stdchrono::steady_clock::now();
-	stdchrono::duration<float> diff = currTime - _prevTime;
-	_prevTime = currTime;
+	auto currentTime = stdchrono::steady_clock::now();
+	stdchrono::duration<float> diff = currentTime - _prevTime;
+	_prevTime = currentTime;
 	_deltaTime = diff.count();
-	diff = currTime - _baseTime;
+	diff = currentTime - _baseTime;
 	_totalTime = diff.count() - _pausedTime;
 	++_currFameTimes;
 	time_t sysTime = stdchrono::system_clock::to_time_t(stdchrono::system_clock::now());

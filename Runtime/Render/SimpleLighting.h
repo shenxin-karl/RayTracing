@@ -5,8 +5,8 @@
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
 #include "D3d12/ASBuilder.h"
-#include "Camera/Camera.h"
-#include "Camera/CameraController.h"
+
+
 
 struct Vertex {
     glm::vec3 position;
@@ -25,8 +25,13 @@ struct SceneConstantBuffer {
     glm::vec4 lightDiffuseColor;
 };
 
+class Scene;
+class GameObject;
+
 class SimpleLighting : public Renderer {
 public:
+    SimpleLighting();
+    ~SimpleLighting() override;
     void OnCreate(uint32_t numBackBuffer, HWND hwnd) override;
     void OnDestroy() override;
     void OnUpdate(GameTimer &timer) override;
@@ -34,12 +39,12 @@ public:
     void OnRender(GameTimer &timer) override;
     void OnResize(uint32_t width, uint32_t height) override;
 public:
-    void SetupCamera();
     void BuildGeometry();
     void CreateRayTracingOutput();
     void CreateRootSignature();
     void CreateRayTracingPipeline();
     void BuildAccelerationStructure();
+	void InitScene();
 private:
     // clang-format off
 	dx::Texture								_rayTracingOutput;
@@ -57,8 +62,8 @@ private:
 	dx::TopLevelAS							_topLevelAs;
 	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
 
-    std::shared_ptr<Camera>                 _pCamera;
-    std::unique_ptr<CameraController>       _pCameraController;
     SceneConstantBuffer                     _sceneConstantBuffer = {};
+    Scene                                  *_pScene = nullptr;
+    std::shared_ptr<GameObject>             _pGameObject = nullptr;
     // clang-format on
 };
