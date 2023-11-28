@@ -3,7 +3,7 @@
 
 namespace dx {
 
-class AccelerationStructure : public NonCopyable {
+class AccelerationStructure : private NonCopyable {
 public:
     AccelerationStructure();
     ~AccelerationStructure();

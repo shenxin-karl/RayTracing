@@ -19,16 +19,29 @@ Camera::Camera() {
 Camera::~Camera() {
 }
 
+static std::vector<Camera *> sAvailableCameras;
+auto Camera::GetAvailableCameras() -> const std::vector<Camera *> & {
+    return sAvailableCameras;
+}
+
 void Camera::OnAddToScene() {
     Component::OnAddToScene();
     _preRenderHandle = GlobalCallbacks::Get().onPreRender.Register(this, &Camera::OnPreRender);
     _resizeCallbackHandle = GlobalCallbacks::Get().onResize.Register(this, &Camera::OnResize);
+    auto it = std::ranges::find(sAvailableCameras, this);
+    if (it == sAvailableCameras.end()) {
+	    sAvailableCameras.push_back(this);
+    }
 }
 
 void Camera::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
     _preRenderHandle.Release();
     _resizeCallbackHandle.Release();
+    auto it = std::ranges::find(sAvailableCameras, this);
+    if (it != sAvailableCameras.end()) {
+	    sAvailableCameras.erase(it);
+    }
 }
 
 void Camera::OnPreRender(GameTimer &timer) {

@@ -4,8 +4,11 @@
 class Scene;
 class SceneManager : public Singleton<SceneManager>{
 public:
-	SceneManager();
-	~SceneManager() override;
+	SceneManager() = default;
+	~SceneManager() override = default;
+public:
+	void OnCreate();
+	void OnDestroy();
 	auto CreateScene(std::string_view name) -> Scene *;
 	auto GetScene(std::string_view name) const -> Scene *;
 	auto GetOrCreateScene(std::string_view name) -> Scene *;

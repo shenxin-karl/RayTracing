@@ -3,17 +3,19 @@
 #include "Component.h"
 
 class Camera : public Component {
-	DECLARE_CLASS(Camera);
+    DECLARE_CLASS(Camera);
 public:
-	Camera();
-	~Camera() override;
+    Camera();
+    ~Camera() override;
+public:
+	static auto GetAvailableCameras() -> const std::vector<Camera *> &;
 private:
-	void OnAddToScene() override;
-	void OnRemoveFormScene() override;
-	void OnPreRender(GameTimer &timer);
-	void OnResize(size_t width, size_t height);
+    void OnAddToScene() override;
+    void OnRemoveFormScene() override;
+    void OnPreRender(GameTimer &timer);
+    void OnResize(size_t width, size_t height);
 private:
-	// clang-format off
+    // clang-format off
 	float			_aspect;
 	float			_zNear;
 	float			_zFar;
@@ -24,7 +26,7 @@ private:
 	glm::mat4x4		_matInvView;
 	glm::mat4x4		_matInvProj;
 	glm::mat4x4		_matInvViewProj;
-	CallbackHandle _preRenderHandle;
-	CallbackHandle _resizeCallbackHandle;
-	// clang-format on
+	CallbackHandle  _preRenderHandle;
+	CallbackHandle  _resizeCallbackHandle;
+    // clang-format on
 };

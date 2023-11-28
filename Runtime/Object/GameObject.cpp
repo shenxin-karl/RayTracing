@@ -11,7 +11,8 @@ GameObject::~GameObject() {
 	_components.clear();
 }
 
-void GameObject::OnAddToScene() {
+void GameObject::OnAddToScene(int32_t sceneID) {
+	_sceneID = sceneID;
 	for (std::unique_ptr<Component> &pComponent : _components) {
 		pComponent->OnAddToScene();
 	}
@@ -21,4 +22,5 @@ void GameObject::OnRemoveFormScene() {
 	for (std::unique_ptr<Component> &pComponent : _components) {
 		pComponent->OnRemoveFormScene();
 	}
+	_sceneID = -1;
 }

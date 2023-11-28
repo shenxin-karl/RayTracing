@@ -10,6 +10,7 @@
 
 //#include "Render/TriangleRenderer.h"
 #include "Render/SimpleLighting.h"
+#include "SceneManager/SceneManager.h"
 #include "Utils/GlobalCallbacks.h"
 
 Application::Application() {
@@ -32,6 +33,8 @@ void Application::OnCreate() {
     RenderDoc::Load();
     Pix::Load();
 
+    SceneManager::OnInstanceCreate()->OnCreate();
+
     HWND hwnd = pInputSystem->pWindow->GetHWND();
     //_pRenderer = std::make_unique<TriangleRenderer>();
     _pRenderer = std::make_unique<SimpleLighting>();
@@ -48,10 +51,13 @@ void Application::OnCreate() {
 
 void Application::OnDestroy() {
     _pRenderer->OnDestroy();
+    SceneManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
+
+    SceneManager::OnInstanceDestroy();
     Pix::Free();
     RenderDoc::Free();
     ShaderManager::OnInstanceDestroy();

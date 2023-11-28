@@ -10,7 +10,7 @@ private:
     GameObject();
 public:
     ~GameObject() override;
-    void OnAddToScene();
+    void OnAddToScene(int32_t sceneID);
     void OnRemoveFormScene();
 public:
     static auto Create() -> std::shared_ptr<GameObject> {
@@ -68,14 +68,6 @@ public:
             }
         }
 		return false;
-    }
-    bool HasComponent(TypeID typeId) const {
-        for (auto it = _components.begin(); it != _components.end(); ++it) {
-            if ((*it)->GetClassTypeID() == typeId) {
-                return true;
-            }
-        }
-	    return false;
     }
     auto GetSceneID() const -> int32_t {
 	    return _sceneID;

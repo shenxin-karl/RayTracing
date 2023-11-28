@@ -4,7 +4,7 @@
 
 namespace dx {
 
-class BottomLevelASGenerator : public NonCopyable {
+class BottomLevelASGenerator : private NonCopyable {
 public:
     void AddGeometry(D3D12_VERTEX_BUFFER_VIEW vbv, DXGI_FORMAT vertexFormat, bool isOpaque = true);
     void AddGeometry(D3D12_VERTEX_BUFFER_VIEW vbv, DXGI_FORMAT vertexFormat, D3D12_GPU_VIRTUAL_ADDRESS transformBuffer, bool isOpaque = true);

@@ -3,7 +3,7 @@
 #include <type_traits>
 #include "NonCopyable.h"
 
-class MemoryStream : public NonCopyable {
+class MemoryStream : private NonCopyable {
 public:
     MemoryStream();
     ~MemoryStream();

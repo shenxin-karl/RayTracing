@@ -47,7 +47,7 @@ private:
     // clang-format on
 };
 
-class ShaderTableGenerator : public NonCopyable {
+class ShaderTableGenerator : private NonCopyable {
 public:
     ShaderTableGenerator();
     //void AddShaderRecode(ShaderRecode )

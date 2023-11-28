@@ -5,7 +5,7 @@
 
 namespace dx {
 
-class TopLevelASGenerator : public NonCopyable {
+class TopLevelASGenerator : private NonCopyable {
 public:
     TopLevelASGenerator();
     void AddInstance(const ASInstance &instance);

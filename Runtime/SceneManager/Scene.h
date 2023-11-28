@@ -6,19 +6,17 @@
 
 class GameObject;
 
-class Scene : public NonCopyable {
+class Scene : private NonCopyable {
 	friend class SceneManager;
 	using GameObjectList = std::list<std::shared_ptr<GameObject>>;
 public:
-	Scene();
-	~Scene();
+	Scene() = default;
+	~Scene() = default;
+public:
 	void AddGameObject(std::shared_ptr<GameObject> pGameObject);
 	void RemoveGameObject(std::shared_ptr<GameObject> pGameObject);
 	void RemoveGameObject(InstanceID instanceId) {
 		RemoveGameObjectInternal(instanceId);
-	}
-	void SetName(std::string name) {
-		_name = std::move(name);
 	}
 	auto GetName() const -> const std::string & {
 		return _name;
@@ -42,8 +40,9 @@ public:
 		return _gameObjects.end();
 	}
 private:
-	void SetSceneID(int32_t sceneID);
 	void RemoveGameObjectInternal(InstanceID instanceId);
+	void OnCreate(std::string name, int32_t sceneID);
+	void OnDestroy();
 private:
 	// clang-format off
 	std::string		_name;

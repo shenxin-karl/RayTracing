@@ -5,7 +5,7 @@
 #include "Foundation/MainThread.h"
 
 struct ICallbackList;
-struct CallbackHandle : public NonCopyable {
+struct CallbackHandle : private NonCopyable {
 public:
     CallbackHandle() = default;
     CallbackHandle(CallbackHandle &&other) noexcept;
@@ -20,7 +20,7 @@ private:
     ICallbackList *_pCallbackList = nullptr;
 };
 
-struct ICallbackList : public  NonCopyable {
+struct ICallbackList : private NonCopyable {
 	virtual void Remove(const CallbackHandle &) = 0;
     virtual ~ICallbackList() = default;
 };
@@ -45,7 +45,7 @@ public:
         return handle;
     }
 
-    void Invoke(Args... args) const {
+    void Invoke(Args&&... args) const {
         MainThread::EnsureMainThread();
         for (auto &&[_, callback] : _callbacks) {
             callback(args...);

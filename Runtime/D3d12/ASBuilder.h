@@ -5,7 +5,7 @@
 namespace dx {
 
 // acceleration structure builder
-class ASBuilder : public NonCopyable {
+class ASBuilder : private NonCopyable {
 public:
     ~ASBuilder();
     void OnCreate(Device *pDevice);

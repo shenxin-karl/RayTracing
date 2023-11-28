@@ -1,12 +1,6 @@
 #include "Scene.h"
 #include "Object/GameObject.h"
 
-Scene::Scene(): _sceneID(0) {
-}
-
-Scene::~Scene() {
-}
-
 void Scene::AddGameObject(std::shared_ptr<GameObject> pGameObject) {
 	if (pGameObject->GetSceneID() == _sceneID) {
 		return;
@@ -19,10 +13,6 @@ void Scene::RemoveGameObject(std::shared_ptr<GameObject> pGameObject) {
 	RemoveGameObjectInternal(pGameObject->GetInstanceID());
 }
 
-void Scene::SetSceneID(int32_t sceneID) {
-	_sceneID = sceneID;
-}
-
 void Scene::RemoveGameObjectInternal(InstanceID instanceId) {
 	for (auto it = _gameObjects.begin(); it != _gameObjects.end(); ++it) {
 		if ((*it)->GetInstanceID() == instanceId) {
@@ -30,5 +20,17 @@ void Scene::RemoveGameObjectInternal(InstanceID instanceId) {
 			_gameObjects.erase(it);
 			return;
 		}
+	}
+}
+
+void Scene::OnCreate(std::string name, int32_t sceneID) {
+	_name = std::move(name);
+	_sceneID = sceneID;
+}
+
+void Scene::OnDestroy() {
+	while (!_gameObjects.empty()) {
+		_gameObjects.back()->OnRemoveFormScene();
+		_gameObjects.pop_back();
 	}
 }
