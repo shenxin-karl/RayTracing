@@ -19,8 +19,8 @@
 #include "Modules/Pix/Pix.h"
 
 #include "Object/GameObject.h"
-#include "SceneManager/Scene.h"
-#include "SceneManager/SceneManager.h"
+#include "SceneObject/Scene.h"
+#include "SceneObject/SceneManager.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 

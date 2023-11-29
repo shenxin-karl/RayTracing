@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "Components/Component.h"
 #include "Components/Transform.h"
+#include "SceneObject/SceneID.hpp"
 
 class Component;
 class GameObject : public Object {
@@ -10,7 +11,7 @@ private:
     GameObject();
 public:
     ~GameObject() override;
-    void OnAddToScene(int32_t sceneID);
+    void OnAddToScene(SceneID sceneID);
     void OnRemoveFormScene();
 public:
     static auto Create() -> std::shared_ptr<GameObject> {
@@ -41,9 +42,7 @@ public:
             return pComponent;
         }
         auto &pComponent = _components.emplace_back(std::make_unique<T>());
-        pComponent->InitInstanceId();
-        pComponent->SetGameObject(this);
-        pComponent->OnAddToGameObject();
+		InitComponent(pComponent.get());
         return static_cast<T *>(pComponent.get());
     }
 
@@ -69,18 +68,19 @@ public:
         }
 		return false;
     }
-    auto GetSceneID() const -> int32_t {
+    auto GetSceneID() const -> SceneID {
 	    return _sceneID;
     }
 private:
     using ComponentContainer = std::vector<std::unique_ptr<Component>>;
     friend class Scene;
-    void SetSceneID(int sceneID) {
+    void SetSceneID(SceneID sceneID) {
 	    _sceneID = sceneID;
     }
+    void InitComponent(Component *pComponent);
 private:
     // clang-format off
-    int32_t            _sceneID;
+    SceneID            _sceneID;
     ComponentContainer _components;
     // clang-format on
 };

@@ -10,7 +10,7 @@
 
 //#include "Render/TriangleRenderer.h"
 #include "Render/SimpleLighting.h"
-#include "SceneManager/SceneManager.h"
+#include "SceneObject/SceneManager.h"
 #include "Utils/GlobalCallbacks.h"
 
 Application::Application() {

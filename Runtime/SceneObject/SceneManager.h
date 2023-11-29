@@ -1,4 +1,5 @@
 #pragma once
+#include "SceneID.hpp"
 #include "Foundation/Singleton.hpp"
 
 class Scene;
@@ -12,7 +13,7 @@ public:
 	auto CreateScene(std::string_view name) -> Scene *;
 	auto GetScene(std::string_view name) const -> Scene *;
 	auto GetOrCreateScene(std::string_view name) -> Scene *;
-	auto GetScene(int32_t sceneID) const -> Scene *;
+	auto GetScene(SceneID sceneID) const -> Scene *;
 private:
 	std::vector<std::unique_ptr<Scene>> _scenes;
 };
