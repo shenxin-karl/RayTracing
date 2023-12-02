@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "ResourceStateTracker.h"
 #include "Foundation/StringUtil.h"
+#include "Foundation/Formatter.hpp"
 
 namespace dx {
 

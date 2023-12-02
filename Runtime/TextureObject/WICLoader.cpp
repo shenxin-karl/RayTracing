@@ -9,7 +9,7 @@ WICLoader::~WICLoader() {
     }
 }
 
-bool WICLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader &imageHeader) {
+bool WICLoader::Load(const stdfs::path &filePath, float cutOff) {
     int32_t width, height, channels;
     _pData = reinterpret_cast<char *>(stbi_load(filePath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha));
 
@@ -32,13 +32,13 @@ bool WICLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
     }
 
     // fill img struct
-    imageHeader.arraySize = 1;
-    imageHeader.width = width;
-    imageHeader.height = height;
-    imageHeader.depth = 1;
-    imageHeader.mipMapCount = mipCount;
-    imageHeader.bitCount = 32;
-    imageHeader.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    _imageHeader.arraySize = 1;
+    _imageHeader.width = width;
+    _imageHeader.height = height;
+    _imageHeader.depth = 1;
+    _imageHeader.mipMapCount = mipCount;
+    _imageHeader.bitCount = 32;
+    _imageHeader.format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
     _cutOff = cutOff;
     if (_cutOff < 1.0f) {
@@ -48,6 +48,10 @@ bool WICLoader::Load(const stdfs::path &filePath, float cutOff, dx::ImageHeader 
     }
 
     return true;
+}
+
+auto WICLoader::GetImageHeader() const -> dx::ImageHeader {
+    return _imageHeader;
 }
 
 void WICLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {

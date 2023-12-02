@@ -2,6 +2,7 @@
 #include <bitset>
 #include <array>
 #include "D3dUtils.h"
+#include "Foundation/ReadonlyArraySpan.hpp"
 
 namespace dx {
 
@@ -31,7 +32,7 @@ public:
     RootSignature(size_t numRootParam, size_t numStaticSamplers = 0);
 public:
     void Reset(size_t numRootParam, size_t numStaticSamplers = 0);
-    void InitStaticSamplers(const std::vector<D3D12_STATIC_SAMPLER_DESC> &descs, size_t offset = 0);
+    void InitStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
     void SetStaticSampler(size_t index, const D3D12_STATIC_SAMPLER_DESC &desc);
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;

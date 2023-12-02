@@ -1,5 +1,4 @@
 #include "Transform.h"
-#include <glm/gtx/matrix_decompose.hpp>
 
 Transform::Transform()
     : _translation(0.f),
@@ -182,10 +181,20 @@ void Transform::GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::ve
     scale = _worldScale;
 }
 
-glm::mat4x4 Transform::MakeAffineMatrix(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale) {
-	glm::mat4x4 matrix = glm::scale(glm::mat4_cast(rotation), scale);
-    matrix = glm::translate(glm::identity<glm::mat4>(), translation) * matrix;
-    return matrix;
+void Transform::LookAt(const glm::vec3 &target, const glm::vec3 &up) {
+	glm::mat4 view = glm::lookAt(GetWorldPosition(), target, up);
+    glm::quat lookAtQuaternion = glm::quat_cast(view);
+    glm::quat parentRotation = glm::identity<glm::quat>();
+    if (_pParent != nullptr) {
+	    parentRotation = _pParent->GetWorldRotation();
+    }
+    // W = lookAtQuaternion     target world Quaternion
+    // P = parent world world quaternion
+    // W = P * L
+    // I_P * W = I_P * P * L
+    // I_P * W = L
+	glm::quat localQuaternion = inverse(parentRotation) * lookAtQuaternion;
+    SetLocalRotation(localQuaternion);
 }
 
 void Transform::SetParentImpl(Transform *pParent, Transform *pChild) {

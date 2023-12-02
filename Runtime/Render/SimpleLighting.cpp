@@ -26,6 +26,8 @@
 
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
+#include "D3d12/UploadHeap.h"
+#include "TextureObject/TextureManager.h"
 
 static const wchar_t *sMyRayGenShader = L"MyRaygenShader";
 static const wchar_t *sClosestHitShader = L"MyClosestHitShader";
@@ -36,9 +38,15 @@ namespace GlobalRootParams {
 enum {
     Scene = 0,
     SceneCB = 1,
-    Output = 2,
+    Table0 = 2,
 };
-}
+
+enum Table0Offset {
+    Output = 0,
+    CubeMap = 1,
+};
+
+}    // namespace GlobalRootParams
 
 namespace LocalRootParams {
 
@@ -62,6 +70,7 @@ void SimpleLighting::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
     CreateRootSignature();
     CreateRayTracingPipeline();
     BuildAccelerationStructure();
+    LoadCubeMap();
     InitScene();
 }
 
@@ -90,24 +99,19 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);
     _sceneConstantBuffer.lightAmbientColor = glm::vec4(0.1f);
     _sceneConstantBuffer.lightDiffuseColor = glm::vec4(0.9f);
+    _sceneConstantBuffer.time = timer.GetTotalTime();
 }
 
 void SimpleLighting::OnRender(GameTimer &timer) {
-
     static uint64_t frameCount = 0;
     if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
         Logger::Info("fps {}", timer.GetFPS());
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
     }
 
-    static bool waitCaptureFrameFinished = false;
-    bool beginCapture = false;
-    InputSystem *pInputSystem = InputSystem::GetInstance();
-    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyClicked(VK_F11)) {
-        _pDevice->WaitForGPUFlush();
+    bool beginCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
+    if (beginCapture) {
         Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
-        waitCaptureFrameFinished = true;
-        beginCapture = true;
     }
 
     Renderer::OnRender(timer);
@@ -120,7 +124,12 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
     pGraphicsCtx->SetComputeRootShaderResourceView(GlobalRootParams::Scene, _topLevelAs.GetGPUVirtualAddress());
     pGraphicsCtx->SetComputeRootDynamicConstantBuffer(GlobalRootParams::SceneCB, _sceneConstantBuffer);
-    pGraphicsCtx->SetDynamicViews(GlobalRootParams::Output, _rayTracingOutputHandle.GetCpuHandle());
+    pGraphicsCtx->SetDynamicViews(GlobalRootParams::Table0,
+        _rayTracingOutputHandle.GetCpuHandle(),
+        GlobalRootParams::Table0Offset::Output);
+    pGraphicsCtx->SetDynamicViews(GlobalRootParams::Table0,
+        _cubeMapHandle.GetCpuHandle(),
+        GlobalRootParams::Table0Offset::CubeMap);
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
     D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
@@ -138,7 +147,10 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
         dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
 
-        auto cubeCB = pGraphicsCtx->AllocConstantBuffer(Colors::Yellow);
+        CubeConstantBuffer cbuffer;
+        cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTime()) * 0.5 + 0.5f, std::cos(timer.GetTotalTime()) * 0.5 + 0.5f, 1.f, 1.f);
+        cbuffer.noiseTile =  (std::sin(timer.GetTotalTime() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
+        auto cubeCB = pGraphicsCtx->AllocConstantBuffer(cbuffer);
 
         dx::ShaderTableGenerator hitGroupShaderTable;
         hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier,
@@ -163,16 +175,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     if (beginCapture) {
         Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
-        _pDevice->WaitForGPUFlush();
-        float totalTime = timer.GetTotalTime();
-        MainThread::AddMainThreadJob(MainThread::PreUpdate, [=](GameTimer &gameTimer) -> MainThread::JobStatus {
-            if (gameTimer.GetTotalTime() >= totalTime + 5.f) {
-                waitCaptureFrameFinished = false;
-                Pix::OpenCaptureInUI();
-                return MainThread::Finished;
-            }
-            return MainThread::ExecuteInNextFrame;
-        });
+		Pix::OpenCaptureInUI();
     }
 }
 
@@ -283,14 +286,16 @@ void SimpleLighting::CreateRootSignature() {
     }
     _closestLocalRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 
-    _globalRootSignature.Reset(3);
+    _globalRootSignature.Reset(3, 1);
     {
         _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
         _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
-        _globalRootSignature.At(GlobalRootParams::Output).InitAsDescriptorTable({ 
-            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0) // gOutput(u0);
-        });          
+        _globalRootSignature.At(GlobalRootParams::Table0).InitAsDescriptorTable({ 
+            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0), // gOutput(u0);
+            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
+        });
     }
+    _globalRootSignature.InitStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0
     _globalRootSignature.Finalize(_pDevice.get());
     // clang-format on
 }
@@ -353,6 +358,24 @@ void SimpleLighting::BuildAccelerationStructure() {
     }
     _pASBuilder->EndBuild();
     _pASBuilder->GetBuildFinishedFence().CpuWaitForFence();
+}
+
+void SimpleLighting::LoadCubeMap() {
+    stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
+    _pCubeMap = TextureManager::GetInstance()->LoadFromFile(path, _pUploadHeap.get());
+    _pUploadHeap->DoUpload();
+
+    _cubeMapHandle = dx::DescriptorManager::Alloc<dx::SRV>();
+    D3D12_SHADER_RESOURCE_VIEW_DESC view = {};
+    view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    view.Format = _pCubeMap->GetFormat();
+    view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    view.TextureCube.MostDetailedMip = 0;
+    view.TextureCube.MipLevels = _pCubeMap->GetMipCount();
+    view.TextureCube.ResourceMinLODClamp = 0.f;
+
+    dx::NativeDevice *device = _pDevice->GetNativeDevice();
+    device->CreateShaderResourceView(_pCubeMap->GetResource(), &view, _cubeMapHandle.GetCpuHandle());
 }
 
 void SimpleLighting::InitScene() {

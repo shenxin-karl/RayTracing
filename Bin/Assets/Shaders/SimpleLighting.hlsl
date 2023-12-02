@@ -4,10 +4,12 @@ struct SceneConstantBuffer {
     float4 lightPosition;
     float4 lightAmbientColor;
     float4 lightDiffuseColor;
+    float  time;
 };
 
 struct CubeConstantBuffer {
     float4 albedo;
+    float  noiseTile;
 };
 
 struct Vertex {
@@ -19,14 +21,18 @@ struct RayPayload {
     float4 color;
 };
 
-RaytracingAccelerationStructure     gScene      : register(t0);
-ByteAddressBuffer                   gIndices    : register(t1);
-StructuredBuffer<Vertex>            gVertices   : register(t2);
 
-RWTexture2D<float4>                 gOutput     : register(u0);
 
-ConstantBuffer<SceneConstantBuffer> gSceneCB    : register(b0);
-ConstantBuffer<CubeConstantBuffer>  gCubeCB     : register(b1);
+RaytracingAccelerationStructure     gScene          : register(t0);
+ByteAddressBuffer                   gIndices        : register(t1);
+StructuredBuffer<Vertex>            gVertices       : register(t2);
+TextureCube<float4>                 gCubeMap        : register(t3);
+
+RWTexture2D<float4>                 gOutput         : register(u0);
+
+ConstantBuffer<SceneConstantBuffer> gSceneCB        : register(b0);
+ConstantBuffer<CubeConstantBuffer>  gCubeCB         : register(b1);
+SamplerState                        gLinearSampler  : register(s0);       
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 
@@ -104,15 +110,15 @@ void MyRaygenShader() {
 }
 
 // Diffuse lighting calculation.
-float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal) {
+float4 CalculateDiffuseLighting(float3 hitPosition, float4 albedo, float3 normal) {
     float3 pixelToLight = normalize(gSceneCB.lightPosition.xyz - hitPosition);
     // Diffuse contribution.
     float fNDotL = max(0.0f, dot(pixelToLight, normal));
-    return gCubeCB.albedo * gSceneCB.lightDiffuseColor * fNDotL;
+    return albedo * gSceneCB.lightDiffuseColor * fNDotL;
 }
 
-inline float4 CalculateAmbientLighting() {
-    return gCubeCB.albedo * gSceneCB.lightAmbientColor;
+inline float4 CalculateAmbientLighting(float4 albedo) {
+    return albedo * gSceneCB.lightAmbientColor;
 }
 
 inline float3 HitAttribute(float3 vertexAttribute[3], BuiltInTriangleIntersectionAttributes attr) {
@@ -120,6 +126,41 @@ inline float3 HitAttribute(float3 vertexAttribute[3], BuiltInTriangleIntersectio
         attr.barycentrics.x * (vertexAttribute[1] - vertexAttribute[0]) +
         attr.barycentrics.y * (vertexAttribute[2] - vertexAttribute[0]);
 }
+
+
+#define HASHSCALE3 float3(0.1031, 0.1030, 0.0973)
+
+float2 hash22(float2 p) {
+    float3 p3 = frac(p.xyx * HASHSCALE3);
+    float tem =  dot(p3, p3.yzx + float3(19.19, 19.19, 19.19));
+    p3 = p3 + float3(tem, tem, tem);
+    return frac((p3.xx + p3.yz) * p3.zy);
+}
+
+float wnoise(float2 p, float time)  {
+    float2 n = floor(p);
+    float2 f = frac(p);
+    float md = 5.0;
+    float2 m = float2(0.0 ,0.0);
+    for (int i = -1; i <= 1; i++) 
+    {
+        for (int j = -1; j <= 1; j++) 
+        {
+            float2 g = float2(i, j);
+            float2 o = hash22(n + g);
+            o = float2(0.5, 0.5) + 0.5* sin(float2(time, time) + 6.28 * o);
+            float2 r = g + o - f;
+            float d = dot(r, r);
+            if (d < md) 
+            {
+                md = d;
+                m = n + g + o;
+            }
+        }
+    }
+    return md;
+}
+
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
@@ -145,14 +186,21 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr) {
     // This is redundant and done for illustration purposes 
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
-    float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
-    float4 ambientColor = CalculateAmbientLighting();
+
+    float u = dot(hitPosition, float3(triangleNormal.yzx));
+    float v = dot(hitPosition, float3(triangleNormal.zxy));
+
+    float noise = wnoise(float2(u, v) * gCubeCB.noiseTile, gSceneCB.time);
+    float4 albedo = saturate(gCubeCB.albedo * (noise + 0.3f));
+
+    float4 diffuseColor = CalculateDiffuseLighting(hitPosition, albedo, triangleNormal);
+    float4 ambientColor = CalculateAmbientLighting(albedo);
     float4 color = ambientColor + diffuseColor;
     payload.color = color;
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload) {
-    float4 background = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    payload.color = background;
+    float3 direction = WorldRayDirection();
+    payload.color = gCubeMap.SampleLevel(gLinearSampler, direction, 0);
 }

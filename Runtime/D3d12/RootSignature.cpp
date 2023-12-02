@@ -131,10 +131,10 @@ void RootSignature::Reset(size_t numRootParam, size_t numStaticSamplers) {
     _staticSamplers.resize(numStaticSamplers);
 }
 
-void RootSignature::InitStaticSamplers(const std::vector<D3D12_STATIC_SAMPLER_DESC> &descs, size_t offset) {
+void RootSignature::InitStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset) {
     Assert(offset < _numStaticSamplers);
     size_t i = 0;
-    while (i < descs.size()) {
+    while (i < descs.Size()) {
         if (i + offset < _numStaticSamplers) {
             _staticSamplers[i + offset] = descs[i];
         }

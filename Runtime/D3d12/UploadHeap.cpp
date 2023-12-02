@@ -173,8 +173,7 @@ void UploadHeap::DoUpload() {
     // update resource state
     for (auto &&[pResource, resourceState] : resourceStateMap) {
         auto pResourceState = GlobalResourceState::FindResourceState(pResource);
-        if (resourceState.subResourceStateMap.empty() &&
-            ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+        if (resourceState.subResourceStateMap.empty()) {
             D3D12_RESOURCE_STATES state = resourceState.state;
             if (ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
                 state = D3D12_RESOURCE_STATE_COMMON;

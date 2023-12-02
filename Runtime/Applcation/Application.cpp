@@ -11,6 +11,7 @@
 //#include "Render/TriangleRenderer.h"
 #include "Render/SimpleLighting.h"
 #include "SceneObject/SceneManager.h"
+#include "TextureObject/TextureManager.h"
 #include "Utils/GlobalCallbacks.h"
 
 Application::Application() {
@@ -24,12 +25,14 @@ void Application::OnCreate() {
     AssetProjectSetting::OnInstanceCreate();
     InputSystem::OnInstanceCreate();
     ShaderManager::OnInstanceCreate();
+    TextureManager::OnInstanceCreate();
 
     Logger::GetInstance()->OnCreate();
     AssetProjectSetting::GetInstance()->OnCreate();
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
     ShaderManager::GetInstance()->OnCreate();
+    TextureManager::GetInstance()->OnCreate();
     RenderDoc::Load();
     Pix::Load();
 
@@ -50,6 +53,7 @@ void Application::OnCreate() {
 }
 
 void Application::OnDestroy() {
+    TextureManager::GetInstance()->OnDestroy();
     _pRenderer->OnDestroy();
     SceneManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();

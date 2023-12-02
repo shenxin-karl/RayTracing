@@ -19,8 +19,13 @@ struct ImageHeader {
 class IImageLoader {
 public:
     virtual ~IImageLoader() = default;
-    virtual bool Load(const stdfs::path &filePath, float cutOff, ImageHeader &imageHeader) = 0;
+    virtual auto GetImageHeader() const -> ImageHeader = 0;
     virtual void GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) = 0;
+};
+
+class IFileImageLoader : public IImageLoader {
+public:
+    virtual bool Load(const stdfs::path &filePath, float cutOff) = 0;
 };
 
 }    // namespace dx

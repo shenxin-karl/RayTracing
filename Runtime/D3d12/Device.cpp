@@ -71,6 +71,13 @@ void Device::OnCreate(bool validationEnabled) {
 void Device::OnDestroy() {
     _pAllocator->Release();
     _pAllocator = nullptr;
+#if ENABLE_D3D_COMPUTE_QUEUE
+    _pComputeQueue = nullptr;
+#endif
+    _pDirectQueue = nullptr;
+    _pCopyQueue = nullptr;
+    _pDevice = nullptr;
+    _pAdapter = nullptr;
 }
 
 void Device::WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE queueType) {

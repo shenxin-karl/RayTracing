@@ -6,8 +6,6 @@
 #include "D3d12/Texture.h"
 #include "D3d12/ASBuilder.h"
 
-
-
 struct Vertex {
     glm::vec3 position;
     glm::vec3 normal;
@@ -15,6 +13,7 @@ struct Vertex {
 
 struct CubeConstantBuffer {
     glm::vec4 albedo;
+    float noiseTile;
 };
 
 struct SceneConstantBuffer {
@@ -23,6 +22,7 @@ struct SceneConstantBuffer {
     glm::vec4 lightPosition;
     glm::vec4 lightAmbientColor;
     glm::vec4 lightDiffuseColor;
+    float time;
 };
 
 class Scene;
@@ -44,11 +44,15 @@ public:
     void CreateRootSignature();
     void CreateRayTracingPipeline();
     void BuildAccelerationStructure();
-	void InitScene();
+    void LoadCubeMap();
+    void InitScene();
 private:
     // clang-format off
 	dx::Texture								_rayTracingOutput;
 	dx::UAV									_rayTracingOutputHandle;
+
+    std::shared_ptr<dx::Texture>            _pCubeMap;
+    dx::SRV                                 _cubeMapHandle;
 
 	dx::RootSignature						_globalRootSignature;
 	dx::RootSignature						_closestLocalRootSignature;

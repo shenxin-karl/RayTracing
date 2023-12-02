@@ -25,6 +25,9 @@ public:
     auto GetAllocatableSize(size_t align = 1) const -> size_t;
     void DoUpload();
 
+    auto GetDevice() const -> Device * {
+	    return _pDevice;
+    }
     auto GetCopyCommandList() const -> NativeCommandList * {
         return _pCommandList.Get();
     }

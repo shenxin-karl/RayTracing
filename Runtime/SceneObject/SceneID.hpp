@@ -1,5 +1,6 @@
 #pragma once
 #include "Foundation/TypeSafeWrapper.hpp"
+#include "Serialize/Transfer.hpp"
 
 struct SceneID : public TypeSafeWrapper<int32_t> {
     using TypeSafeWrapper::TypeSafeWrapper;

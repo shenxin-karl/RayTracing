@@ -49,3 +49,14 @@ auto SceneManager::GetScene(SceneID sceneID) const -> Scene * {
 	}
 	return nullptr;
 }
+
+void SceneManager::RemoveScene(std::string_view name) {
+	auto it = std::ranges::find_if(_scenes, [=](auto &pScene) {
+		return pScene->GetName() == name;
+	});
+
+	if (it != _scenes.end()) {
+		(*it)->OnDestroy();
+		_scenes.erase(it);
+	}
+}

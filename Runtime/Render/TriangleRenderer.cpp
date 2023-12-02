@@ -59,14 +59,10 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         frameCount = static_cast<uint64_t>(timer.GetTotalTime());
     }
 
-    static bool waitCaptureFrameFinished = false;
-    bool beginCapture = false;
     InputSystem *pInputSystem = InputSystem::GetInstance();
-    if (!waitCaptureFrameFinished && pInputSystem->pKeyboard->IsKeyClicked(VK_F11)) {
-        _pDevice->WaitForGPUFlush();
+    bool beginCapture = pInputSystem->pKeyboard->IsKeyClicked(VK_F11);
+    if (beginCapture) {
         Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
-        waitCaptureFrameFinished = true;
-        beginCapture = true;
     }
 
     _pFrameResourceRing->OnBeginFrame();
@@ -116,16 +112,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     if (beginCapture) {
         Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
-        _pDevice->WaitForGPUFlush();
-        float totalTime = timer.GetTotalTime();
-        MainThread::AddMainThreadJob(MainThread::PreUpdate, [=](GameTimer &gameTimer) -> MainThread::JobStatus {
-            if (gameTimer.GetTotalTime() >= totalTime + 5.f) {
-                waitCaptureFrameFinished = false;
-                Pix::OpenCaptureInUI();
-                return MainThread::Finished;
-            }
-            return MainThread::ExecuteInNextFrame;
-        });
+        Pix::OpenCaptureInUI();
     }
 }
 

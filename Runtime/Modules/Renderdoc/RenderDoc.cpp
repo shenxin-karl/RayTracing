@@ -66,16 +66,16 @@ void RenderDoc::Free() {
 #endif
 }
 
-void RenderDoc::BeginFrameCapture(void *pNativeWindowHandle, void *pDevice) {
+void RenderDoc::BeginFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
 #if ENABLE_RENDER_DOC
     if (sRenderDocApi == nullptr) {
         return;
     }
-    sRenderDocApi->StartFrameCapture(pDevice, pNativeWindowHandle);
+    sRenderDocApi->StartFrameCapture(pDevice->GetNativeDevice(), pNativeWindowHandle);
 #endif
 }
 
-void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, void *pDevice) {
+void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
 #if ENABLE_RENDER_DOC
     if (sRenderDocApi == nullptr) {
         return;

@@ -1,7 +1,6 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include "Component.h"
+#include "Foundation/GlmStd.hpp"
 #include "Foundation/PreprocessorDirectives.h"
 
 class Transform : public Component {
@@ -45,6 +44,7 @@ public:
     auto GetWorldRotation() const -> const glm::quat &;
     void GetLocalTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const;
     void GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::vec3 &scale) const;
+    void LookAt(const glm::vec3 &target, const glm::vec3 &up = glm::vec3(0, 1, 0));
     auto GetLocalPosition() const -> const glm::vec3 & {
         return _translation;
     }
@@ -63,7 +63,6 @@ public:
     auto GetChildren() const -> const std::vector<Transform *> & {
         return _children;
     }
-    static glm::mat4x4 MakeAffineMatrix(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
 private:
     static void SetParentImpl(Transform *pParent, Transform *pChild);
     static void RemoveChildImpl(Transform *pParent, Transform *pChild);
