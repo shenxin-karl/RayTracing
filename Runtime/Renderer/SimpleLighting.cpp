@@ -2,7 +2,6 @@
 #include "D3d12/ASBuilder.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
-#include "D3d12/DescriptorManager.hpp"
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
@@ -64,8 +63,8 @@ SimpleLighting::SimpleLighting() {
 SimpleLighting::~SimpleLighting() {
 }
 
-void SimpleLighting::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
-    Renderer::OnCreate(numBackBuffer, hwnd);
+void SimpleLighting::OnCreate() {
+    Renderer::OnCreate();
     BuildGeometry();
     CreateRootSignature();
     CreateRayTracingPipeline();
@@ -111,7 +110,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     bool beginCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
     if (beginCapture) {
-        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
     Renderer::OnRender(timer);
@@ -174,7 +173,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     _pFrameResourceRing->OnEndFrame();
 
     if (beginCapture) {
-        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
 		Pix::OpenCaptureInUI();
     }
 }
@@ -240,13 +239,14 @@ void SimpleLighting::BuildGeometry() {
 
     constexpr size_t bufferSize = sizeof(indices) + sizeof(vertices);
     _pMeshBuffer = std::make_unique<dx::StaticBuffer>();
-    _pMeshBuffer->OnCreate(_pDevice.get(), bufferSize);
+    _pMeshBuffer->OnCreate(_pDevice, bufferSize);
     _pMeshBuffer->SetName("CubeMesh");
 
-    dx::StaticBufferUploadHeap uploadHeap(*_pUploadHeap, *_pMeshBuffer);
+    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pMeshBuffer.get());
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(Vertex), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
-    uploadHeap.DoUpload();
+    uploadHeap.CommitUploadCommand();
+    _pUploadHeap->CpuWaitForUploadFinished();
 }
 
 void SimpleLighting::CreateRayTracingOutput() {
@@ -261,11 +261,11 @@ void SimpleLighting::CreateRayTracingOutput() {
         1,
         0,
         D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    _rayTracingOutput.OnCreate(_pDevice.get(), uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
+    _rayTracingOutput.OnCreate(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
     _rayTracingOutput.SetName("RayTracingOutput");
 
     if (_rayTracingOutputHandle.IsNull()) {
-        _rayTracingOutputHandle = dx::DescriptorManager::Alloc<dx::UAV>();
+        _rayTracingOutputHandle = _pDevice->AllocDescriptor<dx::UAV>(1);
     }
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
@@ -284,7 +284,7 @@ void SimpleLighting::CreateRootSignature() {
         _closestLocalRootSignature.At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices(t1)
         _closestLocalRootSignature.At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices(t2)
     }
-    _closestLocalRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _closestLocalRootSignature.Finalize(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 
     _globalRootSignature.Reset(3, 1);
     {
@@ -296,7 +296,7 @@ void SimpleLighting::CreateRootSignature() {
         });
     }
     _globalRootSignature.InitStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0
-    _globalRootSignature.Finalize(_pDevice.get());
+    _globalRootSignature.Finalize(_pDevice);
     // clang-format on
 }
 
@@ -345,7 +345,7 @@ void SimpleLighting::CreateRayTracingPipeline() {
 
 void SimpleLighting::BuildAccelerationStructure() {
     _pASBuilder = std::make_unique<dx::ASBuilder>();
-    _pASBuilder->OnCreate(_pDevice.get());
+    _pASBuilder->OnCreate(_pDevice);
     _pASBuilder->BeginBuild();
     {
         dx::BottomLevelASGenerator bottomLevelAsGenerator;
@@ -362,10 +362,10 @@ void SimpleLighting::BuildAccelerationStructure() {
 
 void SimpleLighting::LoadCubeMap() {
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
-    _pCubeMap = TextureManager::GetInstance()->LoadFromFile(path, _pUploadHeap.get());
+    _pCubeMap = TextureManager::GetInstance()->LoadFromFile(path, _pUploadHeap);
     _pUploadHeap->DoUpload();
 
-    _cubeMapHandle = dx::DescriptorManager::Alloc<dx::SRV>();
+    _cubeMapHandle = _pDevice->AllocDescriptor<dx::SRV>(1);
     D3D12_SHADER_RESOURCE_VIEW_DESC view = {};
     view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     view.Format = _pCubeMap->GetFormat();

@@ -24,6 +24,9 @@ void UploadHeap::OnCreate(Device *pDevice, size_t size) {
     _pCommandAllocator->SetName(L"UploadHeap::CommandListAllocator");
     _pCommandList->SetName(L"UploadHeap::CommandList");
 
+    _pUploadFinishedFence = std::make_unique<Fence>();
+    _pUploadFinishedFence->OnCreate(_pDevice, "UploadHeap::UploadFinishedFence");
+
     D3D12MA::Allocator *pAllocator = pDevice->GetAllocator();
     D3D12MA::ALLOCATION_DESC allocationDesc = {};
     allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
@@ -51,6 +54,11 @@ void UploadHeap::OnDestroy() {
     if (_pBufferAllocation) {
         _pBufferAllocation->Release();
     }
+    if (_pUploadFinishedFence != nullptr) {
+	    _pUploadFinishedFence->OnDestroy();
+        _pUploadFinishedFence = nullptr;
+    }
+
     _pDataBegin = nullptr;
     _pDataCur = nullptr;
     _pDataEnd = nullptr;
@@ -165,10 +173,8 @@ void UploadHeap::DoUpload() {
     ThrowIfFailed(_pCommandList->Close());
     ID3D12CommandList *cmdList[] = {_pCommandList.Get()};
     _pDevice->GetCopyQueue()->ExecuteCommandLists(1, cmdList);
-    _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
-    ThrowIfFailed(_pCommandAllocator->Reset());
-    ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
-    _pDataCur = _pDataBegin;
+    _pUploadFinishedFence->IssueFence(_pDevice->GetCopyQueue());
+    CpuWaitForUploadFinished();
 
     // update resource state
     for (auto &&[pResource, resourceState] : resourceStateMap) {
@@ -192,10 +198,20 @@ void UploadHeap::DoUpload() {
     GlobalResourceState::UnLock();
 }
 
+void UploadHeap::CpuWaitForUploadFinished() {
+    if (!_bufferCopies.empty() || !_textureCopies.empty() || !_preUploadBarriers.empty() || !_postUploadBarriers.empty()) {
+	    _pUploadFinishedFence->CpuWaitForFence();
+	    ThrowIfFailed(_pCommandAllocator->Reset());
+	    ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
+	    _pDataCur = _pDataBegin;
+    }
+
+}
+
 void UploadHeap::AddPreUploadTranslation(ID3D12Resource *pResource,
-    D3D12_RESOURCE_STATES stateAfter,
-    UINT subResource,
-    D3D12_RESOURCE_BARRIER_FLAGS flags) {
+                                         D3D12_RESOURCE_STATES stateAfter,
+                                         UINT subResource,
+                                         D3D12_RESOURCE_BARRIER_FLAGS flags) {
 
     D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(pResource,
         D3D12_RESOURCE_STATE_COMMON,

@@ -1,6 +1,15 @@
 #include "Device.h"
 
+#include "DescriptorManager.hpp"
+#include "Fence.h"
+
 namespace dx {
+
+Device::Device() {
+}
+
+Device::~Device() {
+}
 
 void Device::OnCreate(bool validationEnabled) {
     if (validationEnabled) {
@@ -46,12 +55,18 @@ void Device::OnCreate(bool validationEnabled) {
     ThrowIfFailed(_pDevice->CreateCommandQueue(&copyQueue, IID_PPV_ARGS(&_pCopyQueue)));
     _pCopyQueue->SetName(L"CopyQueue");
 
+    _pCopyQueueFence = std::make_unique<Fence>();
+    _pCopyQueueFence->OnCreate(this, "CopyQueueFence");
+
     D3D12_COMMAND_QUEUE_DESC directQueueDesc = {};
     directQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     directQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     directQueueDesc.NodeMask = 0;
     ThrowIfFailed(_pDevice->CreateCommandQueue(&directQueueDesc, IID_PPV_ARGS(&_pDirectQueue)));
     _pDirectQueue->SetName(L"DirectQueue");
+
+    _pDirectQueueFence = std::make_unique<Fence>();
+    _pDirectQueueFence->OnCreate(this, "DirectQueueFence");
 
 #if ENABLE_D3D_COMPUTE_QUEUE
     D3D12_COMMAND_QUEUE_DESC computeQueueDesc = {};
@@ -60,15 +75,25 @@ void Device::OnCreate(bool validationEnabled) {
     computeQueueDesc.NodeMask = 0;
     ThrowIfFailed(_pDevice->CreateCommandQueue(&computeQueueDesc, IID_PPV_ARGS(&_pComputeQueue)));
     _pComputeQueue->SetName(L"ComputeQueue");
+
+    _pComputeQueueFence = std::make_unique<Fence>();
+    _pComputeQueueFence->OnCreate(this, "ComputeQueueFence");
 #endif
 
     D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
     allocatorDesc.pDevice = _pDevice.Get();
     allocatorDesc.pAdapter = _pAdapter.Get();
     ThrowIfFailed(CreateAllocator(&allocatorDesc, &_pAllocator));
+
+    _pDescriptorManager = std::make_unique<DescriptorManager>();
+    _pDescriptorManager->OnCreate(this);
+
 }
 
 void Device::OnDestroy() {
+    _pDescriptorManager->OnDestroy();
+    _pDescriptorManager = nullptr;
+
     _pAllocator->Release();
     _pAllocator = nullptr;
 #if ENABLE_D3D_COMPUTE_QUEUE
@@ -81,37 +106,44 @@ void Device::OnDestroy() {
 }
 
 void Device::WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE queueType) {
-    ID3D12CommandQueue *queue = nullptr;
+    ID3D12CommandQueue *pQueue = nullptr;
+    Fence *pFence = nullptr;
+
     switch (queueType) {
 #if ENABLE_D3D_COMPUTE_QUEUE
     case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-        queueType = GetComputeQueue();
+        pQueue = GetComputeQueue();
+        pFence = _pComputeQueueFence.get();
         break;
 #endif
     case D3D12_COMMAND_LIST_TYPE_DIRECT:
-        queue = GetGraphicsQueue();
+        pQueue = GetGraphicsQueue();
+        pFence = _pDirectQueueFence.get();
         break;
     case D3D12_COMMAND_LIST_TYPE_COPY:
-        queue = GetCopyQueue();
+        pQueue = GetCopyQueue();
+        pFence = _pCopyQueueFence.get();
         break;
     default:
         return;
     }
 
-    WRL::ComPtr<ID3D12Fence> pFence;
-    ThrowIfFailed(_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
-    ThrowIfFailed(queue->Signal(pFence.Get(), 1));
-
-    HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    pFence->SetEventOnCompletion(1, mHandleFenceEvent);
-    WaitForSingleObject(mHandleFenceEvent, INFINITE);
-    CloseHandle(mHandleFenceEvent);
+    pFence->IssueFence(pQueue);
+    pFence->CpuWaitForFence();
 }
 
 void Device::WaitForGPUFlush() {
     WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
     WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COMPUTE);
     WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_DIRECT);
+}
+
+void Device::ReleaseStaleDescriptors() {
+    _pDescriptorManager->ReleaseStaleDescriptors();
+}
+
+auto Device::AllocDescriptorInternal(size_t numDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE type) -> DescriptorHandle {
+    return _pDescriptorManager->Alloc(numDescriptor, type);
 }
 
 }    // namespace dx

@@ -10,8 +10,10 @@ ASBuilder::~ASBuilder() {
     OnDestroy();
 }
 
-void ASBuilder::OnCreate(Device *pDevice) {
+void ASBuilder::OnCreate(Device *pDevice, size_t maxBuildItem) {
+    _maxBuildItem = maxBuildItem;
     _pDevice = pDevice;
+
     ID3D12Device *device = pDevice->GetNativeDevice();
 
     device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_pCommandAllocator));
@@ -148,6 +150,10 @@ void ASBuilder::ConditionalGrowScratchBuffer(size_t scratchBufferSize) {
 
         _pScratchBuffer->GetResource()->SetName(L"ASBuilder::ScratchBuffer");
     }
+}
+
+void ASBuilder::ConditionalBuild() {
+
 }
 
 }    // namespace dx

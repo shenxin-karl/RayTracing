@@ -4,11 +4,12 @@
 
 namespace dx {
 
+// todo: 需要修改为支持异步构建
 // acceleration structure builder
 class ASBuilder : private NonCopyable {
 public:
     ~ASBuilder();
-    void OnCreate(Device *pDevice);
+    void OnCreate(Device *pDevice, size_t maxBuildItem = 20);
     void OnDestroy();
 
     void BeginBuild();
@@ -46,8 +47,10 @@ private:
 private:
     void ConditionalGrowInstanceBuffer(size_t instanceCount);
     void ConditionalGrowScratchBuffer(size_t scratchBufferSize);
+    void ConditionalBuild();
 private:
     // clang-format off
+    size_t                              _maxBuildItem       = {};
     Device                             *_pDevice            = nullptr;
     WRL::ComPtr<NativeCommandList>      _pCommandList       = nullptr;
     WRL::ComPtr<ID3D12CommandAllocator> _pCommandAllocator  = nullptr;

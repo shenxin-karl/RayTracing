@@ -32,7 +32,7 @@ class SimpleLighting : public Renderer {
 public:
     SimpleLighting();
     ~SimpleLighting() override;
-    void OnCreate(uint32_t numBackBuffer, HWND hwnd) override;
+    void OnCreate() override;
     void OnDestroy() override;
     void OnUpdate(GameTimer &timer) override;
     void OnPreRender(GameTimer &timer) override;

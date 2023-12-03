@@ -40,7 +40,7 @@ private:
 
 class StaticBufferUploadHeap {
 public:
-    StaticBufferUploadHeap(UploadHeap &uploadHeap, StaticBuffer &staticBuffer, size_t staticBufferOffset = 0);
+    StaticBufferUploadHeap(UploadHeap *pUploadHeap, StaticBuffer *pStaticBuffer, size_t staticBufferOffset = 0);
     ~StaticBufferUploadHeap();
 public:
     [[nodiscard]]
@@ -56,7 +56,7 @@ public:
     [[nodiscard]]
     auto AllocStructuredBuffer(size_t numOfVertices, size_t strideInBytes, const void *pData) -> std::optional<SRV>;
 
-    void DoUpload();
+    void CommitUploadCommand();
 
     template<typename T>
     [[nodiscard]]

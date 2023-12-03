@@ -40,7 +40,7 @@ void SwapChain::OnCreate(Device *pDevice, uint32_t numBackBuffers, HWND hwnd, DX
 
     ThrowIfFailed(_pFactory->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
     ThrowIfFailed(pSwapChain->QueryInterface(__uuidof(IDXGISwapChain4), &_pSwapChain));
-	_rtvViews = DescriptorManager::Alloc<RTV>(numBackBuffers);
+	_rtvViews = _pDevice->AllocDescriptor<RTV>(numBackBuffers);
 }
 
 void SwapChain::OnDestroy() {

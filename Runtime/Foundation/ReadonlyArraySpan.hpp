@@ -1,6 +1,8 @@
 #pragma once
 #include "Foundation/Exception.h"
 #include <vector>
+#include <span>
+#include <initializer_list>
 
 template<typename T>
 class ReadonlyArraySpan final {

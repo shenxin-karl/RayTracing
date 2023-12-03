@@ -1,5 +1,6 @@
 #pragma once
 #include <type_traits>
+#include <cassert>
 
 #ifdef __IOS__
 //todo ::
@@ -107,10 +108,6 @@
 #pragma endregion
 
 #pragma region ENUM_FLAGS
-// Adds ability to use bit logic operators with enum type T.
-// Enum must have appropriate values (e.g. kEnumValue1 = 1 << 1, kEnumValue2 = 1 << 2)!
-#define ENUM_FLAGS(T) DETAIL__ENUM_FLAGS(T, )
-#define ENUM_FLAGS_AS_MEMBER(T) DETAIL__ENUM_FLAGS(T, friend)
 
 #define DETAIL__ENUM_FLAGS(T, PREFIX_)                                                                                 \
     static_assert(std::is_enum<T>::value);                                                                             \
@@ -167,18 +164,29 @@
         return value ? SetFlags(flags, flagsToSetOrClear) : ClearFlags(flags, flagsToSetOrClear);                      \
     }
 
+// Adds ability to use bit logic operators with enum type T.
+// Enum must have appropriate values (e.g. kEnumValue1 = 1 << 1, kEnumValue2 = 1 << 2)!
+#define ENUM_FLAGS(T) DETAIL__ENUM_FLAGS(T, )
+#define ENUM_FLAGS_AS_MEMBER(T) DETAIL__ENUM_FLAGS(T, friend)
+
+
 // Adds ability to use increment operators with enum type T.
 // Enum must have consecutive values!
-#define ENUM_INCREMENT(T)                                                                                              \
-    inline T &operator++(T &flags) {                                                                                   \
-        flags = static_cast<T>(static_cast<int>(flags) + 1);                                                           \
+#define ENUM__INCREMENT_IMPL(T, PREFIX_)                                                                               \
+    PREFIX_ constexpr T &operator++(T &flags) {                                                                        \
+        using type = std::underlying_type<T>::type;                                                                    \
+        flags = static_cast<T>(static_cast<type>(flags) + type(1));                                                    \
         return flags;                                                                                                  \
     }                                                                                                                  \
-    inline T operator++(T &flags, int) {                                                                               \
+    PREFIX_ constexpr T operator++(T &flags, int) {                                                                    \
         T result = flags;                                                                                              \
         ++flags;                                                                                                       \
         return result;                                                                                                 \
     }
+
+#define ENUM_INCREMENT(T) ENUM__INCREMENT_IMPL(T, )
+#define ENUM_INCREMENT_AS_MEMBER(T) ENUM__INCREMENT_IMPL(T, friend)
+
 #pragma endregion
 
 #define UNUSED_VAR(x) ((void)x)

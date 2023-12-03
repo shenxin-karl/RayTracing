@@ -49,10 +49,10 @@ void StaticBuffer::OnDestroy() {
     _pDevice = nullptr;
 }
 
-StaticBufferUploadHeap::StaticBufferUploadHeap(UploadHeap &uploadHeap, StaticBuffer &staticBuffer, size_t staticBufferOffset) {
-    _pStaticBuffer = &staticBuffer;
+StaticBufferUploadHeap::StaticBufferUploadHeap(UploadHeap *pUploadHeap, StaticBuffer *pStaticBuffer, size_t staticBufferOffset) {
+    _pStaticBuffer = pStaticBuffer;
     _dstOffset = staticBufferOffset;
-    _pUploadHeap = &uploadHeap;
+    _pUploadHeap = pUploadHeap;
     _pUploadHeap->AddPreUploadTranslation(_pStaticBuffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST);
 }
 
@@ -122,7 +122,7 @@ auto StaticBufferUploadHeap::AllocStructuredBuffer(size_t numOfVertices, size_t 
     }
 
     _structuredBuffer = true;
-    SRV srv = DescriptorManager::Alloc<SRV>(1);
+    SRV srv =  _pStaticBuffer->GetDevice()->AllocDescriptor<SRV>(1);
     ID3D12Device *device = _pStaticBuffer->GetDevice()->GetNativeDevice();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
@@ -137,7 +137,7 @@ auto StaticBufferUploadHeap::AllocStructuredBuffer(size_t numOfVertices, size_t 
     return std::make_optional(srv);
 }
 
-void StaticBufferUploadHeap::DoUpload() {
+void StaticBufferUploadHeap::CommitUploadCommand() {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
     if (_vertexBuffer || _constantBuffer) {
 	    state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -149,7 +149,6 @@ void StaticBufferUploadHeap::DoUpload() {
 	    state |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
     _pUploadHeap->AddPostUploadTranslation(_pStaticBuffer->GetResource(), state);
-    _pUploadHeap->DoUpload();
 }
 
 auto StaticBufferUploadHeap::CopyToUploadBuffer(size_t numOfVertices,

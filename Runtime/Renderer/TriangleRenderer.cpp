@@ -1,7 +1,6 @@
 #include "TriangleRenderer.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
-#include "D3d12/DescriptorManager.hpp"
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
@@ -10,6 +9,7 @@
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
+#include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
@@ -28,13 +28,12 @@ static std::wstring_view ClosestHitShaderName = L"MyClosestHitShader";
 static std::wstring_view MissShaderName = L"MyMissShader";
 static std::wstring_view HitGroupName = L"MyHitGroup";
 
-void TriangleRenderer::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
-    Renderer::OnCreate(numBackBuffer, hwnd);
+void TriangleRenderer::OnCreate() {
+    Renderer::OnCreate();
     CreateGeometry();
     CreateRootSignature();
     CreateRayTracingPipelineStateObject();
     BuildAccelerationStructures();
-
     _rayGenConstantBuffer.viewport = {-1.0f, -1.0f, 1.0f, 1.0f};
 }
 
@@ -62,7 +61,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     InputSystem *pInputSystem = InputSystem::GetInstance();
     bool beginCapture = pInputSystem->pKeyboard->IsKeyClicked(VK_F11);
     if (beginCapture) {
-        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
     _pFrameResourceRing->OnBeginFrame();
@@ -95,7 +94,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier);
         dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
 
-        dispatchRaysDesc.Width = _width;
+        dispatchRaysDesc.Width = _width;;
         dispatchRaysDesc.Height = _height;
         dispatchRaysDesc.Depth = 1;
     }
@@ -111,7 +110,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     _pFrameResourceRing->OnEndFrame();
 
     if (beginCapture) {
-        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice.get());
+        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
         Pix::OpenCaptureInUI();
     }
 }
@@ -143,13 +142,14 @@ void TriangleRenderer::CreateGeometry() {
     float offset = 0.7f;
     glm::vec3 vertices[] = {{0, -offset, depthValue}, {-offset, offset, depthValue}, {offset, offset, depthValue}};
 
-    _pTriangleStaticBuffer->OnCreate(_pDevice.get(), sizeof(indices) + sizeof(vertices));
+    _pTriangleStaticBuffer->OnCreate(_pDevice, sizeof(indices) + sizeof(vertices));
     _pTriangleStaticBuffer->SetName("Triangle Mesh");
 
-    dx::StaticBufferUploadHeap uploadHeap(*_pUploadHeap, *_pTriangleStaticBuffer);
+    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pTriangleStaticBuffer.get());
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(glm::vec3), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
-    uploadHeap.DoUpload();
+    uploadHeap.CommitUploadCommand();
+    _pUploadHeap->CpuWaitForUploadFinished();
 }
 
 void TriangleRenderer::CreateRootSignature() {
@@ -157,11 +157,11 @@ void TriangleRenderer::CreateRootSignature() {
     _globalRootSignature.Reset(2, 0);
     _globalRootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
     _globalRootSignature.At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0
-    _globalRootSignature.Finalize(_pDevice.get());
+    _globalRootSignature.Finalize(_pDevice);
 
     _localRootSignature.Reset(1, 0);
     _localRootSignature.At(0).InitAsConstants(dx::SizeofInUint32<RayGenConstantBuffer>(), 0);    // b0
-    _localRootSignature.Finalize(_pDevice.get(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _localRootSignature.Finalize(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
 void TriangleRenderer::CreateRayTracingPipelineStateObject() {
@@ -220,11 +220,11 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
         1,
         0,
         D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    _rayTracingOutput.OnCreate(_pDevice.get(), uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
+    _rayTracingOutput.OnCreate(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
     _rayTracingOutput.SetName("RayTracingOutput");
 
     if (_rayTracingOutputView.IsNull()) {
-        _rayTracingOutputView = dx::DescriptorManager::Alloc<dx::UAV>();
+        _rayTracingOutputView = _pDevice->AllocDescriptor<dx::UAV>(1);
     }
 
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
@@ -238,7 +238,7 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
 
 void TriangleRenderer::BuildAccelerationStructures() {
     _pASBuilder = std::make_unique<dx::ASBuilder>();
-    _pASBuilder->OnCreate(_pDevice.get());
+    _pASBuilder->OnCreate(_pDevice);
 
     _pASBuilder->BeginBuild();
     dx::BottomLevelASGenerator bottomLevelAsGenerator;

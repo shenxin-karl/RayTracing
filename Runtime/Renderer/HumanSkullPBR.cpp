@@ -12,8 +12,8 @@ HumanSkullPBR::HumanSkullPBR() {
 HumanSkullPBR::~HumanSkullPBR() {
 }
 
-void HumanSkullPBR::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
-	Renderer::OnCreate(numBackBuffer, hwnd);
+void HumanSkullPBR::OnCreate() {
+	Renderer::OnCreate();
 	InitScene();
 }
 

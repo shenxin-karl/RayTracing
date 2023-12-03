@@ -1,11 +1,13 @@
 #pragma once
 #include "DescriptorAllocator.h"
-#include "Foundation/Singleton.hpp"
+#include "Foundation/NonCopyable.h"
 
 namespace dx {
 
-class DescriptorManager : public Singleton<DescriptorManager> {
-public:
+class DescriptorManager : NonCopyable {
+private:
+    friend class Device;
+
     void OnCreate(Device *pDevice) {
         _descriptorAllocatorList.resize(4);
 
@@ -36,20 +38,8 @@ public:
         }
     }
 
-    template<typename T>
-    static auto Alloc(size_t numDescriptor = 1) -> T {
-        DescriptorManager *inst = GetInstance();
-        if constexpr (std::is_same_v<T, RTV>) {
-            return inst->_descriptorAllocatorList[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->Alloc<T>(numDescriptor);
-        } else if constexpr (std::is_same_v<T, DSV>) {
-            return inst->_descriptorAllocatorList[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->Alloc<T>(numDescriptor);
-        } else if constexpr (std::is_same_v<T, CBV> || std::is_same_v<T, SRV> || std::is_same_v<T, UAV>) {
-            return inst->_descriptorAllocatorList[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Alloc<T>(numDescriptor);
-        } else if constexpr (std::is_same_v<T, SAMPLER>) {
-            return inst->_descriptorAllocatorList[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER]->Alloc<T>(numDescriptor);
-        }
-        Assert(false);
-        return T{};
+    auto Alloc(size_t numDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE type) -> DescriptorHandle {
+        return _descriptorAllocatorList[type]->Alloc(numDescriptor);
     }
 private:
     std::vector<std::unique_ptr<DescriptorAllocator>> _descriptorAllocatorList;

@@ -8,7 +8,7 @@
 
 class TriangleRenderer : public Renderer {
 private:
-	void OnCreate(uint32_t numBackBuffer, HWND hwnd) override;
+	void OnCreate() override;
 	void OnDestroy() override;
 	void OnPreRender(GameTimer &timer) override;
 	void OnRender(GameTimer &timer) override;

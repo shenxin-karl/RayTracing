@@ -3,16 +3,17 @@
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Window.h"
 #include "Modules/Pix/Pix.h"
-#include "Render/Renderer.h"
+#include "Renderer/Renderer.h"
 #include "Modules/Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
-
-//#include "Render/TriangleRenderer.h"
-#include "Render/SimpleLighting.h"
 #include "SceneObject/SceneManager.h"
 #include "TextureObject/TextureManager.h"
 #include "Utils/GlobalCallbacks.h"
+
+//#include "Render/TriangleRenderer.h"
+#include "Renderer/GfxDevice.h"
+#include "Renderer/SimpleLighting.h"
 
 Application::Application() {
 }
@@ -24,25 +25,25 @@ void Application::OnCreate() {
     Logger::OnInstanceCreate();
     AssetProjectSetting::OnInstanceCreate();
     InputSystem::OnInstanceCreate();
+    GfxDevice::OnInstanceCreate();
     ShaderManager::OnInstanceCreate();
     TextureManager::OnInstanceCreate();
+    SceneManager::OnInstanceCreate();
 
     Logger::GetInstance()->OnCreate();
     AssetProjectSetting::GetInstance()->OnCreate();
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
+    GfxDevice::GetInstance()->OnCreate(3, pInputSystem->pWindow->GetHWND());
     ShaderManager::GetInstance()->OnCreate();
     TextureManager::GetInstance()->OnCreate();
     RenderDoc::Load();
     Pix::Load();
+	SceneManager::GetInstance()->OnCreate();
 
-    SceneManager::OnInstanceCreate()->OnCreate();
-
-    HWND hwnd = pInputSystem->pWindow->GetHWND();
     //_pRenderer = std::make_unique<TriangleRenderer>();
     _pRenderer = std::make_unique<SimpleLighting>();
-    _pRenderer->OnCreate(3, hwnd);
-
+    _pRenderer->OnCreate();
     // register resize call back
     pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
 
@@ -53,17 +54,22 @@ void Application::OnCreate() {
 }
 
 void Application::OnDestroy() {
-    TextureManager::GetInstance()->OnDestroy();
     _pRenderer->OnDestroy();
+    _pRenderer = nullptr;
+
     SceneManager::GetInstance()->OnDestroy();
+    TextureManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();
+    GfxDevice::GetInstance()->OnDestroy();
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
 
+    TextureManager::OnInstanceDestroy();
     SceneManager::OnInstanceDestroy();
     Pix::Free();
     RenderDoc::Free();
+    GfxDevice::OnInstanceDestroy();
     ShaderManager::OnInstanceDestroy();
     AssetProjectSetting::OnInstanceDestroy();
     InputSystem::OnInstanceDestroy();

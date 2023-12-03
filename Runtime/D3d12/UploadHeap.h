@@ -1,8 +1,10 @@
 #pragma once
 #include "D3dUtils.h"
+#include "Fence.h"
 
 namespace dx {
 
+// todo: 需要修改为支持异步构建
 class UploadHeap : NonCopyable {
 public:
     UploadHeap();
@@ -24,6 +26,7 @@ public:
     auto AllocBuffer(size_t size, size_t align = 1) -> uint8_t *;
     auto GetAllocatableSize(size_t align = 1) const -> size_t;
     void DoUpload();
+    void CpuWaitForUploadFinished();
 
     auto GetDevice() const -> Device * {
 	    return _pDevice;
@@ -60,13 +63,14 @@ public:
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 private:
     // clang-format off
-    Device                                  *_pDevice           = nullptr;
-    uint8_t                                 *_pDataCur          = nullptr;
-    uint8_t                                 *_pDataEnd          = nullptr;
-    uint8_t                                 *_pDataBegin        = nullptr;
-    D3D12MA::Allocation                     *_pBufferAllocation = nullptr;
-    WRL::ComPtr<NativeCommandList>           _pCommandList      = nullptr;
-    WRL::ComPtr<ID3D12CommandAllocator>      _pCommandAllocator = nullptr;
+    Device                                  *_pDevice               = nullptr;
+    uint8_t                                 *_pDataCur              = nullptr;
+    uint8_t                                 *_pDataEnd              = nullptr;
+    uint8_t                                 *_pDataBegin            = nullptr;
+    D3D12MA::Allocation                     *_pBufferAllocation     = nullptr;
+    WRL::ComPtr<NativeCommandList>           _pCommandList          = nullptr;
+    WRL::ComPtr<ID3D12CommandAllocator>      _pCommandAllocator     = nullptr;
+    std::unique_ptr<Fence>                   _pUploadFinishedFence  = nullptr;
     std::vector<BufferCopy>                  _bufferCopies;
     std::vector<TextureCopy>                 _textureCopies;
     std::vector<D3D12_RESOURCE_BARRIER>      _preUploadBarriers;
