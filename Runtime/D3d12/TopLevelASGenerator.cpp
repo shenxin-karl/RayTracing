@@ -21,7 +21,7 @@ void TopLevelASGenerator::AddInstance(ID3D12Resource *pBottomLevelAs,
     AddInstance(ASInstance{pBottomLevelAs, transform, instanceID, hitGroupIndex, instanceMask});
 }
 
-auto TopLevelASGenerator::Generate(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult, bool cleanUpInstances)
+auto TopLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult, bool cleanUpInstances)
     -> TopLevelAS {
 
     if (pPreviousResult != nullptr && !_allowUpdate) {

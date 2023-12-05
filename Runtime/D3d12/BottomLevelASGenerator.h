@@ -15,7 +15,7 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS transformBuffer,
         bool isOpaque = true);
 
-    auto Generate(ASBuilder *pUploadHeap) -> BottomLevelAS;
+    auto CommitCommand(ASBuilder *pUploadHeap) -> BottomLevelAS;
 private:
     void AddGeometryInternal(D3D12_VERTEX_BUFFER_VIEW *pVbv,
         DXGI_FORMAT vertexFormat, 

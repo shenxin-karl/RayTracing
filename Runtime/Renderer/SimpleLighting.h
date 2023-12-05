@@ -64,7 +64,6 @@ private:
 
 	dx::BottomLevelAS						_bottomLevelAs;
 	dx::TopLevelAS							_topLevelAs;
-	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
 
     SceneConstantBuffer                     _sceneConstantBuffer = {};
     Scene                                  *_pScene = nullptr;

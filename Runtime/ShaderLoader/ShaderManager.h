@@ -31,6 +31,7 @@ public:
     auto LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_SHADER_BYTECODE;
 private:
     friend class ShaderDependency;
+	static bool ShaderIncludeCallBack(const std::string &path, std::string &fileContent);
     auto GetShaderDependency(stdfs::path path) -> ShaderDependency &;
     auto LoadFromCache(UUID128 uuid, const stdfs::path &sourcePath, const stdfs::path &cachePath)
         -> std::optional<D3D12_SHADER_BYTECODE>;

@@ -8,7 +8,8 @@
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 
-Renderer::Renderer() : _width(0), _height(0), _pDevice(nullptr), _pSwapChain(nullptr), _pUploadHeap(nullptr) {
+Renderer::Renderer()
+    : _width(0), _height(0), _pDevice(nullptr), _pSwapChain(nullptr), _pUploadHeap(nullptr), _pASBuilder(nullptr) {
 }
 
 Renderer::~Renderer() {
@@ -19,6 +20,7 @@ void Renderer::OnCreate() {
     _pDevice = pGfxDevice->GetDevice();
     _pSwapChain = pGfxDevice->GetSwapChain();
     _pUploadHeap = pGfxDevice->GetUploadHeap();
+    _pASBuilder = pGfxDevice->GetASBuilder();
 
     _pFrameResourceRing = std::make_unique<dx::FrameResourceRing>();
     dx::FrameResourceRingDesc frameResourceRingDesc;

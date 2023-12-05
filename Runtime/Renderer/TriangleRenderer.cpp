@@ -34,6 +34,8 @@ void TriangleRenderer::OnCreate() {
     CreateRootSignature();
     CreateRayTracingPipelineStateObject();
     BuildAccelerationStructures();
+    _pUploadHeap->FlushAndFinish();
+    _pASBuilder->FlushAndFinish();
     _rayGenConstantBuffer.viewport = {-1.0f, -1.0f, 1.0f, 1.0f};
 }
 
@@ -149,7 +151,6 @@ void TriangleRenderer::CreateGeometry() {
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(glm::vec3), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
     uploadHeap.CommitUploadCommand();
-    _pUploadHeap->CpuWaitForUploadFinished();
 }
 
 void TriangleRenderer::CreateRootSignature() {
@@ -237,19 +238,14 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
 }
 
 void TriangleRenderer::BuildAccelerationStructures() {
-    _pASBuilder = std::make_unique<dx::ASBuilder>();
     _pASBuilder->OnCreate(_pDevice);
 
-    _pASBuilder->BeginBuild();
     dx::BottomLevelASGenerator bottomLevelAsGenerator;
     bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-    _bottomLevelAs = bottomLevelAsGenerator.Generate(_pASBuilder.get());
+    _bottomLevelAs = bottomLevelAsGenerator.CommitCommand(_pASBuilder);
 
     dx::TopLevelASGenerator topLevelAsGenerator;
     topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat3x4(1.f), 0, 0);
 
-    _topLevelAs = topLevelAsGenerator.Generate(_pASBuilder.get());
-    _pASBuilder->EndBuild();
-
-    _pASBuilder->GetBuildFinishedFence().CpuWaitForFence();
+    _topLevelAs = topLevelAsGenerator.CommitCommand(_pASBuilder);
 }

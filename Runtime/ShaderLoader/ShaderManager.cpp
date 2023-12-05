@@ -6,7 +6,6 @@
 #include "Foundation/Logger.h"
 #include "Foundation/StringUtil.h"
 #include "ShaderDependency.h"
-
 #include <fstream>
 #include <magic_enum.hpp>
 
@@ -50,7 +49,7 @@ void ShaderManager::OnDestroy() {
     dx::DxcModule::OnInstanceDestroy();
 }
 
-static bool ShaderIncludeCallBack(const std::string &path, std::string &fileContent) {
+bool ShaderManager::ShaderIncludeCallBack(const std::string &path, std::string &fileContent) {
     stdfs::path assetAbsolutePath = AssetProjectSetting::GetInstance()->GetAssetAbsolutePath();
     std::optional<stdfs::path> pRelativePath = nstd::ToRelativePath(assetAbsolutePath, path);
     if (!pRelativePath) {

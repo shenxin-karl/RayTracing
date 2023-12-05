@@ -15,7 +15,7 @@ public:
         uint32_t hitGroupIndex,
         uint16_t instanceMask = 0xff);
     // If you're building from an old accelerated structure, you need to provide pPreviousResult
-    auto Generate(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult = nullptr, bool cleanUpInstances = true) -> TopLevelAS;
+    auto CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult = nullptr, bool cleanUpInstances = true) -> TopLevelAS;
 
     auto GetInstanceCount() const -> size_t {
         return _instances.size();

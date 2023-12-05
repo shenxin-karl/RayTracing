@@ -11,15 +11,9 @@ public:
     ~ASBuilder();
     void OnCreate(Device *pDevice, size_t maxBuildItem = 20);
     void OnDestroy();
-
-    void BeginBuild();
-    void EndBuild();
-
+    void FlushAndFinish();
     auto GetDevice() const -> Device * {
         return _pDevice;
-    }
-    auto GetBuildFinishedFence() -> Fence & {
-        return _buildFinishedFence;
     }
 private:
     friend TopLevelASGenerator;
@@ -40,14 +34,16 @@ private:
 
     void AddBuildItem(BottomASBuildItem &&buildItem) {
 	    _bottomAsBuildItems.push_back(std::move(buildItem));
+        ConditionalFlushAndFinish();
     }
     void AddBuildItem(TopASBuildItem &&buildItem) {
 	    _topAsBuildItems.push_back(std::move(buildItem));
+        ConditionalFlushAndFinish();
     }
 private:
     void ConditionalGrowInstanceBuffer(size_t instanceCount);
     void ConditionalGrowScratchBuffer(size_t scratchBufferSize);
-    void ConditionalBuild();
+    void ConditionalFlushAndFinish();
 private:
     // clang-format off
     size_t                              _maxBuildItem       = {};
@@ -56,7 +52,6 @@ private:
     WRL::ComPtr<ID3D12CommandAllocator> _pCommandAllocator  = nullptr;
     WRL::ComPtr<D3D12MA::Allocation>    _pScratchBuffer     = nullptr;
     WRL::ComPtr<D3D12MA::Allocation>    _pInstanceBuffer    = nullptr;
-    Fence                               _buildFinishedFence = {};
     std::vector<BottomASBuildItem>      _bottomAsBuildItems;
     std::vector<TopASBuildItem>         _topAsBuildItems;
     // clang-format on

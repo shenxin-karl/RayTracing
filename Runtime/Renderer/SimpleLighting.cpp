@@ -71,6 +71,9 @@ void SimpleLighting::OnCreate() {
     BuildAccelerationStructure();
     LoadCubeMap();
     InitScene();
+
+    _pUploadHeap->FlushAndFinish();
+    _pASBuilder->FlushAndFinish();
 }
 
 void SimpleLighting::OnDestroy() {
@@ -246,7 +249,6 @@ void SimpleLighting::BuildGeometry() {
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(Vertex), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
     uploadHeap.CommitUploadCommand();
-    _pUploadHeap->CpuWaitForUploadFinished();
 }
 
 void SimpleLighting::CreateRayTracingOutput() {
@@ -344,26 +346,18 @@ void SimpleLighting::CreateRayTracingPipeline() {
 }
 
 void SimpleLighting::BuildAccelerationStructure() {
-    _pASBuilder = std::make_unique<dx::ASBuilder>();
-    _pASBuilder->OnCreate(_pDevice);
-    _pASBuilder->BeginBuild();
-    {
-        dx::BottomLevelASGenerator bottomLevelAsGenerator;
-        bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-        _bottomLevelAs = bottomLevelAsGenerator.Generate(_pASBuilder.get());
+    dx::BottomLevelASGenerator bottomLevelAsGenerator;
+    bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
+    _bottomLevelAs = bottomLevelAsGenerator.CommitCommand(_pASBuilder);
 
-        dx::TopLevelASGenerator topLevelAsGenerator;
-        topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat4x4(1.0), 0, 0);
-        _topLevelAs = topLevelAsGenerator.Generate(_pASBuilder.get());
-    }
-    _pASBuilder->EndBuild();
-    _pASBuilder->GetBuildFinishedFence().CpuWaitForFence();
+    dx::TopLevelASGenerator topLevelAsGenerator;
+    topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat4x4(1.0), 0, 0);
+    _topLevelAs = topLevelAsGenerator.CommitCommand(_pASBuilder);
 }
 
 void SimpleLighting::LoadCubeMap() {
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
     _pCubeMap = TextureManager::GetInstance()->LoadFromFile(path, _pUploadHeap);
-    _pUploadHeap->DoUpload();
 
     _cubeMapHandle = _pDevice->AllocDescriptor<dx::SRV>(1);
     D3D12_SHADER_RESOURCE_VIEW_DESC view = {};

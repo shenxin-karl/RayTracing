@@ -25,12 +25,14 @@ void ASBuilder::OnCreate(Device *pDevice, size_t maxBuildItem) {
 
     _pCommandAllocator->SetName(L"ASBuilder::CommandListAllocator");
     _pCommandList->SetName(L"ASBuilder::CommandList");
-    _buildFinishedFence.OnCreate(_pDevice, "ASBuilder::BuildFinishedFence");
 
     ThrowIfFailed(_pCommandList->Close());
     ID3D12CommandList *cmdList[] = {_pCommandList.Get()};
     _pDevice->GetCopyQueue()->ExecuteCommandLists(1, cmdList);
     _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
+
+    ThrowIfFailed(_pCommandAllocator->Reset());
+    ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
 }
 
 void ASBuilder::OnDestroy() {
@@ -39,17 +41,9 @@ void ASBuilder::OnDestroy() {
     _pCommandList = nullptr;
     _pCommandAllocator = nullptr;
     _pInstanceBuffer = nullptr;
-    _buildFinishedFence.OnDestroy();
 }
 
-void ASBuilder::BeginBuild() {
-    _bottomAsBuildItems.clear();
-    _topAsBuildItems.clear();
-    ThrowIfFailed(_pCommandAllocator->Reset());
-    ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
-}
-
-void ASBuilder::EndBuild() {
+void ASBuilder::FlushAndFinish() {
     size_t instanceCount = 0;
     size_t scratchBufferSize = 0;
     for (BottomASBuildItem &bottomBuildItem : _bottomAsBuildItems) {
@@ -110,7 +104,10 @@ void ASBuilder::EndBuild() {
     ThrowIfFailed(_pCommandList->Close());
     ID3D12CommandList *cmdList[] = {_pCommandList.Get()};
     _pDevice->GetCopyQueue()->ExecuteCommandLists(1, cmdList);
-    _buildFinishedFence.IssueFence(_pDevice->GetCopyQueue());
+    _pDevice->WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE_COPY);
+
+    ThrowIfFailed(_pCommandAllocator->Reset());
+    ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
 }
 
 void ASBuilder::ConditionalGrowInstanceBuffer(size_t instanceCount) {
@@ -152,8 +149,10 @@ void ASBuilder::ConditionalGrowScratchBuffer(size_t scratchBufferSize) {
     }
 }
 
-void ASBuilder::ConditionalBuild() {
-
+void ASBuilder::ConditionalFlushAndFinish() {
+    if ((_bottomAsBuildItems.size() + _topAsBuildItems.size()) >= _maxBuildItem) {
+	    FlushAndFinish();
+    }
 }
 
 }    // namespace dx

@@ -25,8 +25,7 @@ public:
     void OnDestroy();
     auto AllocBuffer(size_t size, size_t align = 1) -> uint8_t *;
     auto GetAllocatableSize(size_t align = 1) const -> size_t;
-    void DoUpload();
-    void CpuWaitForUploadFinished();
+    void FlushAndFinish();
 
     auto GetDevice() const -> Device * {
 	    return _pDevice;

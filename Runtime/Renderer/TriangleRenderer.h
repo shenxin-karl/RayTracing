@@ -43,7 +43,6 @@ private:
 
 	dx::BottomLevelAS						_bottomLevelAs;
 	dx::TopLevelAS							_topLevelAs;
-	std::unique_ptr<dx::ASBuilder>			_pASBuilder;
 
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};

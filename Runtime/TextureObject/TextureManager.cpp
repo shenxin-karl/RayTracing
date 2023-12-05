@@ -22,7 +22,7 @@ void TextureManager::OnDestroy() {
     _textureMap.clear();
 }
 
-auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap) -> std::shared_ptr<dx::Texture> {
+auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap, bool makeSRGB) -> std::shared_ptr<dx::Texture> {
     if (!path.is_absolute()) {
         path = stdfs::absolute(path);
     }
@@ -59,13 +59,13 @@ auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap)
     }
 
     pImageLoader->Load(path, 1.f);
-    std::shared_ptr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), pUploadHeap);
+    std::shared_ptr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), pUploadHeap, makeSRGB);
     pTexture->SetName(path.string());
     _textureMap[path] = pTexture;
     return pTexture;
 }
 
-auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pUploadHeap)
+auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pUploadHeap, bool makeSRGB)
     -> std::shared_ptr<dx::Texture> {
 
     std::shared_ptr<dx::Texture> pTexture = std::make_shared<dx::Texture>();
@@ -80,6 +80,10 @@ auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pU
         1,
         0,
         D3D12_RESOURCE_FLAG_NONE);
+
+    if (makeSRGB) {
+		textureDesc.Format = dx::GetSRGBFormat(textureDesc.Format);    
+    }
     pTexture->OnCreate(pDevice, textureDesc, D3D12_RESOURCE_STATE_COPY_DEST);
 
     UINT64 UplHeapSize;

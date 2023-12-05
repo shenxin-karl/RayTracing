@@ -2,9 +2,9 @@
 #include "GPUMeshData.h"
 #include "CPUMeshData.h"
 
-Mesh::Mesh() : _gpuMeshDataDirty(false) {
-    _pCpuMeshData = std::make_unique<CPUMeshData>();
-    _pGpuMeshData = std::make_unique<GPUMeshData>();
+Mesh::Mesh() : _vertexAttributeDirty(false), _bottomLevelASDirty(false) {
+	_pCpuMeshData = std::make_unique<CPUMeshData>();
+	_pGpuMeshData = std::make_unique<GPUMeshData>();
 }
 
 Mesh::~Mesh() {
@@ -33,7 +33,7 @@ void Mesh::GetVertices(std::vector<glm::vec3> &vertices) const {
 
 void Mesh::Resize(SemanticMask mask, size_t vertexCount, size_t indexCount) {
     _pCpuMeshData->Resize(mask, vertexCount, indexCount);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
 }
 
 template<typename T>
@@ -51,7 +51,8 @@ void Mesh::SetVertices(ReadonlyArraySpan<glm::vec3> vertices) {
     auto begin = _pCpuMeshData->GetSemanticBegin(SemanticIndex::eVertex);
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eVertex);
     fill(begin, end, vertices);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
+    _bottomLevelASDirty = true;
 }
 
 void Mesh::SetNormals(ReadonlyArraySpan<glm::vec3> normals) {
@@ -59,7 +60,7 @@ void Mesh::SetNormals(ReadonlyArraySpan<glm::vec3> normals) {
     auto begin = _pCpuMeshData->GetSemanticBegin(SemanticIndex::eNormal);
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eNormal);
     fill(begin, end, normals);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
 }
 
 void Mesh::SetTangents(ReadonlyArraySpan<glm::vec4> tangents) {
@@ -67,7 +68,7 @@ void Mesh::SetTangents(ReadonlyArraySpan<glm::vec4> tangents) {
     auto begin = _pCpuMeshData->GetSemanticBegin(SemanticIndex::eTangent);
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eTangent);
     fill(begin, end, tangents);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
 }
 
 void Mesh::SetColors(ReadonlyArraySpan<glm::vec4> colors) {
@@ -75,7 +76,7 @@ void Mesh::SetColors(ReadonlyArraySpan<glm::vec4> colors) {
     auto begin = _pCpuMeshData->GetSemanticBegin(SemanticIndex::eColor);
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eColor);
     fill(begin, end, colors);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
 }
 
 void Mesh::SetUV0(ReadonlyArraySpan<glm::vec2> uvs) {
@@ -83,15 +84,18 @@ void Mesh::SetUV0(ReadonlyArraySpan<glm::vec2> uvs) {
     auto begin = _pCpuMeshData->GetSemanticBegin(SemanticIndex::eTexCoord0);
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eTexCoord0);
     fill(begin, end, uvs);
-    _gpuMeshDataDirty = true;
+    _vertexAttributeDirty = true;
 }
 
-void Mesh::UploadMeshData() {
-    if (!_gpuMeshDataDirty) {
-        return;
+void Mesh::UploadMeshData(bool isOpaque) {
+    if (_vertexAttributeDirty) {
+		_pGpuMeshData->UploadGpuMemory(_pCpuMeshData.get());
+		_vertexAttributeDirty = false;
     }
-    _pGpuMeshData->UploadGpuMemory(_pCpuMeshData.get());
-    _gpuMeshDataDirty = false;
+    if (_bottomLevelASDirty) {
+		_pGpuMeshData->GenerateBottomLevelAccelerationStructure(isOpaque);
+	    _bottomLevelASDirty = false;
+    }
 }
 
 void Mesh::SetDataCheck(size_t vertexCount, SemanticIndex index) const {

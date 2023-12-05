@@ -26,13 +26,14 @@ public:
 	void SetTangents(ReadonlyArraySpan<glm::vec4> tangents);
 	void SetColors(ReadonlyArraySpan<glm::vec4> colors);
 	void SetUV0(ReadonlyArraySpan<glm::vec2> uvs);
-	void UploadMeshData();
+	void UploadMeshData(bool isOpaque = true);
 private:
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
 private:
 	// clang-format off
-	bool							_gpuMeshDataDirty;
 	std::unique_ptr<CPUMeshData>	_pCpuMeshData;
 	std::unique_ptr<GPUMeshData>	_pGpuMeshData;
+	bool							_vertexAttributeDirty;
+	bool							_bottomLevelASDirty;
 	// clang-format on
 };

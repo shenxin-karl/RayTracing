@@ -31,7 +31,7 @@ void BottomLevelASGenerator::AddGeometry(D3D12_VERTEX_BUFFER_VIEW vbv,
     return AddGeometryInternal(&vbv, vertexFormat, &ibv, &transformBuffer, isOpaque);
 }
 
-auto BottomLevelASGenerator::Generate(ASBuilder *pUploadHeap) -> BottomLevelAS {
+auto BottomLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap) -> BottomLevelAS {
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc;
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;

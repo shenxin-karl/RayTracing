@@ -39,15 +39,11 @@ void GPUMeshData::GenerateBottomLevelAccelerationStructure(bool isOpaque) {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     dx::ASBuilder *pASBuilder = pGfxDevice->GetASBuilder();
     constexpr DXGI_FORMAT vertexFormat = GetSemanticInfo(SemanticIndex::eVertex).format;
-    pASBuilder->BeginBuild();
-    {
-        dx::BottomLevelASGenerator generator;
-        if (_indexBufferView.SizeInBytes > 0) {
-            generator.AddGeometry(_vertexBufferView, vertexFormat, _indexBufferView, isOpaque);
-        } else {
-            generator.AddGeometry(_vertexBufferView, vertexFormat, isOpaque);
-        }
-        generator.Generate(pASBuilder);
+    dx::BottomLevelASGenerator generator;
+    if (_indexBufferView.SizeInBytes > 0) {
+        generator.AddGeometry(_vertexBufferView, vertexFormat, _indexBufferView, isOpaque);
+    } else {
+        generator.AddGeometry(_vertexBufferView, vertexFormat, isOpaque);
     }
-    pASBuilder->EndBuild();
+    generator.CommitCommand(pASBuilder);
 }

@@ -19,6 +19,7 @@ protected:
 	dx::Device							   *_pDevice;
 	dx::SwapChain						   *_pSwapChain;
 	dx::UploadHeap						   *_pUploadHeap;
+	dx::ASBuilder						   *_pASBuilder;
 	std::unique_ptr<dx::FrameResourceRing>	_pFrameResourceRing;
 	// clang-format on
 };

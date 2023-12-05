@@ -34,11 +34,11 @@ void Application::OnCreate() {
     AssetProjectSetting::GetInstance()->OnCreate();
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
+    Pix::Load();
     GfxDevice::GetInstance()->OnCreate(3, pInputSystem->pWindow->GetHWND());
     ShaderManager::GetInstance()->OnCreate();
     TextureManager::GetInstance()->OnCreate();
-    RenderDoc::Load();
-    Pix::Load();
+
 	SceneManager::GetInstance()->OnCreate();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
@@ -61,14 +61,13 @@ void Application::OnDestroy() {
     TextureManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();
     GfxDevice::GetInstance()->OnDestroy();
+    Pix::Free();
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
 
     TextureManager::OnInstanceDestroy();
     SceneManager::OnInstanceDestroy();
-    Pix::Free();
-    RenderDoc::Free();
     GfxDevice::OnInstanceDestroy();
     ShaderManager::OnInstanceDestroy();
     AssetProjectSetting::OnInstanceDestroy();
