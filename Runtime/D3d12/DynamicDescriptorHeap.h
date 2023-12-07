@@ -14,24 +14,24 @@ public:
         const D3D12_CPU_DESCRIPTOR_HANDLE &baseDescriptor,
         size_t offset = 0);
     void StageDescriptors(size_t rootParameterIndex, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset = 0);
-public:
-    void CommitStagedDescriptorForDraw(NativeCommandList *pCommandList) {
-        CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
-    }
-    void CommitStagedDescriptorForDispatch(NativeCommandList *pCommandList) {
-        CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
-    }
+    void CommitStagedDescriptorForDraw(NativeCommandList *pCommandList);
+    void CommitStagedDescriptorForDispatch(NativeCommandList *pCommandList);
 private:
-    struct DescriptorTableCache;
+	struct DescriptorTableCache {
+	    void Reset(bool enableBindless, size_t capacity);
+	    void Fill(size_t offset, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles);
+	public:
+		using HandleContainer = std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>;
+		// clang-format off
+	    size_t			count;
+	    size_t			capacity;
+	    bool			enableBindless;
+	    HandleContainer	cachedHandles;
+		// clang-format on
+	};
+
     using CommitFunc = decltype(&ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
     using DescriptorHeapPool = std::queue<WRL::ComPtr<ID3D12DescriptorHeap>>;
-    using DescriptorHandleCache = std::array<D3D12_CPU_DESCRIPTOR_HANDLE, kMaxDescriptor>;
-
-    struct DescriptorTableCache {
-        size_t numDescriptors;
-        D3D12_CPU_DESCRIPTOR_HANDLE *pBaseHandle;
-    };
-
     auto ComputeStaleDescriptorCount() const -> size_t;
     void CommitDescriptorTables(NativeCommandList *pCommandList, CommitFunc commitFunc);
     auto RequestDescriptorHeap() -> WRL::ComPtr<ID3D12DescriptorHeap>;
@@ -42,9 +42,7 @@ private:
 	size_t								_descriptorHandleIncrementSize;
 	D3D12_DESCRIPTOR_HEAP_TYPE			_heapType;
 	DescriptorTableCache				_descriptorTableCache[kMaxRootParameter];
-	std::bitset<kMaxRootParameter>		_descriptorTableBitMask;
 	std::bitset<kMaxRootParameter>		_staleDescriptorTableBitMask;
-	DescriptorHandleCache				_descriptorHandleCache;
 	DescriptorHeapPool                  _descriptorHeapPool;
 	DescriptorHeapPool                  _availableDescriptorHeaps;
 	size_t								_numFreeHandles;
@@ -53,5 +51,7 @@ private:
 	WRL::ComPtr<ID3D12DescriptorHeap>	_pCurrentDescriptorHeap;
     // clang-format on
 };
+
+
 
 }    // namespace dx

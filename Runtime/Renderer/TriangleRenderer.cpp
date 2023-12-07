@@ -155,14 +155,14 @@ void TriangleRenderer::CreateGeometry() {
 
 void TriangleRenderer::CreateRootSignature() {
     CD3DX12_DESCRIPTOR_RANGE1 range(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-    _globalRootSignature.Reset(2, 0);
+    _globalRootSignature.OnCreate(2, 0);
     _globalRootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
     _globalRootSignature.At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0
-    _globalRootSignature.Finalize(_pDevice);
+    _globalRootSignature.Generate(_pDevice);
 
-    _localRootSignature.Reset(1, 0);
+    _localRootSignature.OnCreate(1, 0);
     _localRootSignature.At(0).InitAsConstants(dx::SizeofInUint32<RayGenConstantBuffer>(), 0);    // b0
-    _localRootSignature.Finalize(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _localRootSignature.Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
 void TriangleRenderer::CreateRayTracingPipelineStateObject() {

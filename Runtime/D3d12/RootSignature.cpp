@@ -110,30 +110,33 @@ static size_t GetPerTableIndexByRangeType(D3D12_DESCRIPTOR_RANGE_TYPE type) {
     return -1;
 }
 
-RootSignature::RootSignature() : _finalized(false), _numParameters(0), _numStaticSamplers(0), _numDescriptorPreTable{} {
+RootSignature::RootSignature() : _numParameters(0), _numStaticSamplers(0), _descriptorTableInfo{} {
 }
 
 RootSignature::~RootSignature() {
+    OnDestroy();
 }
 
-RootSignature::RootSignature(size_t numRootParam, size_t numStaticSamplers) : RootSignature() {
-    Reset(numRootParam, numStaticSamplers);
-}
-
-void RootSignature::Reset(size_t numRootParam, size_t numStaticSamplers) {
-    _finalized = false;
+void RootSignature::OnCreate(size_t numRootParam, size_t numStaticSamplers) {
     _numParameters = numRootParam;
     _numStaticSamplers = numStaticSamplers;
     for (size_t i = 0; i < 2; ++i) {
+        std::ranges::fill(_descriptorTableInfo[i], DescriptorTableInfo{0, false});
         _descriptorTableBitMap[i].reset();
-        std::ranges::fill(_numDescriptorPreTable[i], 0);
     }
     _pRootSignature = nullptr;
     _rootParameters.resize(numRootParam);
     _staticSamplers.resize(numStaticSamplers);
 }
 
-void RootSignature::InitStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset) {
+void RootSignature::OnDestroy() {
+    _numParameters = 0;
+    _pRootSignature = nullptr;
+    _rootParameters.clear();
+    _staticSamplers.clear();
+}
+
+void RootSignature::SetStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset) {
     Assert(offset < _numStaticSamplers);
     size_t i = 0;
     while (i < descs.Size()) {
@@ -158,13 +161,7 @@ auto RootSignature::At(size_t index) -> RootParameter & {
     return _rootParameters[index];
 }
 
-bool RootSignature::IsFinalized() const {
-    return _finalized;
-}
-
-void RootSignature::Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) {
-    Assert(!_finalized);
-
+void RootSignature::Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) {
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootDesc;
     rootDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
     rootDesc.Desc_1_1 = D3D12_ROOT_SIGNATURE_DESC1{
@@ -200,13 +197,30 @@ void RootSignature::Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
                 if (range.NumDescriptors <= 0) {
                     continue;
                 }
-                _descriptorTableBitMap[descriptorTypeIndex].set(rootIndex);
-                _numDescriptorPreTable[descriptorTypeIndex][rootIndex] += range.NumDescriptors;
+                // enable bindless
+                if (range.Flags & D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE) {
+                    _descriptorTableInfo[descriptorTypeIndex][rootIndex].enableBindless = true;
+                } else {
+                    _descriptorTableBitMap[descriptorTypeIndex].set(rootIndex);
+                    _descriptorTableInfo[descriptorTypeIndex][rootIndex].numDescriptor += range.NumDescriptors;
+                }
             }
         }
     }
+}
 
-    _finalized = true;
+auto RootSignature::GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const
+    -> const RootParamDescriptorTableInfo & {
+
+    switch (heapType) {
+    case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+        return _descriptorTableInfo[0];
+    case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+        return _descriptorTableInfo[1];
+    default:
+        Exception::Throw("Invalid HeapType: {}", heapType);
+        return _descriptorTableInfo[0];
+    }
 }
 
 auto RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask {
@@ -218,20 +232,6 @@ auto RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapTyp
     default:
         Assert(false);
         return {};
-    }
-}
-
-auto RootSignature::GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const
-    -> const NumDescriptorPreTable & {
-    switch (heapType) {
-    case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-        return _numDescriptorPreTable[kCBV_UAV_SRV_HeapIndex];
-    case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-        return _numDescriptorPreTable[kSAMPLER_HeapIndex];
-    default:
-        Assert(false);
-        static NumDescriptorPreTable emptyObject;
-        return emptyObject;
     }
 }
 

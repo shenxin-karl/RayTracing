@@ -280,15 +280,15 @@ void SimpleLighting::CreateRayTracingOutput() {
 
 void SimpleLighting::CreateRootSignature() {
     // clang-format off
-    _closestLocalRootSignature.Reset(3);
+    _closestLocalRootSignature.OnCreate(3);
     {
         _closestLocalRootSignature.At(LocalRootParams::CubeCB).InitAsBufferCBV(1);                      // gCubeCB(b1)
         _closestLocalRootSignature.At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices(t1)
         _closestLocalRootSignature.At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices(t2)
     }
-    _closestLocalRootSignature.Finalize(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _closestLocalRootSignature.Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 
-    _globalRootSignature.Reset(3, 1);
+    _globalRootSignature.OnCreate(3, 1);
     {
         _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
         _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
@@ -297,8 +297,8 @@ void SimpleLighting::CreateRootSignature() {
             CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
         });
     }
-    _globalRootSignature.InitStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0
-    _globalRootSignature.Finalize(_pDevice);
+    _globalRootSignature.SetStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0
+    _globalRootSignature.Generate(_pDevice);
     // clang-format on
 }
 

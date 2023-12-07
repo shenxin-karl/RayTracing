@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include "D3dUtils.h"
+#include "Foundation/ReadonlyArraySpan.hpp"
 
 namespace dx {
 

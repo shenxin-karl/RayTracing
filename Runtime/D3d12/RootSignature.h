@@ -23,34 +23,33 @@ public:
 // clang-format on
 
 class RootSignature : NonCopyable {
-private:
+public:
     using DescriptorTableBitMask = std::bitset<kMaxRootParameter>;
     using NumDescriptorPreTable = std::array<uint8_t, kMaxRootParameter>;
     struct DescriptorTableInfo {
         uint8_t numDescriptor;
         bool enableBindless = false;
     };
+    using RootParamDescriptorTableInfo = std::array<DescriptorTableInfo, kMaxRootParameter>;
 public:
     RootSignature();
     ~RootSignature();
-    RootSignature(size_t numRootParam, size_t numStaticSamplers = 0);
 public:
-    void Reset(size_t numRootParam, size_t numStaticSamplers = 0);
-    void InitStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
+    void OnCreate(size_t numRootParam, size_t numStaticSamplers = 0);
+    void OnDestroy();
+    void SetStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
     void SetStaticSampler(size_t index, const D3D12_STATIC_SAMPLER_DESC &desc);
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;
-    bool IsFinalized() const;
-    void Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+    void Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+    auto GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const  RootParamDescriptorTableInfo &;
     auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask;
-    auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescriptorPreTable &;
 private:
     // clang-format off
-    bool                                    _finalized;
     size_t                                  _numParameters;
     size_t                                  _numStaticSamplers;
+	RootParamDescriptorTableInfo            _descriptorTableInfo[2];
     DescriptorTableBitMask                  _descriptorTableBitMap[2];
-    NumDescriptorPreTable                   _numDescriptorPreTable[2];
     WRL::ComPtr<ID3D12RootSignature>        _pRootSignature;
     std::vector<RootParameter>              _rootParameters;
     std::vector<D3D12_STATIC_SAMPLER_DESC>  _staticSamplers;

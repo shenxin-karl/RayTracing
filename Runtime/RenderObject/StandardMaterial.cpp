@@ -33,7 +33,7 @@ public:
     }
     void OnCreate() {
         _pRootSignature = std::make_unique<dx::RootSignature>();
-        _pRootSignature->Reset(5, 6);
+        _pRootSignature->OnCreate(5, 6);
         _pRootSignature->At(0).InitAsBufferCBV(0);    // gCbPrePass;
         _pRootSignature->At(1).InitAsBufferCBV(0);    // gCbPreObject;
         _pRootSignature->At(2).InitAsBufferCBV(0);    // gCbLighting;
@@ -46,7 +46,7 @@ public:
         _pRootSignature->At(4).InitAsDescriptorTable({// gTextureList
             range});
 
-        //_pRootSignature->Finalize(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_)
+        //_pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_)
     }
     void OnDestroy() {
         _pRootSignature = nullptr;

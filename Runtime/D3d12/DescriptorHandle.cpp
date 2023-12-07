@@ -21,7 +21,7 @@ DescriptorHandle::DescriptorHandle(const DescriptorHandle &other) : DescriptorHa
 
     if (count != 0) {
         _numHandle = other._numHandle;
-	    _handleSize = other._handleSize;
+        _handleSize = other._handleSize;
         _pPage = other._pPage;
         _pRefCount = other._pRefCount;
         _baseHandle = other._baseHandle;
@@ -77,19 +77,19 @@ DescriptorHandle::DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle,
 
 void DescriptorHandle::Release() {
     if (_pRefCount == nullptr) {
-	    return;
+        return;
     }
 
-	size_t refCount = _pRefCount->fetch_sub(1);
+    size_t refCount = _pRefCount->fetch_sub(1);
     Assert(refCount >= 1);
     if (refCount == 1) {
-	    _pPage->Free(_baseHandle, _numHandle, _pRefCount);
+        _pPage->Free(_baseHandle, _numHandle, _pRefCount);
     }
     _numHandle = 0;
-	_handleSize = 0;
-	_pPage = nullptr;
-	_pRefCount = nullptr;
-	_baseHandle = {};
+    _handleSize = 0;
+    _pPage = nullptr;
+    _pRefCount = nullptr;
+    _baseHandle = {};
 }
 
 auto DescriptorHandle::GetCpuHandle(size_t offset) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
