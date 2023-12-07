@@ -187,6 +187,7 @@ void RootSignature::Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
         serializedRootSig->GetBufferSize(),
         IID_PPV_ARGS(&_pRootSignature)));
 
+    // collect descriptor range info
     for (size_t rootIndex = 0; rootIndex < _numParameters; ++rootIndex) {
         const RootParameter &rootParameter = _rootParameters[rootIndex];
         if (rootParameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE) {

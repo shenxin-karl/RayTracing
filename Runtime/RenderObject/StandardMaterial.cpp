@@ -39,14 +39,25 @@ public:
         _pRootSignature->At(2).InitAsBufferCBV(0);    // gCbLighting;
         _pRootSignature->At(3).InitAsBufferCBV(0);    // gCbLighting;
 
-        auto range = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-            -1,
+        CD3DX12_DESCRIPTOR_RANGE1 range = {
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+            static_cast<UINT>(-1),
             0,
-            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
-        _pRootSignature->At(4).InitAsDescriptorTable({// gTextureList
-            range});
+            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+        };
+        
+        _pRootSignature->At(4).InitAsDescriptorTable({range});  // gTextureList
 
-        //_pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_)
+        D3D12_STATIC_SAMPLER_DESC samplers[6] = {
+	        dx::GetPointWrapStaticSampler(0),
+            dx::GetPointClampStaticSampler(1),
+            dx::GetLinearWrapStaticSampler(2),
+            dx::GetLinearClampStaticSampler(3),
+            dx::GetAnisotropicWrapStaticSampler(4),
+            dx::GetAnisotropicClampStaticSampler(5)
+        };
+        _pRootSignature->SetStaticSamplers(samplers);
+        _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
     }
     void OnDestroy() {
         _pRootSignature = nullptr;
