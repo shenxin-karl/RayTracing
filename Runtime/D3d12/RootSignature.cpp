@@ -57,20 +57,20 @@ void RootParameter::InitAsDescriptorTable(UINT rangeCount, D3D12_SHADER_VISIBILI
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     ShaderVisibility = visibility;
     DescriptorTable.NumDescriptorRanges = rangeCount;
-    DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE[rangeCount];
+    DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE1[rangeCount];
 }
 
-void RootParameter::InitAsDescriptorTable(std::initializer_list<D3D12_DESCRIPTOR_RANGE> ranges,
+void RootParameter::InitAsDescriptorTable(std::initializer_list<D3D12_DESCRIPTOR_RANGE1> ranges,
     D3D12_SHADER_VISIBILITY visibility) {
 
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     ShaderVisibility = visibility;
     DescriptorTable.NumDescriptorRanges = ranges.size();
-    DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE[ranges.size()];
+    DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE1[ranges.size()];
     size_t index = 0;
-    for (const D3D12_DESCRIPTOR_RANGE &range : ranges) {
-        const D3D12_DESCRIPTOR_RANGE &dest = DescriptorTable.pDescriptorRanges[index++];
-        const_cast<D3D12_DESCRIPTOR_RANGE &>(dest) = range;
+    for (const D3D12_DESCRIPTOR_RANGE1 &range : ranges) {
+        const D3D12_DESCRIPTOR_RANGE1 &dest = DescriptorTable.pDescriptorRanges[index++];
+        const_cast<D3D12_DESCRIPTOR_RANGE1 &>(dest) = range;
     }
 }
 
@@ -78,14 +78,16 @@ void RootParameter::SetTableRange(size_t rangeIndex,
     D3D12_DESCRIPTOR_RANGE_TYPE type,
     UINT Register,
     UINT count,
-    UINT space) {
+    UINT space,
+    D3D12_DESCRIPTOR_RANGE_FLAGS Flags) {
 
-    D3D12_DESCRIPTOR_RANGE *pRange = const_cast<D3D12_DESCRIPTOR_RANGE *>(
+    D3D12_DESCRIPTOR_RANGE1 *pRange = const_cast<D3D12_DESCRIPTOR_RANGE1 *>(
         DescriptorTable.pDescriptorRanges + rangeIndex);
     pRange->RangeType = type;
     pRange->NumDescriptors = count;
     pRange->BaseShaderRegister = Register;
     pRange->RegisterSpace = space;
+    pRange->Flags = Flags;
     pRange->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 }
 #pragma endregion
@@ -162,16 +164,21 @@ bool RootSignature::IsFinalized() const {
 
 void RootSignature::Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) {
     Assert(!_finalized);
-    D3D12_ROOT_SIGNATURE_DESC rootDesc = {static_cast<UINT>(_numParameters),
+
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootDesc;
+    rootDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    rootDesc.Desc_1_1 = D3D12_ROOT_SIGNATURE_DESC1{
+        static_cast<UINT>(_numParameters),
         _rootParameters.data(),
         static_cast<UINT>(_numStaticSamplers),
         _staticSamplers.data(),
-        flags};
+        flags,
+    };
 
     // build root Signature
     WRL::ComPtr<ID3DBlob> serializedRootSig = nullptr;
     WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
-    HRESULT hr = D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &errorBlob);
+    HRESULT hr = D3D12SerializeVersionedRootSignature(&rootDesc, &serializedRootSig, &errorBlob);
 
     if (FAILED(hr)) {
         std::string errorMessage(static_cast<const char *>(errorBlob->GetBufferPointer()), errorBlob->GetBufferSize());
@@ -189,7 +196,7 @@ void RootSignature::Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
             size_t descriptorTypeIndex = GetPerTableIndexByRangeType(
                 rootParameter.DescriptorTable.pDescriptorRanges[0].RangeType);
             for (size_t rangeIndex = 0; rangeIndex < rootParameter.DescriptorTable.NumDescriptorRanges; ++rangeIndex) {
-                const D3D12_DESCRIPTOR_RANGE &range = rootParameter.DescriptorTable.pDescriptorRanges[rangeIndex];
+                const D3D12_DESCRIPTOR_RANGE1 &range = rootParameter.DescriptorTable.pDescriptorRanges[rangeIndex];
                 if (range.NumDescriptors <= 0) {
                     continue;
                 }

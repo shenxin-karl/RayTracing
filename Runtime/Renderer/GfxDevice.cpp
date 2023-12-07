@@ -5,14 +5,18 @@
 #include "D3d12/UploadHeap.h"
 #include "D3d12/ASBuilder.h"
 
-GfxDevice::GfxDevice(): _numBackBuffer(0) {
+GfxDevice::GfxDevice()
+    : _numBackBuffer(0), _renderTargetFormat(DXGI_FORMAT_UNKNOWN), _depthStencilFormat(DXGI_FORMAT_UNKNOWN) {
 }
 
 GfxDevice::~GfxDevice() {
 }
 
-void GfxDevice::OnCreate(uint32_t numBackBuffer, HWND hwnd) {
-	_numBackBuffer = numBackBuffer;
+void GfxDevice::OnCreate(uint32_t numBackBuffer, HWND hwnd, DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
+    _numBackBuffer = numBackBuffer;
+    _renderTargetFormat = rtFormat;
+    _depthStencilFormat = dsFormat;
+
     _pDevice = std::make_unique<dx::Device>();
     _pSwapChain = std::make_unique<dx::SwapChain>();
     _pUploadHeap = std::make_unique<dx::UploadHeap>();

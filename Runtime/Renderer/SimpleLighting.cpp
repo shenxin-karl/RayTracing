@@ -293,8 +293,8 @@ void SimpleLighting::CreateRootSignature() {
         _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
         _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
         _globalRootSignature.At(GlobalRootParams::Table0).InitAsDescriptorTable({ 
-            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0), // gOutput(u0);
-            CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
+            CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0), // gOutput(u0);
+            CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
         });
     }
     _globalRootSignature.InitStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0

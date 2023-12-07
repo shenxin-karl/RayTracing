@@ -2,6 +2,7 @@
 #include "Foundation/ITick.hpp"
 #include "Foundation/Singleton.hpp"
 #include <Windows.h>
+#include <dxgiformat.h>
 
 namespace dx {
 
@@ -18,7 +19,7 @@ public:
 	GfxDevice();
 	~GfxDevice() override;
 public:
-	void OnCreate(uint32_t numBackBuffer, HWND hwnd);
+	void OnCreate(uint32_t numBackBuffer, HWND hwnd, DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat);
 	void OnDestroy();
 	auto GetDevice() const -> dx::Device * {
 		return _pDevice.get();
@@ -32,6 +33,12 @@ public:
 	auto GetASBuilder() const -> dx::ASBuilder * {
 		return _pASBuilder.get();
 	}
+	auto GetRenderTargetFormat() const-> DXGI_FORMAT {
+		return _renderTargetFormat;
+	}
+	auto GetDepthStencilFormat() const -> DXGI_FORMAT {
+		return _depthStencilFormat;
+	}
 private:
 	// clang-format off
 	size_t							_numBackBuffer;
@@ -39,5 +46,7 @@ private:
 	std::unique_ptr<dx::SwapChain>	_pSwapChain;
 	std::unique_ptr<dx::UploadHeap>	_pUploadHeap;
 	std::unique_ptr<dx::ASBuilder>	_pASBuilder;
+	DXGI_FORMAT						_renderTargetFormat;
+	DXGI_FORMAT						_depthStencilFormat;
 	// clang-format on
 };

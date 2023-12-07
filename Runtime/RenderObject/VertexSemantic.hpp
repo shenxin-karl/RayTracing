@@ -1,7 +1,11 @@
 // clang-format off
 #pragma once
+#include <d3d12.h>
 #include <dxgiformat.h>
 #include <string_view>
+
+#include "D3d12/d3dx12.h"
+#include "Foundation/Exception.h"
 #include "Foundation/PreprocessorDirectives.h"
 
 enum class SemanticIndex {
@@ -24,7 +28,6 @@ enum class SemanticIndex {
 ENUM_INCREMENT(SemanticIndex);
 
 enum class SemanticMask {
-	eInvalid			=  0x8000,
 	eNothing			=  0,
 	eVertex				=  1 << static_cast<int>(SemanticIndex::eVertex),
 	eNormal				=  1 << static_cast<int>(SemanticIndex::eNormal),
@@ -40,7 +43,6 @@ enum class SemanticMask {
 	eTexCoord7			=  1 << static_cast<int>(SemanticIndex::eTexCoord7),
 	eBlendWeights		=  1 << static_cast<int>(SemanticIndex::eBlendWeights),
 	eBlendIndices		=  1 << static_cast<int>(SemanticIndex::eBlendIndices),
-	eMaskAll			=  1 << (static_cast<int>(SemanticIndex::eMaxNum) - 1) 
 };
 ENUM_FLAGS(SemanticMask);
 
@@ -71,14 +73,14 @@ constexpr VertexSemantic GetSemanticInfo(SemanticIndex index) {
         {SemanticMask::eNormal, DXGI_FORMAT_R32G32B32_FLOAT, 3, sizeof(float) * 3, "NORMAL"},
         {SemanticMask::eTangent, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TANGENT"},
         {SemanticMask::eColor, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "COLOR"},
-        {SemanticMask::eTexCoord0, DXGI_FORMAT_R32G32_FLOAT, 2, sizeof(float) * 2, "TEXCOORD0"},
-        {SemanticMask::eTexCoord1, DXGI_FORMAT_R32G32_FLOAT, 2, sizeof(float) * 2, "TEXCOORD1"},
-        {SemanticMask::eTexCoord2, DXGI_FORMAT_R32G32B32_FLOAT, 3, sizeof(float) * 3, "TEXCOORD2"},
-        {SemanticMask::eTexCoord3, DXGI_FORMAT_R32G32B32_FLOAT, 3, sizeof(float) * 3, "TEXCOORD3"},
-        {SemanticMask::eTexCoord4, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD4"},
-        {SemanticMask::eTexCoord5, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD5"},
-        {SemanticMask::eTexCoord6, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD6"},
-        {SemanticMask::eTexCoord7, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD7"},
+        {SemanticMask::eTexCoord0, DXGI_FORMAT_R32G32_FLOAT, 2, sizeof(float) * 2, "TEXCOORD"},
+        {SemanticMask::eTexCoord1, DXGI_FORMAT_R32G32_FLOAT, 2, sizeof(float) * 2, "TEXCOORD"},
+        {SemanticMask::eTexCoord2, DXGI_FORMAT_R32G32B32_FLOAT, 3, sizeof(float) * 3, "TEXCOORD"},
+        {SemanticMask::eTexCoord3, DXGI_FORMAT_R32G32B32_FLOAT, 3, sizeof(float) * 3, "TEXCOORD"},
+        {SemanticMask::eTexCoord4, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD"},
+        {SemanticMask::eTexCoord5, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD"},
+        {SemanticMask::eTexCoord6, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD"},
+        {SemanticMask::eTexCoord7, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "TEXCOORD"},
         {SemanticMask::eBlendWeights, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, sizeof(float) * 4, "BLEND_WEIGHTS"},
         {SemanticMask::eBlendIndices, DXGI_FORMAT_R8G8B8A8_UINT, 4, sizeof(uint8_t) * 4, "BLEND_INDICES"},
     };
@@ -108,6 +110,44 @@ constexpr size_t GetSemanticOffset(SemanticMask mask, SemanticIndex index) {
 		}
 	}
 	return offset;
+}
+
+inline std::vector<D3D12_INPUT_ELEMENT_DESC> SemanticMaskToVertexInputElements(SemanticMask mask) {
+	Assert(mask != SemanticMask::eNothing);
+
+	UINT alignedByteOffset = 0;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> descList;
+	for (SemanticIndex index = SemanticIndex::eVertex; index != SemanticIndex::eMaxNum; ++index) {
+		if (HasFlag(mask, SemanticMaskCast(index))) {
+			VertexSemantic info = GetSemanticInfo(index);
+			D3D12_INPUT_ELEMENT_DESC desc = {};
+			desc.SemanticName = info.semantic.data();
+			desc.Format = info.format;
+			desc.InputSlot = 0;
+			desc.AlignedByteOffset = alignedByteOffset;
+			desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+			desc.InstanceDataStepRate = 0;
+
+			switch (index) {
+			case SemanticIndex::eTexCoord0:
+			case SemanticIndex::eTexCoord1:
+			case SemanticIndex::eTexCoord2:
+			case SemanticIndex::eTexCoord3:
+			case SemanticIndex::eTexCoord4:
+			case SemanticIndex::eTexCoord5:
+			case SemanticIndex::eTexCoord6:
+			case SemanticIndex::eTexCoord7:
+				desc.SemanticIndex = static_cast<size_t>(index) - static_cast<size_t>(SemanticIndex::eTexCoord0);
+				break;
+			default: 
+				desc.SemanticIndex = 0;
+			}
+
+			descList.push_back(desc);
+			alignedByteOffset += info.dataSize;
+		}
+	}
+	return descList;
 }
 
 // clang-format on

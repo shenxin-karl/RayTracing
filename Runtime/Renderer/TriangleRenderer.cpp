@@ -154,7 +154,7 @@ void TriangleRenderer::CreateGeometry() {
 }
 
 void TriangleRenderer::CreateRootSignature() {
-    CD3DX12_DESCRIPTOR_RANGE range(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    CD3DX12_DESCRIPTOR_RANGE1 range(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
     _globalRootSignature.Reset(2, 0);
     _globalRootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
     _globalRootSignature.At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0

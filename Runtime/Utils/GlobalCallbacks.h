@@ -75,8 +75,8 @@ struct GlobalCallbacks {
     CallbackList<GameTimer &> onRender;
     CallbackList<GameTimer &> onPostRender;
 
-    CallbackList<void> onCreate;
-    CallbackList<void> onDestroy;
+    CallbackList<> onCreate;
+    CallbackList<> onDestroy;
 
     // void(size_t width, size_t height)
     CallbackList<size_t, size_t> onResize;

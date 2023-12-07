@@ -7,7 +7,7 @@
 namespace dx {
 
 // clang-format off
-class RootParameter : public D3D12_ROOT_PARAMETER {
+class RootParameter : public D3D12_ROOT_PARAMETER1 {
 public:
     RootParameter();
     ~RootParameter();
@@ -17,8 +17,8 @@ public:
     void InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
     void InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
     void InitAsDescriptorTable(UINT rangeCount, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
-    void InitAsDescriptorTable(std::initializer_list<D3D12_DESCRIPTOR_RANGE> ranges, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
-    void SetTableRange(size_t rangeIndex, D3D12_DESCRIPTOR_RANGE_TYPE type, UINT Register, UINT count, UINT space = 0);
+    void InitAsDescriptorTable(std::initializer_list<D3D12_DESCRIPTOR_RANGE1> ranges, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
+    void SetTableRange(size_t rangeIndex, D3D12_DESCRIPTOR_RANGE_TYPE type, UINT Register, UINT count, UINT space = 0, D3D12_DESCRIPTOR_RANGE_FLAGS Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
 };
 // clang-format on
 
@@ -26,6 +26,10 @@ class RootSignature : NonCopyable {
 private:
     using DescriptorTableBitMask = std::bitset<kMaxRootParameter>;
     using NumDescriptorPreTable = std::array<uint8_t, kMaxRootParameter>;
+    struct DescriptorTableInfo {
+        uint8_t numDescriptor;
+        bool enableBindless = false;
+    };
 public:
     RootSignature();
     ~RootSignature();
@@ -37,8 +41,7 @@ public:
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;
     bool IsFinalized() const;
-    void Finalize(Device *pDevice,
-        D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    void Finalize(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
     auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask;
     auto GetNumDescriptorPreTable(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const NumDescriptorPreTable &;
 private:

@@ -35,10 +35,14 @@ void Application::OnCreate() {
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
     Pix::Load();
-    GfxDevice::GetInstance()->OnCreate(3, pInputSystem->pWindow->GetHWND());
+    GfxDevice::GetInstance()->OnCreate(3,
+        pInputSystem->pWindow->GetHWND(),
+        DXGI_FORMAT_R16G16B16A16_FLOAT,
+        DXGI_FORMAT_D24_UNORM_S8_UINT);
+
     ShaderManager::GetInstance()->OnCreate();
     TextureManager::GetInstance()->OnCreate();
-	SceneManager::GetInstance()->OnCreate();
+    SceneManager::GetInstance()->OnCreate();
     GlobalCallbacks::Get().onCreate.Invoke();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();

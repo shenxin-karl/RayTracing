@@ -5,6 +5,8 @@
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/D3dUtils.h"
 
+enum class SemanticMask;
+
 namespace dx {
 class Texture;
 }
@@ -31,7 +33,9 @@ public:
     void SetMetallic(float metallic);
     void SetNormalScale(float normalScale);
 private:
+    friend class StandardMaterialManager;
     // clang-format off
+    SemanticMask                 _semanticMask;
 	RenderMode                   _renderMode;
     dx::DefineList               _defineList;
     dx::SRV                      _textureHandles[eMaxNum];
