@@ -25,6 +25,7 @@ public:
     void SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture);
     void SetAlbedo(const glm::vec4 &albedo);
     void SetEmission(const glm::vec4 &emission);
+    void SetTillingAndOffset(const glm::vec4 &tilingAndOffset);
     void SetCutoff(float cutoff);
     void SetRoughness(float roughness);
     void SetMetallic(float metallic);
@@ -38,6 +39,7 @@ private:
 
     glm::vec4                    _albedo;
     glm::vec4                    _emission;
+    glm::vec4                    _tilingAndOffset;
     float                        _cutoff;
     float                        _roughness;
     float                        _metallic;

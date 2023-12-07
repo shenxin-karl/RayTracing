@@ -21,7 +21,7 @@ private:
 };
 
 struct ICallbackList : private NonCopyable {
-	virtual void Remove(const CallbackHandle &) = 0;
+    virtual void Remove(const CallbackHandle &) = 0;
     virtual ~ICallbackList() = default;
 };
 
@@ -32,10 +32,12 @@ public:
     }
 
     template<typename T>
+    [[nodiscard]]
     auto Register(T *pObject, void (T::*pMemFunc)(Args...)) -> CallbackHandle {
         return Register([=](Args... args) -> void { (pObject->*pMemFunc)(std::forward<Args>(args)...); });
     }
 
+    [[nodiscard]]
     auto Register(std::function<void(Args...)> function) -> CallbackHandle {
         MainThread::EnsureMainThread();
         CallbackHandle handle;
@@ -45,7 +47,7 @@ public:
         return handle;
     }
 
-    void Invoke(Args&&... args) const {
+    void Invoke(Args &&...args) const {
         MainThread::EnsureMainThread();
         for (auto &&[_, callback] : _callbacks) {
             callback(args...);
@@ -54,7 +56,7 @@ public:
 
     void Remove(const CallbackHandle &handle) override {
         MainThread::EnsureMainThread();
-	    _callbacks.erase(handle._id);
+        _callbacks.erase(handle._id);
     }
 private:
     // clang-format off
@@ -64,21 +66,23 @@ private:
     // clang-format on
 };
 
-
 struct GlobalCallbacks {
-	CallbackList<GameTimer &>   onPreUpdate;
-    CallbackList<GameTimer &>   onUpdate;
-    CallbackList<GameTimer &>   onPostUpdate;
+    CallbackList<GameTimer &> onPreUpdate;
+    CallbackList<GameTimer &> onUpdate;
+    CallbackList<GameTimer &> onPostUpdate;
 
-    CallbackList<GameTimer &>   onPreRender;
-    CallbackList<GameTimer &>   onRender;
-    CallbackList<GameTimer &>   onPostRender;
+    CallbackList<GameTimer &> onPreRender;
+    CallbackList<GameTimer &> onRender;
+    CallbackList<GameTimer &> onPostRender;
+
+    CallbackList<void> onCreate;
+    CallbackList<void> onDestroy;
 
     // void(size_t width, size_t height)
     CallbackList<size_t, size_t> onResize;
 
     static GlobalCallbacks &Get() {
-	    static GlobalCallbacks instance;
+        static GlobalCallbacks instance;
         return instance;
     }
 };

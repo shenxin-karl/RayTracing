@@ -52,6 +52,10 @@ target("RayTracing")
     add_headerfiles("**.h")
     add_headerfiles("**.hpp")
     add_headerfiles("**.inc")
+
+    add_headerfiles("Bin/Assets/Shaders/**.hlsl")
+    add_headerfiles("Bin/Assets/Shaders/**.hlsli")
+
     add_files("Runtime/**.cpp")
     add_includedirs(RUNTIME_DIR)
     add_defines("PLATFORM_WIN")

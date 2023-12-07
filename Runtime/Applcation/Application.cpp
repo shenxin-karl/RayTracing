@@ -38,8 +38,8 @@ void Application::OnCreate() {
     GfxDevice::GetInstance()->OnCreate(3, pInputSystem->pWindow->GetHWND());
     ShaderManager::GetInstance()->OnCreate();
     TextureManager::GetInstance()->OnCreate();
-
 	SceneManager::GetInstance()->OnCreate();
+    GlobalCallbacks::Get().onCreate.Invoke();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
     _pRenderer = std::make_unique<SimpleLighting>();
@@ -56,6 +56,7 @@ void Application::OnCreate() {
 void Application::OnDestroy() {
     _pRenderer->OnDestroy();
     _pRenderer = nullptr;
+    GlobalCallbacks::Get().onDestroy.Invoke();
 
     SceneManager::GetInstance()->OnDestroy();
     TextureManager::GetInstance()->OnDestroy();

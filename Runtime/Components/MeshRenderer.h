@@ -7,6 +7,9 @@ class StandardMaterial;
 class MeshRenderer : public Component {
 	DECLARE_CLASS(MeshRenderer);
 public:
+	void SetMesh(std::shared_ptr<Mesh> pMesh);
+	void SetMaterial(std::shared_ptr<StandardMaterial> pMaterial);
+public:
 	void OnRemoveFormGameObject() override;
 	void OnRemoveFormScene() override;
 private:

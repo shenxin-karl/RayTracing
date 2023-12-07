@@ -1,5 +1,6 @@
 #ifndef __COOK_TORRANCE_HLSLI__
 #define __COOK_TORRANCE_HLSLI__
+#include "CbLighting.hlsli"
 
 struct MaterialData {
     float3 diffuseAlbedo;   
@@ -8,29 +9,10 @@ struct MaterialData {
     float  metallic;        
 };
 
-struct SpotLight {
-    float3 strength;       
-    float  falloffStart;   
-    float3 direction;      
-    float  falloffEnd;     
-    float3 position;       
-    float  spotPower;      
-};
-
-struct DirectionalLight {
-	float3 ambientColor;
-	float  ambientIntensity;
-	float3 directionalColor;
-	float  directionalIntensity;
-	float3 direction;
-	float  padding0;
-};
-
 float3 ComputeDirectionLight(DirectionalLight light, MaterialData mat, float3 N, float3 V);
 float3 ComputeAmbientLight(DirectionalLight light, MaterialData mat, float ao);
 float3 ComputePointLight(PointLight pointLight, MaterialData mat, float3 N, float3 V, float3 worldPosition);
 float3 ComputeSpotLight(SpotLight light, MaterialData mat, float3 N, float3 V, float3 worldPosition);
-
 
 // implement
 
@@ -93,6 +75,11 @@ float GeometrySmith(float NdotL, float NdotV, float roughness) {
 // ----------------------------------------------------------------------------
 float3 FresnelSchlick(float cosTheta, float3 F0) {
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+}
+
+float3 ComputeFresnelFactor(float3 N, float3 H, float3 albedo, float metallic) {
+    float3 F0 = lerp(0.04, albedo, metallic);
+    return FresnelSchlick(dot(N, H), F0);
 }
 
 float3 LambertDiffuse(float3 diffuse) {
