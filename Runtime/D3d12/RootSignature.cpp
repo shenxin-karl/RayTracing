@@ -37,6 +37,7 @@ void RootParameter::InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visib
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
     Descriptor.RegisterSpace = space;
+    Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 }
 
 void RootParameter::InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
@@ -44,6 +45,7 @@ void RootParameter::InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visib
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
     Descriptor.RegisterSpace = space;
+    Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 }
 
 void RootParameter::InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
@@ -51,6 +53,7 @@ void RootParameter::InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visib
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
     Descriptor.RegisterSpace = space;
+    Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 }
 
 void RootParameter::InitAsDescriptorTable(UINT rangeCount, D3D12_SHADER_VISIBILITY visibility) {

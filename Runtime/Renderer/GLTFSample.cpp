@@ -1,48 +1,51 @@
-#include "HumanSkullPBR.h"
+#include "GLTFSample.h"
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
 #include "Components/Light.h"
 #include "Object/GameObject.h"
+#include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
+#include "Utils/AssetProjectSetting.h"
 
-HumanSkullPBR::HumanSkullPBR() {
+GLTFSample::GLTFSample() {
 }
 
-HumanSkullPBR::~HumanSkullPBR() {
+GLTFSample::~GLTFSample() {
 }
 
-void HumanSkullPBR::OnCreate() {
+void GLTFSample::OnCreate() {
 	Renderer::OnCreate();
 	InitScene();
 }
 
-void HumanSkullPBR::OnDestroy() {
+void GLTFSample::OnDestroy() {
 	Renderer::OnDestroy();
 	SceneManager::GetInstance()->RemoveScene(_pScene->GetName());
 	_pScene = nullptr;
 }
 
-void HumanSkullPBR::OnPreRender(GameTimer &timer) {
+void GLTFSample::OnPreRender(GameTimer &timer) {
 	Renderer::OnPreRender(timer);
 }
 
-void HumanSkullPBR::OnRender(GameTimer &timer) {
+void GLTFSample::OnRender(GameTimer &timer) {
 	Renderer::OnRender(timer);
 }
 
-void HumanSkullPBR::OnResize(uint32_t width, uint32_t height) {
+void GLTFSample::OnResize(uint32_t width, uint32_t height) {
 	Renderer::OnResize(width, height);
 }
 
-void HumanSkullPBR::InitScene() {
+void GLTFSample::InitScene() {
 	_pScene = SceneManager::GetInstance()->CreateScene("Scene");
 	SetupCamera();
 	SetupLight();
+	LoadGLTF();
 }
 
-void HumanSkullPBR::SetupCamera() {
-	std::shared_ptr<GameObject> pGameObject = GameObject::Create();
+void GLTFSample::SetupCamera() {
+	SharedPtr<GameObject> pGameObject = GameObject::Create();
 	pGameObject->AddComponent<Camera>();
 	pGameObject->AddComponent<CameraController>();
 	Transform *pTransform = pGameObject->GetComponent<Transform>();
@@ -51,8 +54,8 @@ void HumanSkullPBR::SetupCamera() {
 	_pScene->AddGameObject(pGameObject);
 }
 
-void HumanSkullPBR::SetupLight() {
-	std::shared_ptr<GameObject> pGameObject = GameObject::Create();
+void GLTFSample::SetupLight() {
+	SharedPtr<GameObject> pGameObject = GameObject::Create();
 	pGameObject->AddComponent<DirectionalLight>();
 
 	Transform *pTransform = pGameObject->GetComponent<Transform>();
@@ -60,5 +63,11 @@ void HumanSkullPBR::SetupLight() {
 	glm::vec3 worldPosition(0, 1000, 0);
 	glm::quat worldRotation = glm::Direction2Quaternion(direction);
 	pTransform->SetWorldTRS(worldPosition, worldRotation, glm::vec3(1.f));
+}
+
+void GLTFSample::LoadGLTF() {
+	GLTFLoader loader;
+	loader.Load(AssetProjectSetting::ToAssetPath("Models/DamagedHelmet/DamagedHelmet.gltf"));
+
 }
 

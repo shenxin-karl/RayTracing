@@ -1,4 +1,5 @@
 #pragma once
+#include "PreprocessorDirectives.h"
 #include <source_location>
 #include <string>
 #include <fmt/format.h>
@@ -60,7 +61,8 @@ protected:
 #define Assert(cond)                                                                                                   \
     do {                                                                                                               \
         bool _bValueFlag = bool(cond);                                                                                 \
-        ::Exception::CondThrow(_bValueFlag, #cond);                                                                    \
+        ::Exception::CondThrow(_bValueFlag,                                                                            \
+            fmt::format("In Function {}, Assert({}) Failed!", __FUNCTION_NAME__, #cond));                              \
     } while (false)
 
 class NotImplementedException : public std::exception {

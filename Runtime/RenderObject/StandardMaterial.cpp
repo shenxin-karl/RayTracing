@@ -35,15 +35,16 @@ public:
         _pRootSignature = std::make_unique<dx::RootSignature>();
         _pRootSignature->OnCreate(5, 6);
         _pRootSignature->At(0).InitAsBufferCBV(0);    // gCbPrePass;
-        _pRootSignature->At(1).InitAsBufferCBV(0);    // gCbPreObject;
-        _pRootSignature->At(2).InitAsBufferCBV(0);    // gCbLighting;
-        _pRootSignature->At(3).InitAsBufferCBV(0);    // gCbLighting;
+        _pRootSignature->At(1).InitAsBufferCBV(1);    // gCbPreObject;
+        _pRootSignature->At(2).InitAsBufferCBV(3);    // gCbLighting;
+        _pRootSignature->At(3).InitAsBufferCBV(2);    // gCbMaterial;
 
         CD3DX12_DESCRIPTOR_RANGE1 range = {
             D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
             static_cast<UINT>(-1),
             0,
-            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+            0,
+        	D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
         };
         
         _pRootSignature->At(4).InitAsDescriptorTable({range});  // gTextureList

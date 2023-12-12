@@ -23,9 +23,14 @@ public:
     virtual void GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) = 0;
 };
 
-class IFileImageLoader : public IImageLoader {
+class IFileImageLoader : public virtual IImageLoader {
 public:
     virtual bool Load(const stdfs::path &filePath, float cutOff) = 0;
+};
+
+class IMemoryImageLoader : public virtual IImageLoader {
+public:
+    virtual bool Load(const uint8_t *pData, size_t dataSize, float cutOff) = 0;
 };
 
 }    // namespace dx

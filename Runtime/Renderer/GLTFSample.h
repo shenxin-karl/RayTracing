@@ -2,10 +2,10 @@
 #include "Renderer.h"
 
 class Scene;
-class HumanSkullPBR : public Renderer {
+class GLTFSample : public Renderer {
 public:
-	HumanSkullPBR();
-	~HumanSkullPBR() override;
+	GLTFSample();
+	~GLTFSample() override;
 public:
 	void OnCreate() override;
 	void OnDestroy() override;
@@ -16,6 +16,7 @@ private:
 	void InitScene();
 	void SetupCamera();
 	void SetupLight();
+	void LoadGLTF();
 private:
 	// clang-format off
 	Scene	*_pScene = nullptr;

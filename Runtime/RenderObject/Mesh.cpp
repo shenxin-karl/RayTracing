@@ -87,12 +87,12 @@ void Mesh::SetUV0(ReadonlyArraySpan<glm::vec2> uvs) {
     _vertexAttributeDirty = true;
 }
 
-void Mesh::UploadMeshData(bool isOpaque) {
+void Mesh::UploadMeshData(bool generateBottomLevelAS, bool isOpaque) {
     if (_vertexAttributeDirty) {
 		_pGpuMeshData->UploadGpuMemory(_pCpuMeshData.get());
 		_vertexAttributeDirty = false;
     }
-    if (_bottomLevelASDirty) {
+    if (generateBottomLevelAS && _bottomLevelASDirty) {
 		_pGpuMeshData->GenerateBottomLevelAccelerationStructure(isOpaque);
 	    _bottomLevelASDirty = false;
     }

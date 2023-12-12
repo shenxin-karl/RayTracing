@@ -3,33 +3,30 @@
 #include "Components/Component.h"
 #include "Components/Transform.h"
 #include "SceneObject/SceneID.hpp"
+#include "Foundation/Exception.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 class Component;
 class GameObject : public Object {
     DECLARE_CLASS(GameObject);
 private:
+    using ComponentContainer = std::vector<SharedPtr<Component>>;
+    using ChildrenContainer = std::vector<SharedPtr<GameObject>>;
+    friend class Scene;
     GameObject();
 public:
     ~GameObject() override;
     void OnAddToScene(SceneID sceneID);
     void OnRemoveFormScene();
 public:
-    static auto Create() -> std::shared_ptr<GameObject> {
-        struct MakeGameObject : public GameObject {
-            using GameObject::GameObject;
-        };
-        std::shared_ptr<GameObject> pGameObject = std::make_shared<MakeGameObject>();
-        pGameObject->InitInstanceId();
-        pGameObject->AddComponent<Transform>();
-        return pGameObject;
-    }
+    static auto Create() -> SharedPtr<GameObject>;
 
     template<typename T>
         requires(std::is_base_of_v<Component, T>)
     auto GetComponent() -> T * {
-        for (std::unique_ptr<Component> &pComponent : _components) {
+        for (SharedPtr<Component> &pComponent : _components) {
             if (::GetTypeID<T>() == pComponent->GetClassTypeID()) {
-                return static_cast<T *>(pComponent.get());
+                return static_cast<T *>(pComponent.Get());
             }
         }
         return nullptr;
@@ -41,9 +38,24 @@ public:
         if (T *pComponent = GetComponent<T>()) {
             return pComponent;
         }
-        auto &pComponent = _components.emplace_back(std::make_unique<T>());
-		InitComponent(pComponent.get());
-        return static_cast<T *>(pComponent.get());
+        auto &pComponent = _components.emplace_back(MakeShared<T>());
+		InitComponent(pComponent.Get());
+        return static_cast<T *>(pComponent.Get());
+    }
+
+    template<typename T>
+		requires(std::is_base_of_v<Component, T>)
+    bool AddComponent(SharedPtr<T> &&pComponent) {
+        Assert(pComponent != nullptr);
+	    if (GetComponent<T>() != nullptr) {
+		    return false;
+	    }
+        if (pComponent->GetGameObject() != nullptr) {
+	        return false;
+        }
+        _components.emplace_back(std::move(pComponent));
+		InitComponent(pComponent.Get());
+        return true;
     }
 
     template<typename T>
@@ -71,9 +83,11 @@ public:
     auto GetSceneID() const -> SceneID {
 	    return _sceneID;
     }
+
+    void AddChild(SharedPtr<GameObject> pChild);
+    void RemoveChild(GameObject *pChild);
+    auto GetChildren() const -> const ChildrenContainer &;
 private:
-    using ComponentContainer = std::vector<std::unique_ptr<Component>>;
-    friend class Scene;
     void SetSceneID(SceneID sceneID) {
 	    _sceneID = sceneID;
     }
@@ -82,5 +96,6 @@ private:
     // clang-format off
     SceneID            _sceneID;
     ComponentContainer _components;
+    ChildrenContainer  _children; 
     // clang-format on
 };

@@ -93,23 +93,6 @@ void Transform::SetWorldTRS(const glm::vec3 &translation, const glm::quat &rotat
     SetWorldMatrix(MakeAffineMatrix(translation, rotation, scale));
 }
 
-void Transform::SetParent(Transform *pTransform) {
-    if (_pParent != pTransform) {
-        if (_pParent != nullptr) {
-            RemoveChildImpl(_pParent, this);
-        }
-        SetParentImpl(pTransform, this);
-        MakeChildrenDirty(eWorldAttribute);
-        _dirtyFlag = SetFlags(_dirtyFlag, eWorldAttribute);
-    }
-}
-
-void Transform::AddChild(Transform *pTransform) {
-    if (pTransform->GetParent() != this) {
-        pTransform->SetParent(this);
-    }
-}
-
 void Transform::RemoveChild(Transform *pTransform) {
     if (pTransform->GetParent() == this) {
         RemoveChildImpl(this, pTransform);
@@ -223,5 +206,23 @@ void Transform::ConditionUpdateWorldAttribute() const {
 void Transform::MakeChildrenDirty(TransformDirtyFlag flag) {
     for (auto *pChild : _children) {
         pChild->_dirtyFlag = SetFlags(pChild->_dirtyFlag, flag);
+    }
+}
+
+
+void Transform::SetParent(Transform *pTransform) {
+    if (_pParent != pTransform) {
+        if (_pParent != nullptr) {
+            RemoveChildImpl(_pParent, this);
+        }
+        SetParentImpl(pTransform, this);
+        MakeChildrenDirty(eWorldAttribute);
+        _dirtyFlag = SetFlags(_dirtyFlag, eWorldAttribute);
+    }
+}
+
+void Transform::AddChild(Transform *pTransform) {
+    if (pTransform->GetParent() != this) {
+        pTransform->SetParent(this);
     }
 }

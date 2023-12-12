@@ -13,7 +13,7 @@ GameObject::~GameObject() {
 
 void GameObject::OnAddToScene(SceneID sceneID) {
 	_sceneID = sceneID;
-	for (std::unique_ptr<Component> &pComponent : _components) {
+	for (SharedPtr<Component> &pComponent : _components) {
 		pComponent->OnAddToScene();
 	}
 
@@ -34,10 +34,42 @@ void GameObject::OnRemoveFormScene() {
 	for (Transform *pChild : pTransform->GetChildren()) {
 		pChild->GetGameObject()->OnRemoveFormScene();
 	}
-	for (std::unique_ptr<Component> &pComponent : _components) {
+	for (SharedPtr<Component> &pComponent : _components) {
 		pComponent->OnRemoveFormScene();
 	}
 	_sceneID = SceneID::Invalid;
+	_children.clear();
+}
+
+auto GameObject::Create() -> SharedPtr<GameObject> {
+    struct MakeGameObject : public GameObject {
+        using GameObject::GameObject;
+    };
+    SharedPtr<GameObject> pGameObject = MakeShared<MakeGameObject>();
+    pGameObject->InitInstanceId();
+    pGameObject->AddComponent<Transform>();
+    return pGameObject;
+}
+
+
+void GameObject::AddChild(SharedPtr<GameObject> pChild) {
+
+}
+
+void GameObject::RemoveChild(GameObject *pChild) {
+	auto iter = _children.begin();
+	while (iter != _children.end()) {
+		if (iter->Get() == pChild) {
+			(*iter)->OnRemoveFormScene();
+			_children.erase(iter);
+			return;
+		}
+		++iter;
+	}
+}
+
+auto GameObject::GetChildren() const -> const ChildrenContainer & {
+	return _children;
 }
 
 void GameObject::InitComponent(Component *pComponent) {

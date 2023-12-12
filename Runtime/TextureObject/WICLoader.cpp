@@ -12,9 +12,37 @@ WICLoader::~WICLoader() {
 bool WICLoader::Load(const stdfs::path &filePath, float cutOff) {
     int32_t width, height, channels;
     _pData = reinterpret_cast<char *>(stbi_load(filePath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha));
+    if (_pData == nullptr) {
+	    return false;
+    }
 
-    // compute number of mips
-    //
+    LoadInternal(width, height, cutOff);
+    return true;
+}
+
+bool WICLoader::Load(const uint8_t *pData, size_t dataSize, float cutOff) {
+    int32_t width, height, channels;
+    _pData = reinterpret_cast<char *>(stbi_load_from_memory(pData, dataSize, &width, &height, &channels, STBI_rgb_alpha));
+    if (_pData == nullptr) {
+	    return false;
+    }
+
+    LoadInternal(width, height, cutOff);
+    return true;
+}
+
+auto WICLoader::GetImageHeader() const -> dx::ImageHeader {
+    return _imageHeader;
+}
+
+void WICLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
+    for (uint32_t y = 0; y < height; y++) {
+        memcpy(static_cast<char *>(pDest) + y * stride, _pData + y * width, width);
+    }
+    MipImage(width / 4, height);
+}
+
+void WICLoader::LoadInternal(int width, int height, float cutOff) {
     uint32_t mipWidth = width;
     uint32_t mipHeight = height;
     uint32_t mipCount = 0;
@@ -46,19 +74,6 @@ bool WICLoader::Load(const stdfs::path &filePath, float cutOff) {
     } else {
         _alphaTestCoverage = 1.0f;
     }
-
-    return true;
-}
-
-auto WICLoader::GetImageHeader() const -> dx::ImageHeader {
-    return _imageHeader;
-}
-
-void WICLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
-    for (uint32_t y = 0; y < height; y++) {
-        memcpy(static_cast<char *>(pDest) + y * stride, _pData + y * width, width);
-    }
-    MipImage(width / 4, height);
 }
 
 void WICLoader::MipImage(uint32_t width, uint32_t height) {

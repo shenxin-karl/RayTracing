@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="CPUMeshData111111111">
+    <DisplayString>{{ SemanticMask={_semanticMask}, VertexCount={_vertexCount}, }</DisplayString>
+      <Expand>
+        <CustomListItems MaxItemsPerView="50000" ExcludeView="Test">
+          <Variable Name="ptr" InitialValue="(char *)nullptr"/>
+          <Variable Name="index" InitialValue="0"/>
+          <Variable Name="mask" InitialValue="_semanticMask" />
+
+          <Exec> ptr = _pVertices._Mypair._Myval2 </Exec>
+          <Loop>
+            <Break Condition="index == _vertexCount"/>
+
+            <If Condition="(mask &amp; SemanticMask::eVertex) != 0">
+              <Item Name="[{index}]-Position"> (float (&amp;)[3])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[3]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eNormal) != 0">
+              <Item Name="[{index}]-Normal"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[3]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTangent) != 0">
+              <Item Name="[{index}]-Tangent"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eColor) != 0">
+              <Item Name="[{index}]-Color"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord0) != 0">
+              <Item Name="[{index}]-TexCoord0"> (float (&amp;)[2])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[2]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord1) != 0">
+              <Item Name="[{index}]-eTexCoord1"> (float (&amp;)[2])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[2]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord2) != 0">
+              <Item Name="[{index}]-TexCoord2"> (float (&amp;)[3])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[3]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord3) != 0">
+              <Item Name="[{index}]-TexCoord3"> (float (&amp;)[3])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[3]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord4) != 0">
+              <Item Name="[{index}]-Tangent"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord5) != 0">
+              <Item Name="[{index}]-TexCoord5"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord6) != 0">
+              <Item Name="[{index}]-TexCoord6"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eTexCoord7) != 0">
+              <Item Name="[{index}]-TexCoord7"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eBlendWeights) != 0">
+              <Item Name="[{index}]-BlendWeights"> (float (&amp;)[4])(*ptr) </Item>
+              <Exec> ptr += sizeof(float[4]) </Exec>
+            </If>
+
+            <If Condition="(mask &amp; SemanticMask::eBlendIndices) != 0">
+              <Item Name="[{index}]-BlendIndices"> (std::byte (&amp;)[4])(*ptr)  </Item>
+              <Exec> ptr += sizeof(char[4]) </Exec>
+            </If>
+
+            <Exec> ++index </Exec>
+
+          </Loop>
+        </CustomListItems>
+      </Expand>
+    </Synthetic>
+  </Type>
+</AutoVisualizer>

@@ -10,7 +10,7 @@ Scene::Scene() {
 Scene::~Scene() {
 }
 
-void Scene::AddGameObject(std::shared_ptr<GameObject> pGameObject) {
+void Scene::AddGameObject(SharedPtr<GameObject> pGameObject) {
     if (pGameObject->GetSceneID() == _sceneID) {
         return;
     }
@@ -19,7 +19,7 @@ void Scene::AddGameObject(std::shared_ptr<GameObject> pGameObject) {
     _gameObjects.push_back(std::move(pGameObject));
 }
 
-void Scene::RemoveGameObject(const std::shared_ptr<GameObject> &pGameObject) {
+void Scene::RemoveGameObject(const SharedPtr<GameObject> &pGameObject) {
     RemoveGameObjectInternal(pGameObject->GetInstanceID());
 }
 

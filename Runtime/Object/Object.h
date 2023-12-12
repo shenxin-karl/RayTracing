@@ -1,8 +1,9 @@
 #pragma once
 #include "InstanceID.hpp"
-#include "TypeBase.hpp"
+#include "ITypeBase.hpp"
+#include "Foundation/Memory/RefCounter.h"
 
-class Object : public TypeBase {
+class Object : public ITypeBase, public RefCounter {
 public:
 	DECLARE_CLASS(Object);
 	DECLARE_VIRTUAL_SERIALIZER(Object);

@@ -10,9 +10,11 @@
 #include "SceneObject/SceneManager.h"
 #include "TextureObject/TextureManager.h"
 #include "Utils/GlobalCallbacks.h"
+#include "Foundation/Memory/GarbageCollection.h"
 
 //#include "Render/TriangleRenderer.h"
 #include "Renderer/GfxDevice.h"
+#include "Renderer/GLTFSample.h"
 #include "Renderer/SimpleLighting.h"
 
 Application::Application() {
@@ -28,6 +30,7 @@ void Application::OnCreate() {
     GfxDevice::OnInstanceCreate();
     ShaderManager::OnInstanceCreate();
     TextureManager::OnInstanceCreate();
+    GarbageCollection::OnInstanceCreate();
     SceneManager::OnInstanceCreate();
 
     Logger::GetInstance()->OnCreate();
@@ -42,11 +45,14 @@ void Application::OnCreate() {
 
     ShaderManager::GetInstance()->OnCreate();
     TextureManager::GetInstance()->OnCreate();
+    GarbageCollection::GetInstance()->OnCreate();
     SceneManager::GetInstance()->OnCreate();
     GlobalCallbacks::Get().onCreate.Invoke();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
-    _pRenderer = std::make_unique<SimpleLighting>();
+    //_pRenderer = std::make_unique<SimpleLighting>();
+    _pRenderer = std::make_unique<GLTFSample>();
+
     _pRenderer->OnCreate();
     // register resize call back
     pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
@@ -63,8 +69,10 @@ void Application::OnDestroy() {
     GlobalCallbacks::Get().onDestroy.Invoke();
 
     SceneManager::GetInstance()->OnDestroy();
+    SceneManager::GetInstance()->OnDestroy();
     TextureManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();
+    GarbageCollection::GetInstance()->OnDestroy();
     GfxDevice::GetInstance()->OnDestroy();
     Pix::Free();
     InputSystem::GetInstance()->OnDestroy();
@@ -73,6 +81,7 @@ void Application::OnDestroy() {
 
     TextureManager::OnInstanceDestroy();
     SceneManager::OnInstanceDestroy();
+    GarbageCollection::OnInstanceDestroy();
     GfxDevice::OnInstanceDestroy();
     ShaderManager::OnInstanceDestroy();
     AssetProjectSetting::OnInstanceDestroy();
@@ -138,6 +147,7 @@ void Application::OnPostRender(GameTimer &timer) {
     MainThread::ExecuteMainThreadJob(MainThread::PostRender, timer);
     GlobalCallbacks::Get().onPostRender.Invoke(std::ref(timer));
     _pRenderer->OnPostRender(timer);
+    GarbageCollection::GetInstance()->OnPostRender(timer);
 }
 
 void Application::OnResize(uint32_t width, uint32_t height) {

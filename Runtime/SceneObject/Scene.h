@@ -4,19 +4,20 @@
 #include "Foundation/NonCopyable.h"
 #include "Object/InstanceID.hpp"
 #include "SceneID.hpp"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 class GameObject;
 class SceneLightManager;
 
 class Scene : private NonCopyable {
 	friend class SceneManager;
-	using GameObjectList = std::list<std::shared_ptr<GameObject>>;
+	using GameObjectList = std::list<SharedPtr<GameObject>>;
 public:
 	Scene();
 	~Scene();
 public:
-	void AddGameObject(std::shared_ptr<GameObject> pGameObject);
-	void RemoveGameObject(const std::shared_ptr<GameObject> &pGameObject);
+	void AddGameObject(SharedPtr<GameObject> pGameObject);
+	void RemoveGameObject(const SharedPtr<GameObject> &pGameObject);
 	void RemoveGameObject(InstanceID instanceId) {
 		RemoveGameObjectInternal(instanceId);
 	}

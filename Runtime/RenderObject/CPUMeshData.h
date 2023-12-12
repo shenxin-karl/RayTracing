@@ -76,7 +76,7 @@ public:
     }
     auto operator+(size_t index) const -> StrideIterator {
         StrideIterator ret = *this;
-        ret._ptr += (index * ret._dataSize);
+        ret._ptr += (index * _stride);
         return ret;
     }
     auto operator+=(size_t index) -> StrideIterator & {
@@ -85,7 +85,7 @@ public:
     }
     auto operator-(size_t index) const -> StrideIterator {
         StrideIterator ret = *this;
-        ret._ptr -= (index * ret._dataSize);
+        ret._ptr -= (index * ret._stride);
         return ret;
     }
     auto operator-=(size_t index) -> StrideIterator & {

@@ -6,11 +6,11 @@
 
 using TypeID = TypeSafeWrapper<std::uint64_t>;
 
-class TypeBase : private NonCopyable {
+class ITypeBase : private NonCopyable {
 public:
     using SuperType = void;
-    using ThisType = TypeBase;
-    virtual ~TypeBase() = default;
+    using ThisType = ITypeBase;
+    virtual ~ITypeBase() = default;
     virtual auto GetClassTypeID() const -> TypeID;
     virtual auto GetClassTypeName() const -> std::string_view;
     virtual auto GetClassTypeIndex() const -> std::type_index;
@@ -61,7 +61,7 @@ auto GetTypeIndex() -> std::type_index {
     return std::type_index(typeid(T));
 }
 
-inline auto GetTypeIndex(const TypeBase *pObject) -> std::type_index {
+inline auto GetTypeIndex(const ITypeBase *pObject) -> std::type_index {
     return pObject->GetClassTypeIndex();
 }
 
@@ -74,20 +74,20 @@ constexpr auto GetTypeID(std::string_view typeName) -> TypeID {
     return TypeID(TypeIDDetail::fnv1a_hash(typeName));
 }
 
-inline auto GetTypeID(const TypeBase *pObject) -> TypeID {
+inline auto GetTypeID(const ITypeBase *pObject) -> TypeID {
     return pObject->GetClassTypeID();
 }
 
-inline auto TypeBase::GetClassTypeID() const -> TypeID {
-    return ::GetTypeID<TypeBase>();
+inline auto ITypeBase::GetClassTypeID() const -> TypeID {
+    return ::GetTypeID<ITypeBase>();
 }
 
-inline auto TypeBase::GetClassTypeName() const -> std::string_view {
-    return ::GetTypeName<TypeBase>();
+inline auto ITypeBase::GetClassTypeName() const -> std::string_view {
+    return ::GetTypeName<ITypeBase>();
 }
 
-inline auto TypeBase::GetClassTypeIndex() const -> std::type_index {
-    return std::type_index(typeid(TypeBase));
+inline auto ITypeBase::GetClassTypeIndex() const -> std::type_index {
+    return std::type_index(typeid(ITypeBase));
 }
 
 #define DECLARE_CLASS(Type)                                                                                            \

@@ -2,10 +2,10 @@
 #include "Foundation/NamespeceAlias.h"
 #include "Foundation/Singleton.hpp"
 #include "Serialize/Transfer.hpp"
-#include "Object/TypeBase.hpp"
+#include "Object/ITypeBase.hpp"
 
 class AssetProjectSetting
-    : public TypeBase
+    : public ITypeBase
     , public Singleton<AssetProjectSetting> {
 
     DECLARE_CLASS(AssetProjectSetting)

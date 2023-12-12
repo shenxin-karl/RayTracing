@@ -169,7 +169,6 @@
 #define ENUM_FLAGS(T) DETAIL__ENUM_FLAGS(T, )
 #define ENUM_FLAGS_AS_MEMBER(T) DETAIL__ENUM_FLAGS(T, friend)
 
-
 // Adds ability to use increment operators with enum type T.
 // Enum must have consecutive values!
 #define ENUM__INCREMENT_IMPL(T, PREFIX_)                                                                               \
@@ -197,4 +196,12 @@
 
 #ifndef ENABLE_RENDER_DOC
     #define ENABLE_RENDER_DOC 0
+#endif
+
+#ifdef __clang__
+    #define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#elif defined(__GNUC__)
+    #define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+    #define __FUNCTION_NAME__ __FUNCSIG__
 #endif

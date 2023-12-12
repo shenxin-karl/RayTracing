@@ -5,6 +5,7 @@
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
 #include "D3d12/ASBuilder.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 struct Vertex {
     glm::vec3 position;
@@ -67,6 +68,6 @@ private:
 
     SceneConstantBuffer                     _sceneConstantBuffer = {};
     Scene                                  *_pScene = nullptr;
-    std::shared_ptr<GameObject>             _pGameObject = nullptr;
+    SharedPtr<GameObject>                   _pGameObject = nullptr;
     // clang-format on
 };

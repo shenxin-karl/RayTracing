@@ -26,7 +26,7 @@ public:
 	void SetTangents(ReadonlyArraySpan<glm::vec4> tangents);
 	void SetColors(ReadonlyArraySpan<glm::vec4> colors);
 	void SetUV0(ReadonlyArraySpan<glm::vec2> uvs);
-	void UploadMeshData(bool isOpaque = true);
+	void UploadMeshData(bool generateBottomLevelAS, bool isOpaque = true);
 private:
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
 private:

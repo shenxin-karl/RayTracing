@@ -32,8 +32,6 @@ public:
     void SetWorldMatrix(const glm::mat4x4 &matrix);
     void SetLocalTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
     void SetWorldTRS(const glm::vec3 &translation, const glm::quat &rotation, const glm::vec3 &scale);
-    void SetParent(Transform *pTransform);
-    void AddChild(Transform *pTransform);
     void RemoveChild(Transform *pTransform);
     auto GetLocalMatrix() const -> const glm::mat4x4 &;
     auto GetWorldMatrix() const -> const glm::mat4x4 &;
@@ -68,6 +66,9 @@ private:
     static void RemoveChildImpl(Transform *pParent, Transform *pChild);
     void ConditionUpdateWorldAttribute() const;
     void MakeChildrenDirty(TransformDirtyFlag flag);
+    friend class GameObject;
+    void SetParent(Transform *pTransform);
+    void AddChild(Transform *pTransform);
 private:
     // clang-format off
 	glm::vec3					_translation;
