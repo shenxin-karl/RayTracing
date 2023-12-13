@@ -3,10 +3,15 @@
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "D3d12/IImageLoader.h"
 #include "Object/GameObject.h"
+#include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
 #include "RenderObject/StandardMaterial.h"
 #include "RenderObject/VertexSemantic.hpp"
+#include "TextureObject/DDSLoader.h"
+#include "TextureObject/TextureManager.h"
+#include "TextureObject/WICLoader.h"
 
 bool GLTFLoader::Load(stdfs::path path, int flag) {
     Assimp::Importer importer;
@@ -76,11 +81,13 @@ auto GLTFLoader::RecursiveBuildGameObject(aiNode *pAiNode) -> SharedPtr<GameObje
 auto GLTFLoader::BuildMeshRenderer(size_t meshIndex, aiMesh *pAiMesh) -> SharedPtr<MeshRenderer> {
     std::shared_ptr<Mesh> pMesh = BuildMesh(pAiMesh);
     std::shared_ptr<StandardMaterial> pMaterial = BuildMaterial(pAiMesh->mMaterialIndex);
-    // todo
-    return nullptr;
+    SharedPtr<MeshRenderer> pMeshRenderer = MakeShared<MeshRenderer>();
+    pMeshRenderer->SetMaterial(pMaterial);
+    pMeshRenderer->SetMesh(pMesh);
+    return pMeshRenderer;
 }
 
-auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) const -> std::shared_ptr<Mesh> {
+auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh> {
     std::shared_ptr<Mesh> pMesh = std::make_shared<Mesh>();
     SemanticMask mask = SemanticMask::eVertex;
     mask = SetOrClearFlags(mask, SemanticMask::eNormal, pAiMesh->HasNormals());
@@ -140,16 +147,16 @@ auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) const -> std::shared_ptr<Mesh> {
     pMesh->Resize(mask, numVertices, indices.size());
     pMesh->SetVertices(vertices);
     if (HasFlag(mask, SemanticMask::eNormal)) {
-	    pMesh->SetNormals(normals);
+        pMesh->SetNormals(normals);
     }
     if (HasFlag(mask, SemanticMask::eTangent)) {
-	    pMesh->SetTangents(tangents);
+        pMesh->SetTangents(tangents);
     }
     if (HasFlag(mask, SemanticMask::eColor)) {
-	    pMesh->SetColors(colors);
+        pMesh->SetColors(colors);
     }
     if (HasFlag(mask, SemanticMask::eTexCoord0)) {
-	    pMesh->SetUV0(uv0);
+        pMesh->SetUV0(uv0);
     }
 
     pMesh->UploadMeshData(false);
@@ -157,34 +164,34 @@ auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) const -> std::shared_ptr<Mesh> {
 }
 
 auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<StandardMaterial> {
-	Material &gltfMaterial = _materials[materialIndex];
+    Material &gltfMaterial = _materials[materialIndex];
     if (gltfMaterial.pStdMaterial != nullptr) {
-	    return gltfMaterial.pStdMaterial;
+        return gltfMaterial.pStdMaterial;
     }
 
     gltfMaterial.pStdMaterial = std::make_shared<StandardMaterial>();
-	std::shared_ptr<StandardMaterial> &pMaterial = gltfMaterial.pStdMaterial;
+    std::shared_ptr<StandardMaterial> &pMaterial = gltfMaterial.pStdMaterial;
     pMaterial->SetRenderMode(static_cast<StandardMaterial::RenderMode>(gltfMaterial.renderMode));
     pMaterial->SetCutoff(gltfMaterial.alphaCutoff);
     if (gltfMaterial.baseColorMap.IsValid()) {
-	    std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap);
+        std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
         pMaterial->SetTextures(StandardMaterial::eAlbedoTex, pBaseTexture);
     }
     if (gltfMaterial.normalMap.IsValid()) {
-	    std::shared_ptr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap);
+        std::shared_ptr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap, false);
         pMaterial->SetTextures(StandardMaterial::eNormalTex, pNormalMap);
     }
     if (gltfMaterial.emissionMap.IsValid()) {
-	    std::shared_ptr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap);
-	    pMaterial->SetTextures(StandardMaterial::eEmissionTex, pEmissionMap);
+        std::shared_ptr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap, false);
+        pMaterial->SetTextures(StandardMaterial::eEmissionTex, pEmissionMap);
     }
     if (gltfMaterial.metalnessRoughnessMap.IsValid()) {
-	    std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap);
-	    pMaterial->SetTextures(StandardMaterial::eMetalRoughnessTex, pMetalRoughnessMap);
+        std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
+        pMaterial->SetTextures(StandardMaterial::eMetalRoughnessTex, pMetalRoughnessMap);
     }
-	if (gltfMaterial.ambientOcclusionMap.IsValid()) {
-	    std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap);
-	    pMaterial->SetTextures(StandardMaterial::eAmbientOcclusionTex, pAmbientOcclusionMap);
+    if (gltfMaterial.ambientOcclusionMap.IsValid()) {
+        std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);
+        pMaterial->SetTextures(StandardMaterial::eAmbientOcclusionTex, pAmbientOcclusionMap);
     }
     return pMaterial;
 }
@@ -201,38 +208,66 @@ void GLTFLoader::Material::Create(stdfs::path directory, const aiScene *pAiScene
     }
     ProcessTexture(metalnessRoughnessMap, directory, pAiScene, pAiMaterial, aiTextureType_UNKNOWN);
     if (ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_AMBIENT_OCCLUSION)) {
-		ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_LIGHTMAP);
+        ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_LIGHTMAP);
     }
 
     aiString aiAlphaMode;
     if (pAiMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, aiAlphaMode) == aiReturn_SUCCESS) {
         if (std::strcmp(aiAlphaMode.data, "MASK") == 0) {
-	        float maskThreshold = 0.0;
+            float maskThreshold = 0.0;
             renderMode = eAlphaTest;
-	        if (pAiMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold) == aiReturn_SUCCESS) {
-	            alphaCutoff = maskThreshold;
-	        }
+            if (pAiMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold) == aiReturn_SUCCESS) {
+                alphaCutoff = maskThreshold;
+            }
         } else if (std::strcmp(aiAlphaMode.data, "OPAQUE") == 0) {
-	        renderMode = eOpaque;
+            renderMode = eOpaque;
         } else if (std::strcmp(aiAlphaMode.data, "BLEND") == 0) {
-	        renderMode = eBlend;
+            renderMode = eBlend;
         }
     }
 }
 
-auto GLTFLoader::Material::LoadTexture(Texture &texture) -> std::shared_ptr<dx::Texture> {
+auto GLTFLoader::Material::LoadTexture(Texture &texture, bool makeSRGB) -> std::shared_ptr<dx::Texture> {
     if (auto it = textureMap.find(&texture); it != textureMap.end()) {
-	    return it->second;
+        return it->second;
     }
 
+    std::unique_ptr<dx::IImageLoader> pImageLoader;
+    if (texture.pTextureData != nullptr) {
+	    if (texture.extension == "DDS" || texture.extension == "dds") {
+		    std::unique_ptr<MemoryDDSLoader> pLoader = std::make_unique<MemoryDDSLoader>();
+            pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
+            pImageLoader = std::move(pLoader);
+	    } else {
+		    std::unique_ptr<WICLoader> pLoader = std::make_unique<WICLoader>();
+            pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
+            pImageLoader = std::move(pLoader);
+	    }
+    } else {
+	    if (texture.extension == "DDS" || texture.extension == "dds") {
+		    std::unique_ptr<FileDDSLoader> pLoader = std::make_unique<FileDDSLoader>();
+            pLoader->Load(texture.path, 0.f);
+            pImageLoader = std::move(pLoader);
+	    } else {
+		    std::unique_ptr<WICLoader> pLoader = std::make_unique<WICLoader>();
+            pLoader->Load(texture.path, 0.f);
+            pImageLoader = std::move(pLoader);
+	    }
+    }
 
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    std::shared_ptr<dx::Texture> pTexture = TextureManager::GetInstance()->UploadTexture(
+	    pImageLoader.get(), pGfxDevice->GetUploadHeap(), makeSRGB);
+
+    textureMap[&texture] = pTexture;
+    return pTexture;
 }
 
 bool GLTFLoader::Material::ProcessTexture(Texture &texture,
-                                          const stdfs::path &directory,
-                                          const aiScene *pAiScene,
-                                          const aiMaterial *pAiMaterial,
-                                          aiTextureType type) const {
+    const stdfs::path &directory,
+    const aiScene *pAiScene,
+    const aiMaterial *pAiMaterial,
+    aiTextureType type) const {
 
     aiString path;
     if (pAiMaterial->GetTexture(type, 0, &path) != aiReturn_SUCCESS) {
@@ -245,7 +280,8 @@ bool GLTFLoader::Material::ProcessTexture(Texture &texture,
         texture.textureDataSize = pAiTexture->mWidth;
         texture.extension = pAiTexture->achFormatHint;
         if (pAiTexture->pcData != nullptr) {
-            texture.pTextureData = std::make_shared<char[]>(pAiTexture->mWidth);
+            texture.pTextureData = std::make_shared<uint8_t[]>(pAiTexture->mWidth);
+            Assert(pAiTexture->mWidth == 0);
             std::memcpy(texture.pTextureData.get(), pAiTexture->pcData, pAiTexture->mWidth);
         }
     } else {

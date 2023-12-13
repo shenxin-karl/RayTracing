@@ -15,15 +15,10 @@ class StandardMaterial : NonCopyable {
 public:
     enum TextureType { eAlbedoTex, eAmbientOcclusionTex, eEmissionTex, eMetalRoughnessTex, eNormalTex, eMaxNum };
     enum RenderMode { eOpaque, eAlphaTest, eTransparent };
-    enum RenderFeatures {
-        eEnableEmission,
-        eEnableNormalScale
-    };
 public:
     StandardMaterial();
     ~StandardMaterial();
     void SetRenderMode(RenderMode renderMode);
-    void SetRenderFeatures(RenderFeatures features, bool enable);
     void SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture);
     void SetAlbedo(const glm::vec4 &albedo);
     void SetEmission(const glm::vec4 &emission);
@@ -33,7 +28,7 @@ public:
     void SetMetallic(float metallic);
     void SetNormalScale(float normalScale);
 private:
-    friend class StandardMaterialManager;
+    friend class StandardMaterialDataManager;
     // clang-format off
     SemanticMask                 _semanticMask;
 	RenderMode                   _renderMode;

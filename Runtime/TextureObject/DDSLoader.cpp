@@ -1,7 +1,4 @@
 #include "DDSLoader.h"
-
-#include <iostream>
-
 #include "Foundation/StreamUtil.h"
 #include "D3d12/FormatHelper.hpp"
 #include "Foundation/StreamUtil.h"
@@ -115,14 +112,46 @@ static DXGI_FORMAT GetDxgiFormat(DDS_PIXELFORMAT pixelFmt) {
     }
 }
 
-DDSLoader::DDSLoader() : _imageHeader{} {
+bool ParseImageHead(const uint8_t *pHeaderData, dx::ImageHeader &outputImageHeader, size_t &inOutRawTextureSize) {
+	const uint8_t *pByteData = pHeaderData;
+    uint32_t dwMagic = *reinterpret_cast<const uint32_t *>(pByteData);
+    if (dwMagic != ' SDD') {
+        return false;
+    }
+
+    pByteData += 4;
+    inOutRawTextureSize -= 4;
+
+    inOutRawTextureSize -= sizeof(DDS_HEADER);
+    const DDS_HEADER *header = reinterpret_cast<const DDS_HEADER *>(pByteData);
+    outputImageHeader.width = header->dwWidth;
+    outputImageHeader.height = header->dwHeight;
+    outputImageHeader.depth = header->dwDepth ? header->dwDepth : 1;
+    outputImageHeader.mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
+
+    if (header->ddspf.fourCC == '01XD') {
+        DDS_HEADER_DXT10 *header10 = reinterpret_cast<DDS_HEADER_DXT10 *>((char *)header + sizeof(DDS_HEADER));
+        inOutRawTextureSize -= sizeof(DDS_HEADER_DXT10);
+        outputImageHeader.arraySize = header10->arraySize;
+        outputImageHeader.format = header10->dxgiFormat;
+        outputImageHeader.bitCount = header->ddspf.bitCount;
+    } else {
+        outputImageHeader.arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
+        outputImageHeader.format = GetDxgiFormat(header->ddspf);
+        outputImageHeader.bitCount = static_cast<uint32_t>(dx::BitsPerPixel(outputImageHeader.format));
+    }
+    return true;
 }
 
-DDSLoader::~DDSLoader() {
+
+FileDDSLoader::FileDDSLoader() : _imageHeader{} {
+}
+
+FileDDSLoader::~FileDDSLoader() {
     _file.close();
 }
 
-bool DDSLoader::Load(const stdfs::path &filePath, float cutOff) {
+bool FileDDSLoader::Load(const stdfs::path &filePath, float cutOff) {
     if (!stdfs::exists(filePath)) {
         return false;
     }
@@ -135,47 +164,58 @@ bool DDSLoader::Load(const stdfs::path &filePath, float cutOff) {
     size_t fileSize = nstd::GetFileSize(_file);
     size_t rawTextureSize = fileSize;
 
-    char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
-    if (_file.read(headerData, sizeof(headerData))) {
-        char *pByteData = headerData;
-        uint32_t dwMagic = *reinterpret_cast<uint32_t *>(pByteData);
-        if (dwMagic != ' SDD') {
-            return false;
-        }
-
-        pByteData += 4;
-        rawTextureSize -= 4;
-
-        rawTextureSize -= sizeof(DDS_HEADER);
-        DDS_HEADER *header = reinterpret_cast<DDS_HEADER *>(pByteData);
-        _imageHeader.width = header->dwWidth;
-        _imageHeader.height = header->dwHeight;
-        _imageHeader.depth = header->dwDepth ? header->dwDepth : 1;
-        _imageHeader.mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
-
-        if (header->ddspf.fourCC == '01XD') {
-            DDS_HEADER_DXT10 *header10 = reinterpret_cast<DDS_HEADER_DXT10 *>((char *)header + sizeof(DDS_HEADER));
-            rawTextureSize -= sizeof(DDS_HEADER_DXT10);
-            _imageHeader.arraySize = header10->arraySize;
-            _imageHeader.format = header10->dxgiFormat;
-            _imageHeader.bitCount = header->ddspf.bitCount;
-        } else {
-            _imageHeader.arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
-            _imageHeader.format = GetDxgiFormat(header->ddspf);
-            _imageHeader.bitCount = static_cast<uint32_t>(dx::BitsPerPixel(_imageHeader.format));
-        }
+    uint8_t headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
+    if (!_file.read(reinterpret_cast<char *>(headerData), sizeof(headerData))) {
+        return false;
     }
-
+	if (!ParseImageHead(headerData, _imageHeader, rawTextureSize)) {
+		return false;
+	}
     _file.seekg(fileSize - rawTextureSize, std::ios::beg);
     return true;
 }
 
-auto DDSLoader::GetImageHeader() const -> dx::ImageHeader {
+auto FileDDSLoader::GetImageHeader() const -> dx::ImageHeader {
     return _imageHeader;
 }
 
-void DDSLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
+void FileDDSLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
     for (uint32_t y = 0; y < height; y++) {
         _file.read(static_cast<char *>(pDest) + y * stride, width);
+    }
+}
+
+MemoryDDSLoader::MemoryDDSLoader(): _pData(nullptr), _pCurrent(nullptr), _dataSize(0), _imageHeader{} {
+}
+
+MemoryDDSLoader::~MemoryDDSLoader() {
+}
+
+bool MemoryDDSLoader::Load(const uint8_t *pData, size_t dataSize, float cutOff) {
+    if (_pData == nullptr || dataSize < sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)) {
+	    return false;
+    }
+
+    _pData = pData;
+    _pCurrent = _pData;
+    _dataSize = dataSize;
+    size_t rawTextureSize = _dataSize;
+	if (!ParseImageHead(_pData, _imageHeader, rawTextureSize)) {
+		return false;
+	}
+    _pCurrent = _pData + (_dataSize - rawTextureSize);
+    return true;
+}
+
+auto MemoryDDSLoader::GetImageHeader() const -> dx::ImageHeader {
+    return _imageHeader;
+}
+
+void MemoryDDSLoader::GetNextMipMapData(void *pDest, uint32_t stride, uint32_t width, uint32_t height) {
+    for (uint32_t y = 0; y < height; ++y) {
+        size_t destOffset = y * stride;
+	    std::memcpy(static_cast<char *>(pDest) + destOffset, _pCurrent, width);
+        _pCurrent += width;
+        Assert(_pCurrent <= _pData + _dataSize);
     }
 }

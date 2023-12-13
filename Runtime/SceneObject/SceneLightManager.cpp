@@ -1,5 +1,4 @@
 #include "SceneLightManager.h"
-
 #include "Foundation/Exception.h"
 
 SceneLightManager::SceneLightManager() {
@@ -17,9 +16,7 @@ void SceneLightManager::AddDirectionalLight(GameObject *pGameObject) {
 }
 
 void SceneLightManager::RemoveDirectionalLight(GameObject *pGameObject) {
-    auto iter = std::ranges::find_if(_directionalLightObjects, [=](auto &item) {
-	   return item == pGameObject; 
-    });
+    auto iter = std::ranges::find_if(_directionalLightObjects, [=](auto &item) { return item == pGameObject; });
     Assert(iter != _directionalLightObjects.end());
     _directionalLightObjects.erase(iter);
 }

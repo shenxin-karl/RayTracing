@@ -1,6 +1,6 @@
 #include "GameObject.h"
 
-GameObject::GameObject(): _sceneID(SceneID::Invalid) {
+GameObject::GameObject(): _active(true), _sceneID(SceneID::Invalid) {
 }
 
 GameObject::~GameObject() {
@@ -79,4 +79,12 @@ void GameObject::InitComponent(Component *pComponent) {
     if (_sceneID.IsValid()) {
         pComponent->OnAddToScene();
     }
+}
+
+bool GameObject::GetParentActive() const {
+	const Transform *pTransform = GetComponent<Transform>();
+	const Transform *pParent = pTransform->GetParent();
+	if (pParent == nullptr) {
+		return true;
+	}
 }

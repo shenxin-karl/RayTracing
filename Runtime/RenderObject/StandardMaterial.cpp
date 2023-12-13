@@ -1,8 +1,8 @@
 #include "StandardMaterial.h"
-
 #include "VertexSemantic.hpp"
 #include "D3d12/Device.h"
 #include "D3d12/RootSignature.h"
+#include "D3d12/Texture.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
 #include "ShaderLoader/ShaderManager.h"
@@ -12,8 +12,6 @@
 namespace ShaderFeatures {
 
 static const char *sEnableAlphaTest = "ENABLE_ALPHA_TEST";
-static const char *sEnableEmission = "ENABLE_EMISSION";
-static const char *sEnableNormalScale = "ENABLE_NORMAL_SCALE";
 
 static const char *sTextureKeyword[] = {
     "ENABLE_ALBEDO_TEXTURE",
@@ -25,11 +23,11 @@ static const char *sTextureKeyword[] = {
 
 }    // namespace ShaderFeatures
 
-class StandardMaterialManager {
+class StandardMaterialDataManager {
 public:
-    StandardMaterialManager() {
-        _createCallbackHandle = GlobalCallbacks::Get().onCreate.Register(this, &StandardMaterialManager::OnCreate);
-        _destroyCallbackHandle = GlobalCallbacks::Get().onDestroy.Register(this, &StandardMaterialManager::OnDestroy);
+    StandardMaterialDataManager() {
+        _createCallbackHandle = GlobalCallbacks::Get().onCreate.Register(this, &StandardMaterialDataManager::OnCreate);
+        _destroyCallbackHandle = GlobalCallbacks::Get().onDestroy.Register(this, &StandardMaterialDataManager::OnDestroy);
     }
     void OnCreate() {
         _pRootSignature = std::make_unique<dx::RootSignature>();
@@ -68,6 +66,7 @@ public:
     auto GetRootSignature() -> std::shared_ptr<dx::RootSignature> {
         return _pRootSignature;
     }
+
     auto GetPipelineState(StandardMaterial *pMaterial) -> dx::WRL::ComPtr<ID3D12PipelineState> {
 
         size_t hash = std::hash<std::string>{}(pMaterial->_defineList.ToString());
@@ -146,17 +145,41 @@ public:
         _pipelineStateMap[hash] = pPipelineState;
         return pPipelineState;
     }
+
+    auto GetTextureSRV(dx::Texture *pTexture) -> dx::SRV {
+	    if (auto it = _textureSRVMap.find(pTexture); it != _textureSRVMap.end()) {
+		    return it->second;
+	    }
+
+        GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+        dx::Device *pDevice = pGfxDevice->GetDevice();
+
+        dx::SRV srv = pDevice->AllocDescriptor<dx::SRV>(1);
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+        desc.Format = pTexture->GetFormat();
+        desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        desc.Texture2D.MostDetailedMip = 0;
+        desc.Texture2D.MipLevels = pTexture->GetMipCount();
+        desc.Texture2D.PlaneSlice = 0;
+        desc.Texture2D.ResourceMinLODClamp = 0.f;
+        pDevice->GetNativeDevice()->CreateShaderResourceView(pTexture->GetResource(), &desc, srv.GetCpuHandle());
+        _textureSRVMap[pTexture] = srv;
+        return srv;
+    }
 private:
     using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
+    using TextureSRVMap = std::unordered_map<dx::Texture *, dx::SRV>;
     // clang-format off
     CallbackHandle                      _createCallbackHandle;
     CallbackHandle                      _destroyCallbackHandle;
     PipelineStateMap                    _pipelineStateMap;
+    TextureSRVMap                       _textureSRVMap;
     std::shared_ptr<dx::RootSignature>  _pRootSignature;
     // clang-format on
 };
 
-static StandardMaterialManager gMaterialManager = {};
+static StandardMaterialDataManager gMaterialManager = {};
 
 StandardMaterial::StandardMaterial()
     : _semanticMask(SemanticMask::eVertex | SemanticMask::eNormal | SemanticMask::eColor),
@@ -179,26 +202,15 @@ void StandardMaterial::SetRenderMode(RenderMode renderMode) {
     _pipeStateDirty = true;
 }
 
-void StandardMaterial::SetRenderFeatures(RenderFeatures features, bool enable) {
-    switch (features) {
-    case eEnableEmission:
-        _defineList.Set(ShaderFeatures::sEnableEmission, enable);
-        _pipeStateDirty = true;
-        break;
-    case eEnableNormalScale:
-        _defineList.Set(ShaderFeatures::sEnableNormalScale, enable);
-        _pipeStateDirty = true;
-        break;
-    }
-}
-
 void StandardMaterial::SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture) {
     _textures[textureType] = std::move(pTexture);
     _defineList.Set(ShaderFeatures::sTextureKeyword[textureType], _textures[textureType] != nullptr);
     _pipeStateDirty = true;
 
-    // todo create texture view
-    // todo update SemanticMask
+    _textureHandles[textureType] = dx::SRV{};
+    if (_textures[textureType] != nullptr) {
+	    _textureHandles[textureType] = gMaterialManager.GetTextureSRV(pTexture.get());
+    } 
 }
 
 void StandardMaterial::SetAlbedo(const glm::vec4 &albedo) {

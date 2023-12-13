@@ -43,7 +43,7 @@ auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap,
     std::unique_ptr<dx::IFileImageLoader> pImageLoader;
     std::string extension = nstd::tolower(path.extension().string());
     if (extension == ".dds") {
-        pImageLoader = std::make_unique<DDSLoader>();
+        pImageLoader = std::make_unique<FileDDSLoader>();
     } else {
         std::string_view supportExtensions[] = {".jpg", ".png", ".tga", ".bmp", ".psd", ".hdr", ".pic"};
         for (std::string_view targetExtension : supportExtensions) {

@@ -34,6 +34,17 @@ public:
 
     template<typename T>
         requires(std::is_base_of_v<Component, T>)
+    auto GetComponent() const -> const T * {
+        for (const SharedPtr<Component> &pComponent : _components) {
+            if (::GetTypeID<T>() == pComponent->GetClassTypeID()) {
+                return static_cast<T *>(pComponent.Get());
+            }
+        }
+        return nullptr;
+    }
+
+    template<typename T>
+        requires(std::is_base_of_v<Component, T>)
     auto AddComponent() -> T * {
         if (T *pComponent = GetComponent<T>()) {
             return pComponent;
@@ -59,7 +70,7 @@ public:
     }
 
     template<typename T>
-        requires(std::is_base_of_v<Component, T>)
+        requires(std::is_base_of_v<Component, T> && !std::is_same_v<T, Transform>)
     bool RemoveComponent() {
         for (auto it = _components.begin(); it != _components.end(); ++it) {
             if ((*it)->GetClassTypeID() == GetTypeID<T>()) {
@@ -73,6 +84,7 @@ public:
     }
 
     bool HasComponent(TypeID typeId) const {
+        Assert(typeId != GetTypeID<Transform>());
         for (auto it = _components.begin(); it != _components.end(); ++it) {
             if ((*it)->GetClassTypeID() == typeId) {
                 return true;
@@ -84,6 +96,13 @@ public:
 	    return _sceneID;
     }
 
+    void SetActive(bool active) {
+	    _active = active;
+    }
+	bool GetActive() const {
+	    return _active && GetParentActive();
+    }
+
     void AddChild(SharedPtr<GameObject> pChild);
     void RemoveChild(GameObject *pChild);
     auto GetChildren() const -> const ChildrenContainer &;
@@ -92,8 +111,10 @@ private:
 	    _sceneID = sceneID;
     }
     void InitComponent(Component *pComponent);
+    bool GetParentActive() const;
 private:
     // clang-format off
+    bool               _active;
     SceneID            _sceneID;
     ComponentContainer _components;
     ChildrenContainer  _children; 

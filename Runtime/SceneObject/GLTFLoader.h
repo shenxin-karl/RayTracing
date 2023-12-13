@@ -24,7 +24,7 @@ private:
     struct Material;
     auto RecursiveBuildGameObject(aiNode *pAiNode) -> SharedPtr<GameObject>;
     auto BuildMeshRenderer(size_t meshIndex, aiMesh *pAiMesh) -> SharedPtr<MeshRenderer>;
-    auto BuildMesh(aiMesh *pAiMesh) const -> std::shared_ptr<Mesh>;
+    static auto BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh>;
     auto BuildMaterial(size_t materialIndex) -> std::shared_ptr<StandardMaterial>;
 private:
     // clang-format off
@@ -48,16 +48,16 @@ struct GLTFLoader::Material {
         }
     public:
         // clang-format off
-        bool                    fileExist       = false;
-	    stdfs::path             path            = {};
-        std::string             extension       = {};
-        size_t                  textureDataSize = {};
-        std::shared_ptr<char[]> pTextureData    = {};
+        bool                        fileExist       = false;
+	    stdfs::path                 path            = {};
+        std::string                 extension       = {};
+        size_t                      textureDataSize = {};
+        std::shared_ptr<uint8_t[]>  pTextureData    = {};
         // clang-format on
     };
 public:
     void Create(stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial);
-    auto LoadTexture(Texture &texture) -> std::shared_ptr<dx::Texture>;
+    auto LoadTexture(Texture &texture, bool makeSRGB) -> std::shared_ptr<dx::Texture>;
 private:
     bool ProcessTexture(Texture &texture,
         const stdfs::path &directory,

@@ -60,8 +60,6 @@ VertexOut VSMain(VertexIn vin) {
 
 /*
  *  ENABLE_ALPHA_TEST
- *  ENABLE_EMISSION
- *  ENABLE_NORMAL_SCALE
  *  ENABLE_ALBEDO_TEXTURE
  *  ENABLE_AMBIENT_OCCLUSION_TEXTURE
  *  ENABLE_EMISSION_TEXTURE
@@ -99,7 +97,7 @@ float2 GetMetallicAndRoughness(VertexOut pin) {
 }
 
 float3 GetNormal(VertexOut pin) {
-    float3 N = normalize(pin.normal);
+    float3 N = normalize(float3(pin.normal.xy * gCbMaterial.normalScale, pin.normal.z));
 	#if ENABLE_ALBEDO_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
 		float3 sampleNormal = gTextureList[gCbMaterial.normalTexIndex].Sample(samplerState, pin.uv0);
@@ -121,10 +119,10 @@ float GetAmbientOcclusion(VertexOut pin) {
 }
 
 float3 GetEmission(VertexOut pin) {
-	float3 emission = 0.f;
+	float3 emission = gCbMaterial.emission;
 	#if ENABLE_EMISSION_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
-		emission = gTextureList[gCbMaterial.emissionTexIndex].Sample(samplerState, pin.uv0).rgb;
+		emission += gTextureList[gCbMaterial.emissionTexIndex].Sample(samplerState, pin.uv0).rgb;
 	#endif
     return emission;
 }
