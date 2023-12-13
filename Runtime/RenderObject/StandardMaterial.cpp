@@ -209,7 +209,7 @@ void StandardMaterial::SetTextures(TextureType textureType, std::shared_ptr<dx::
 
     _textureHandles[textureType] = dx::SRV{};
     if (_textures[textureType] != nullptr) {
-	    _textureHandles[textureType] = gMaterialManager.GetTextureSRV(pTexture.get());
+	    _textureHandles[textureType] = gMaterialManager.GetTextureSRV(_textures[textureType].get());
     } 
 }
 

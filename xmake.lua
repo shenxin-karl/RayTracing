@@ -35,7 +35,7 @@ add_requires("jsoncpp 1.9.5", {debug = isDebug, configs = {shared = false}})
 add_requires("d3d12-memory-allocator v2.0.1")
 add_requires("magic_enum v0.9.0")
 add_requires("stb 2023.01.30")
-add_requires("assimp v5.3.1")
+add_requires("assimp v5.3.1", {debug = isDebug, configs = {shared = false}})
 
 -- local package
 add_requires("dxc")

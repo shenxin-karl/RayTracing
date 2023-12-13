@@ -87,4 +87,5 @@ bool GameObject::GetParentActive() const {
 	if (pParent == nullptr) {
 		return true;
 	}
+	return pParent->GetGameObject()->GetActive();
 }

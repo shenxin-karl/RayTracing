@@ -207,7 +207,7 @@ void GLTFLoader::Material::Create(stdfs::path directory, const aiScene *pAiScene
         ProcessTexture(emissionMap, directory, pAiScene, pAiMaterial, aiTextureType_EMISSIVE);
     }
     ProcessTexture(metalnessRoughnessMap, directory, pAiScene, pAiMaterial, aiTextureType_UNKNOWN);
-    if (ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_AMBIENT_OCCLUSION)) {
+    if (!ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_AMBIENT_OCCLUSION)) {
         ProcessTexture(ambientOcclusionMap, directory, pAiScene, pAiMaterial, aiTextureType_LIGHTMAP);
     }
 
@@ -232,27 +232,32 @@ auto GLTFLoader::Material::LoadTexture(Texture &texture, bool makeSRGB) -> std::
         return it->second;
     }
 
+    bool loadSuccess = false;
     std::unique_ptr<dx::IImageLoader> pImageLoader;
     if (texture.pTextureData != nullptr) {
 	    if (texture.extension == "DDS" || texture.extension == "dds") {
 		    std::unique_ptr<MemoryDDSLoader> pLoader = std::make_unique<MemoryDDSLoader>();
-            pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
+            loadSuccess = pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
             pImageLoader = std::move(pLoader);
 	    } else {
 		    std::unique_ptr<WICLoader> pLoader = std::make_unique<WICLoader>();
-            pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
+            loadSuccess = pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
             pImageLoader = std::move(pLoader);
 	    }
     } else {
 	    if (texture.extension == "DDS" || texture.extension == "dds") {
 		    std::unique_ptr<FileDDSLoader> pLoader = std::make_unique<FileDDSLoader>();
-            pLoader->Load(texture.path, 0.f);
+            loadSuccess = pLoader->Load(texture.path, 0.f);
             pImageLoader = std::move(pLoader);
 	    } else {
 		    std::unique_ptr<WICLoader> pLoader = std::make_unique<WICLoader>();
-            pLoader->Load(texture.path, 0.f);
+            loadSuccess = pLoader->Load(texture.path, 0.f);
             pImageLoader = std::move(pLoader);
 	    }
+    }
+
+    if (!loadSuccess) {
+	    return nullptr;
     }
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();

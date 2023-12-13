@@ -37,7 +37,7 @@ public:
     auto GetComponent() const -> const T * {
         for (const SharedPtr<Component> &pComponent : _components) {
             if (::GetTypeID<T>() == pComponent->GetClassTypeID()) {
-                return static_cast<T *>(pComponent.Get());
+                return static_cast<const T *>(pComponent.Get());
             }
         }
         return nullptr;
@@ -65,7 +65,7 @@ public:
 	        return false;
         }
         _components.emplace_back(std::move(pComponent));
-		InitComponent(pComponent.Get());
+		InitComponent(_components.back().Get());
         return true;
     }
 
@@ -112,6 +112,13 @@ private:
     }
     void InitComponent(Component *pComponent);
     bool GetParentActive() const;
+private:
+    void InnerPreUpdate();
+    void InnerUpdate();
+    void InnerPostUpdate();
+    void InnerPreRender();
+    void InnerRender();
+    void InnerPostRender();
 private:
     // clang-format off
     bool               _active;
