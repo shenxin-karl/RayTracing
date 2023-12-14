@@ -2,9 +2,11 @@
 #include "Object/GameObject.h"
 #include "Foundation/Exception.h"
 #include "SceneLightManager.h"
+#include "SceneRenderObjectManager.hpp"
 
 Scene::Scene() {
     _pLightManager = std::make_unique<SceneLightManager>();
+    _pRenderObjectMgr = std::make_unique<SceneRenderObjectManager>();
 
     // register scene callbacks
     _preUpdateCallbackHandle = GlobalCallbacks::Get().onPreUpdate.Register(this, &Scene::OnPreUpdate);

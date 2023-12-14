@@ -9,6 +9,7 @@
 
 class GameObject;
 class SceneLightManager;
+class SceneRenderObjectManager;
 
 class Scene : private NonCopyable {
 	friend class SceneManager;
@@ -46,6 +47,9 @@ public:
 	auto GetSceneLightManager() const -> SceneLightManager * {
 		return _pLightManager.get();
 	}
+	auto GetRenderObjectManager() const -> SceneRenderObjectManager * {
+		return _pRenderObjectMgr.get();
+	}
 private:
 	void RemoveGameObjectInternal(InstanceID instanceId);
 	void OnCreate(std::string name, SceneID sceneID);
@@ -59,17 +63,20 @@ private:
 	void OnRender(GameTimer &timer);
 	void OnPostRender(GameTimer &timer);
 private:
+	using SceneRenderObjectManagerPtr = std::unique_ptr<SceneRenderObjectManager>;
+	using SceneLightManagerPtr = std::unique_ptr<SceneLightManager>;
 	// clang-format off
-	std::string							_name;
-	SceneID								_sceneID;
-	GameObjectList						_gameObjects;
-	std::unique_ptr<SceneLightManager>	_pLightManager;
+	std::string					_name;
+	SceneID						_sceneID;
+	GameObjectList				_gameObjects;
+	SceneLightManagerPtr		_pLightManager;
+	SceneRenderObjectManagerPtr	_pRenderObjectMgr;	
 
-	CallbackHandle						_preUpdateCallbackHandle;
-	CallbackHandle						_updateCallbackHandle;
-	CallbackHandle						_postUpdateCallbackHandle;
-	CallbackHandle						_preRenderCallbackHandle;
-	CallbackHandle						_renderCallbackHandle;
-	CallbackHandle						_postRenderCallbackHandle;
+	CallbackHandle				_preUpdateCallbackHandle;
+	CallbackHandle				_updateCallbackHandle;
+	CallbackHandle				_postUpdateCallbackHandle;
+	CallbackHandle				_preRenderCallbackHandle;
+	CallbackHandle				_renderCallbackHandle;
+	CallbackHandle				_postRenderCallbackHandle;
 	// clang-format on
 };

@@ -75,6 +75,9 @@ public:
         for (auto it = _components.begin(); it != _components.end(); ++it) {
             if ((*it)->GetClassTypeID() == GetTypeID<T>()) {
                 auto &pComponent = *it;
+                if (_sceneID.IsValid()) {
+	                pComponent->OnRemoveFormScene();
+                }
                 pComponent->OnRemoveFormGameObject();
                 _components.erase(it);
                 return true;

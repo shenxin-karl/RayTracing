@@ -1,6 +1,8 @@
 #include "MeshRenderer.h"
+#include "Object/GameObject.h"
+#include "SceneObject/SceneManager.h"
 
-MeshRenderer::MeshRenderer() {
+MeshRenderer::MeshRenderer() : _pCurrentScene(nullptr) {
 	SetTickType(ePreRender);
 }
 
@@ -12,12 +14,15 @@ void MeshRenderer::SetMaterial(std::shared_ptr<StandardMaterial> pMaterial) {
 	_pMaterial = std::move(pMaterial);
 }
 
-void MeshRenderer::OnRemoveFormGameObject() {
-	Component::OnRemoveFormGameObject();
-}
-
 void MeshRenderer::OnRemoveFormScene() {
 	Component::OnRemoveFormScene();
+	_pCurrentScene = nullptr;
+}
+
+void MeshRenderer::OnAddToScene() {
+	Component::OnAddToScene();
+	SceneID sceneId = GetGameObject()->GetSceneID();
+	_pCurrentScene = SceneManager::GetInstance()->GetScene(sceneId);
 }
 
 void MeshRenderer::OnPreRender() {
