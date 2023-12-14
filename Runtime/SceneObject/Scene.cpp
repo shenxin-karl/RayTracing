@@ -5,6 +5,14 @@
 
 Scene::Scene() {
     _pLightManager = std::make_unique<SceneLightManager>();
+
+    // register scene callbacks
+    _preUpdateCallbackHandle = GlobalCallbacks::Get().onPreUpdate.Register(this, &Scene::OnPreUpdate);
+	_updateCallbackHandle = GlobalCallbacks::Get().onUpdate.Register(this, &Scene::OnUpdate);
+	_postUpdateCallbackHandle = GlobalCallbacks::Get().onPostUpdate.Register(this, &Scene::OnPostUpdate);
+	_preRenderCallbackHandle = GlobalCallbacks::Get().onPreRender.Register(this, &Scene::OnPreRender);
+	_renderCallbackHandle = GlobalCallbacks::Get().onRender.Register(this, &Scene::OnRender);
+	_postRenderCallbackHandle = GlobalCallbacks::Get().onPostRender.Register(this, &Scene::OnPostRender);
 }
 
 Scene::~Scene() {
@@ -43,4 +51,36 @@ void Scene::OnDestroy() {
         _gameObjects.back()->OnRemoveFormScene();
         _gameObjects.pop_back();
     }
+}
+
+void Scene::InvokeTickFunc(void(GameObject::*pTickFunc)()) {
+    for (auto &pGameObject : _gameObjects) {
+	    if (pGameObject->GetActive()) {
+            (pGameObject.Get()->*pTickFunc)();
+	    }
+    }
+}
+
+void Scene::OnPreUpdate(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnPreUpdate);
+}
+
+void Scene::OnUpdate(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnUpdate);
+}
+
+void Scene::OnPostUpdate(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnPostUpdate);
+}
+
+void Scene::OnPreRender(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnPreRender);
+}
+
+void Scene::OnRender(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnRender);
+}
+
+void Scene::OnPostRender(GameTimer &timer) {
+    InvokeTickFunc(&GameObject::InnerOnPostRender);
 }

@@ -5,6 +5,7 @@
 #include "Object/InstanceID.hpp"
 #include "SceneID.hpp"
 #include "Foundation/Memory/SharedPtr.hpp"
+#include "Utils/GlobalCallbacks.h"
 
 class GameObject;
 class SceneLightManager;
@@ -50,10 +51,25 @@ private:
 	void OnCreate(std::string name, SceneID sceneID);
 	void OnDestroy();
 private:
+	void InvokeTickFunc(void (GameObject::*pTickFunc)());
+	void OnPreUpdate(GameTimer &timer);
+	void OnUpdate(GameTimer &timer);
+	void OnPostUpdate(GameTimer &timer);
+	void OnPreRender(GameTimer &timer);
+	void OnRender(GameTimer &timer);
+	void OnPostRender(GameTimer &timer);
+private:
 	// clang-format off
 	std::string							_name;
 	SceneID								_sceneID;
 	GameObjectList						_gameObjects;
 	std::unique_ptr<SceneLightManager>	_pLightManager;
+
+	CallbackHandle						_preUpdateCallbackHandle;
+	CallbackHandle						_updateCallbackHandle;
+	CallbackHandle						_postUpdateCallbackHandle;
+	CallbackHandle						_preRenderCallbackHandle;
+	CallbackHandle						_renderCallbackHandle;
+	CallbackHandle						_postRenderCallbackHandle;
 	// clang-format on
 };

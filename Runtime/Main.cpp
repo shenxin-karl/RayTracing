@@ -7,9 +7,9 @@
 
 int main() {
     try {
-        GameTimer timer;
-        Application::OnInstanceCreate();
+	    GameTimer &timer = GameTimer::Get();
 
+        Application::OnInstanceCreate();
         Application *pApp = Application::GetInstance();
         pApp->OnCreate();
         while (pApp->IsRunning()) {

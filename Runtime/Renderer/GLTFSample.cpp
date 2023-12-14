@@ -2,6 +2,7 @@
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
 #include "Components/Light.h"
+#include "Components/Transform.h"
 #include "Object/GameObject.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
@@ -48,7 +49,7 @@ void GLTFSample::SetupCamera() {
 	SharedPtr<GameObject> pGameObject = GameObject::Create();
 	pGameObject->AddComponent<Camera>();
 	pGameObject->AddComponent<CameraController>();
-	Transform *pTransform = pGameObject->GetComponent<Transform>();
+	Transform *pTransform = pGameObject->GetTransform();
 	pTransform->SetLocalPosition(glm::vec3(25, 10, 0));
 	pTransform->LookAt(glm::vec3(0));
 	_pScene->AddGameObject(pGameObject);
@@ -58,7 +59,7 @@ void GLTFSample::SetupLight() {
 	SharedPtr<GameObject> pGameObject = GameObject::Create();
 	pGameObject->AddComponent<DirectionalLight>();
 
-	Transform *pTransform = pGameObject->GetComponent<Transform>();
+	Transform *pTransform = pGameObject->GetTransform();
 	glm::vec3 direction = glm::normalize(glm::vec3(0, -0.7, 0.5));
 	glm::vec3 worldPosition(0, 1000, 0);
 	glm::quat worldRotation = glm::Direction2Quaternion(direction);

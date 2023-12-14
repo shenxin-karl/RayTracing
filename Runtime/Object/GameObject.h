@@ -1,12 +1,12 @@
 #pragma once
 #include "Object.h"
 #include "Components/Component.h"
-#include "Components/Transform.h"
 #include "SceneObject/SceneID.hpp"
 #include "Foundation/Exception.h"
 #include "Foundation/Memory/SharedPtr.hpp"
 
 class Component;
+class Transform;
 class GameObject : public Object {
     DECLARE_CLASS(GameObject);
 private:
@@ -106,6 +106,8 @@ public:
     void AddChild(SharedPtr<GameObject> pChild);
     void RemoveChild(GameObject *pChild);
     auto GetChildren() const -> const ChildrenContainer &;
+    auto GetTransform() -> Transform *;
+    auto GetTransform() const -> const Transform *;
 private:
     void SetSceneID(SceneID sceneID) {
 	    _sceneID = sceneID;
@@ -113,12 +115,13 @@ private:
     void InitComponent(Component *pComponent);
     bool GetParentActive() const;
 private:
-    void InnerPreUpdate();
-    void InnerUpdate();
-    void InnerPostUpdate();
-    void InnerPreRender();
-    void InnerRender();
-    void InnerPostRender();
+    void InvokeTickFunc(Component::TickType tickType, void (GameObject::*pTickFunc)(), void (Component::*pComponentTickFunc)());
+	void InnerOnPreUpdate();
+    void InnerOnUpdate();
+    void InnerOnPostUpdate();
+    void InnerOnPreRender();
+    void InnerOnRender();
+    void InnerOnPostRender();
 private:
     // clang-format off
     bool               _active;

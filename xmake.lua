@@ -3,11 +3,14 @@ local RUNTIME_DIR = path.join(PROJECTION_DIR, "Runtime")
 local THIRD_PARTY_DIR = path.join(PROJECTION_DIR, "ThirdParty")
 local BINARY_DIR = path.join(PROJECTION_DIR, "Bin");
 
+local isDebug = false
 if is_mode("debug") then
+    isDebug = true
     add_defines("MODE_DEBUG")
 elseif is_mode("release") then
     add_defines("MODE_RELEASE")
 else 
+    isDebug = true
     add_defines("MODE_RELWITHDEBINFO")
 end
 
@@ -35,7 +38,7 @@ add_requires("jsoncpp 1.9.5", {debug = isDebug, configs = {shared = false}})
 add_requires("d3d12-memory-allocator v2.0.1")
 add_requires("magic_enum v0.9.0")
 add_requires("stb 2023.01.30")
-add_requires("assimp v5.3.1", {debug = isDebug, configs = {shared = false}})
+add_requires("assimp v5.3.1", {configs = {shared = false}})
 
 -- local package
 add_requires("dxc")

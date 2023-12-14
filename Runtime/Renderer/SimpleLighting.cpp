@@ -25,6 +25,7 @@
 
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
+#include "Components/Transform.h"
 #include "D3d12/UploadHeap.h"
 #include "TextureObject/TextureManager.h"
 
@@ -95,7 +96,7 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
     Camera *pCamera = _pGameObject->GetComponent<Camera>();
-    Transform *pTransform = _pGameObject->GetComponent<Transform>();
+    Transform *pTransform = _pGameObject->GetTransform();
     _sceneConstantBuffer.projectToWorld = pCamera->GetInverseViewProjectionMatrix();
     _sceneConstantBuffer.cameraPosition = glm::vec4(pTransform->GetWorldPosition(), 1.0f);
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);

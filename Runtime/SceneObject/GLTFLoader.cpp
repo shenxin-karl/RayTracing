@@ -3,6 +3,7 @@
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Components/Transform.h"
 #include "D3d12/IImageLoader.h"
 #include "Object/GameObject.h"
 #include "Renderer/GfxDevice.h"
@@ -66,7 +67,7 @@ auto GLTFLoader::RecursiveBuildGameObject(aiNode *pAiNode) -> SharedPtr<GameObje
     aiVector3D position;
     aiQuaternion rotate;
     pAiNode->mTransformation.Decompose(scale, rotate, position);
-    Transform *pTransform = pGameObject->GetComponent<Transform>();
+    Transform *pTransform = pGameObject->GetTransform();
     pTransform->SetLocalTRS(glm::vec3{position.x, position.y, position.z},
         glm::quat{rotate.w, rotate.x, rotate.y, rotate.z},
         glm::vec3(scale.x, scale.y, scale.z));

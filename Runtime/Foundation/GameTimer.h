@@ -14,6 +14,8 @@ public:
 	auto GetMSPF() const -> float;
 	bool IsStopped() const;
 	bool IsStarted() const;
+
+	static auto Get() -> GameTimer &;
 private:
 	using time_point = std::chrono::steady_clock::time_point;
 	time_point		_baseTime;

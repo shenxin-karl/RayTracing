@@ -10,7 +10,7 @@ public:
 private:
     void OnAddToScene() override;
     void OnRemoveFormScene() override;
-    void OnPostUpdate(GameTimer &timer);
+    void OnPostUpdate() override;
     void SetPitch(float pitch) {
         _pitch = std::clamp(pitch, -89.9f, +89.9f);
     }
@@ -41,6 +41,5 @@ private:
 	bool            _moveState[6];       
     bool            _mouseRightPress;    
     POINT           _lastMousePosition;
-    CallbackHandle  _postUpdateCallbackHandle;
     // clang-format on
 };

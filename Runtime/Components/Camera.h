@@ -30,7 +30,7 @@ public:
 private:
     void OnAddToScene() override;
     void OnRemoveFormScene() override;
-    void OnPreRender(GameTimer &timer);
+    void OnPreRender() override;
     void OnResize(size_t width, size_t height);
 private:
     // clang-format off
@@ -44,7 +44,6 @@ private:
 	glm::mat4x4		_matInvView;
 	glm::mat4x4		_matInvProj;
 	glm::mat4x4		_matInvViewProj;
-	CallbackHandle  _preRenderHandle;
-	CallbackHandle  _resizeCallbackHandle;
+	CallbackHandle	_resizeCallbackHandle;
     // clang-format on
 };

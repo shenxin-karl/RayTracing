@@ -5,9 +5,13 @@
 #include "InputSystem/Keyboard.h"
 #include "InputSystem/Mouse.h"
 #include "Object/GameObject.h"
+#include <glm/vec3.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include "Transform.h"
 
 CameraController::CameraController()
     : _pitch(0), _yaw(0), _roll(0), _moveState{false}, _mouseRightPress(false), _lastMousePosition(-1, -1) {
+    SetTickType(TickType::ePostUpdate);
 }
 
 CameraController::~CameraController() {
@@ -15,7 +19,6 @@ CameraController::~CameraController() {
 
 void CameraController::OnAddToScene() {
     Component::OnAddToScene();
-    _postUpdateCallbackHandle = GlobalCallbacks::Get().onPostUpdate.Register(this, &CameraController::OnPostUpdate);
 
     Transform *pTransform = GetGameObject()->GetComponent<Transform>();
     if (pTransform == nullptr) {
@@ -35,11 +38,10 @@ void CameraController::OnAddToScene() {
 
 void CameraController::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
-    _postUpdateCallbackHandle.Release();
 }
 
 class Camera;
-void CameraController::OnPostUpdate(GameTimer &timer) {
+void CameraController::OnPostUpdate() {
     Transform *pTransform = GetGameObject()->GetComponent<Transform>();
     if (pTransform == nullptr || !GetGameObject()->HasComponent(::GetTypeID<Camera>())) {
 	    return;
@@ -99,7 +101,7 @@ void CameraController::OnPostUpdate(GameTimer &timer) {
         const glm::vec3 &right = rotationMatrix[0];
         const glm::vec3 &up = rotationMatrix[1];
         const glm::vec3 &forward = rotationMatrix[2];
-        float moveStep = timer.GetDeltaTime() * cameraMoveSpeed;
+        float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed;
         glm::vec3 offsetX = right * deviation;
         glm::vec3 offsetY = up * elevationRise; 
         glm::vec3 offsetZ = forward * advance; 

@@ -1,5 +1,8 @@
 #include "Camera.h"
+#include <glm/fwd.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include "Transform.h"
 #include "Foundation/Logger.h"
 #include "Object/GameObject.h"
 
@@ -14,6 +17,7 @@ Camera::Camera() {
     _matInvView = glm::identity<glm::mat4x4>();
     _matInvProj = glm::identity<glm::mat4x4>();
     _matInvViewProj = glm::identity<glm::mat4x4>();
+    SetTickType(ePreRender);
 }
 
 Camera::~Camera() {
@@ -26,26 +30,25 @@ auto Camera::GetAvailableCameras() -> const std::vector<Camera *> & {
 
 void Camera::OnAddToScene() {
     Component::OnAddToScene();
-    _preRenderHandle = GlobalCallbacks::Get().onPreRender.Register(this, &Camera::OnPreRender);
-    _resizeCallbackHandle = GlobalCallbacks::Get().onResize.Register(this, &Camera::OnResize);
     auto it = std::ranges::find(sAvailableCameras, this);
     if (it == sAvailableCameras.end()) {
 	    sAvailableCameras.push_back(this);
     }
+    _resizeCallbackHandle = GlobalCallbacks::Get().onResize.Register(this, &Camera::OnResize);
 }
 
 void Camera::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
-    _preRenderHandle.Release();
-    _resizeCallbackHandle.Release();
     auto it = std::ranges::find(sAvailableCameras, this);
     if (it != sAvailableCameras.end()) {
 	    sAvailableCameras.erase(it);
     }
+    _resizeCallbackHandle.Release();
 }
 
-void Camera::OnPreRender(GameTimer &timer) {
-    Transform *pTransform = GetGameObject()->GetComponent<Transform>();
+void Camera::OnPreRender() {
+    Component::OnPreRender();
+	Transform *pTransform = GetGameObject()->GetTransform();
     if (pTransform == nullptr) {
         return;
     }
