@@ -25,6 +25,6 @@ private:
 	// clang-format off
 	std::shared_ptr<Mesh>				_pMesh;
 	std::shared_ptr<StandardMaterial>	_pMaterial;
-	
+	CachedRenderData					_cached;
 	// clang-format on
 };

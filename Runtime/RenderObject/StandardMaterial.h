@@ -27,10 +27,10 @@ public:
     void SetRoughness(float roughness);
     void SetMetallic(float metallic);
     void SetNormalScale(float normalScale);
+    bool UpdatePipelineState(SemanticMask meshSemanticMask);
 private:
     friend class StandardMaterialDataManager;
     // clang-format off
-    SemanticMask                 _semanticMask;
 	RenderMode                   _renderMode;
     dx::DefineList               _defineList;
     dx::SRV                      _textureHandles[eMaxNum];

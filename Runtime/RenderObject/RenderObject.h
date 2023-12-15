@@ -22,4 +22,5 @@ struct RenderObject {
 	Transform			*pTransform	= nullptr;
 };
 
+
 // clang-format off

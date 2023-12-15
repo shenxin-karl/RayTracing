@@ -112,38 +112,40 @@ constexpr size_t GetSemanticOffset(SemanticMask mask, SemanticIndex index) {
 	return offset;
 }
 
-inline std::vector<D3D12_INPUT_ELEMENT_DESC> SemanticMaskToVertexInputElements(SemanticMask mask) {
-	Assert(mask != SemanticMask::eNothing);
+inline std::vector<D3D12_INPUT_ELEMENT_DESC> SemanticMaskToVertexInputElements(SemanticMask meshMask, SemanticMask expectMask) {
+	Assert(meshMask != SemanticMask::eNothing);
+	Assert(HasAllFlags(meshMask, expectMask));
 
 	UINT alignedByteOffset = 0;
 	std::vector<D3D12_INPUT_ELEMENT_DESC> descList;
 	for (SemanticIndex index = SemanticIndex::eVertex; index != SemanticIndex::eMaxNum; ++index) {
-		if (HasFlag(mask, SemanticMaskCast(index))) {
+		if (HasFlag(meshMask, SemanticMaskCast(index))) {
 			VertexSemantic info = GetSemanticInfo(index);
-			D3D12_INPUT_ELEMENT_DESC desc = {};
-			desc.SemanticName = info.semantic.data();
-			desc.Format = info.format;
-			desc.InputSlot = 0;
-			desc.AlignedByteOffset = alignedByteOffset;
-			desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-			desc.InstanceDataStepRate = 0;
+			if (HasFlag(expectMask, SemanticMaskCast(index))) {
+				D3D12_INPUT_ELEMENT_DESC desc = {};
+				desc.SemanticName = info.semantic.data();
+				desc.Format = info.format;
+				desc.InputSlot = 0;
+				desc.AlignedByteOffset = alignedByteOffset;
+				desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+				desc.InstanceDataStepRate = 0;
 
-			switch (index) {
-			case SemanticIndex::eTexCoord0:
-			case SemanticIndex::eTexCoord1:
-			case SemanticIndex::eTexCoord2:
-			case SemanticIndex::eTexCoord3:
-			case SemanticIndex::eTexCoord4:
-			case SemanticIndex::eTexCoord5:
-			case SemanticIndex::eTexCoord6:
-			case SemanticIndex::eTexCoord7:
-				desc.SemanticIndex = static_cast<size_t>(index) - static_cast<size_t>(SemanticIndex::eTexCoord0);
-				break;
-			default: 
-				desc.SemanticIndex = 0;
+				switch (index) {
+				case SemanticIndex::eTexCoord0:
+				case SemanticIndex::eTexCoord1:
+				case SemanticIndex::eTexCoord2:
+				case SemanticIndex::eTexCoord3:
+				case SemanticIndex::eTexCoord4:
+				case SemanticIndex::eTexCoord5:
+				case SemanticIndex::eTexCoord6:
+				case SemanticIndex::eTexCoord7:
+					desc.SemanticIndex = static_cast<size_t>(index) - static_cast<size_t>(SemanticIndex::eTexCoord0);
+					break;
+				default: 
+					desc.SemanticIndex = 0;
+				}
+				descList.push_back(desc);
 			}
-
-			descList.push_back(desc);
 			alignedByteOffset += info.dataSize;
 		}
 	}

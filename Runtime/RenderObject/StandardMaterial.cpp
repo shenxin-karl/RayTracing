@@ -5,6 +5,7 @@
 #include "D3d12/Texture.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
+#include "replay/gl_pipestate.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "Utils/GlobalCallbacks.h"
@@ -12,6 +13,7 @@
 namespace ShaderFeatures {
 
 static const char *sEnableAlphaTest = "ENABLE_ALPHA_TEST";
+static const char *sEnableVertexColor = "ENABLE_VERTEX_COLOR";
 
 static const char *sTextureKeyword[] = {
     "ENABLE_ALBEDO_TEXTURE",
@@ -27,7 +29,8 @@ class StandardMaterialDataManager {
 public:
     StandardMaterialDataManager() {
         _createCallbackHandle = GlobalCallbacks::Get().onCreate.Register(this, &StandardMaterialDataManager::OnCreate);
-        _destroyCallbackHandle = GlobalCallbacks::Get().onDestroy.Register(this, &StandardMaterialDataManager::OnDestroy);
+        _destroyCallbackHandle = GlobalCallbacks::Get().onDestroy.Register(this,
+            &StandardMaterialDataManager::OnDestroy);
     }
     void OnCreate() {
         _pRootSignature = std::make_unique<dx::RootSignature>();
@@ -42,19 +45,17 @@ public:
             static_cast<UINT>(-1),
             0,
             0,
-        	D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
         };
-        
-        _pRootSignature->At(4).InitAsDescriptorTable({range});  // gTextureList
 
-        D3D12_STATIC_SAMPLER_DESC samplers[6] = {
-	        dx::GetPointWrapStaticSampler(0),
+        _pRootSignature->At(4).InitAsDescriptorTable({range});    // gTextureList
+
+        D3D12_STATIC_SAMPLER_DESC samplers[6] = {dx::GetPointWrapStaticSampler(0),
             dx::GetPointClampStaticSampler(1),
             dx::GetLinearWrapStaticSampler(2),
             dx::GetLinearClampStaticSampler(3),
             dx::GetAnisotropicWrapStaticSampler(4),
-            dx::GetAnisotropicClampStaticSampler(5)
-        };
+            dx::GetAnisotropicClampStaticSampler(5)};
         _pRootSignature->SetStaticSamplers(samplers);
         _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
     }
@@ -67,7 +68,7 @@ public:
         return _pRootSignature;
     }
 
-    auto GetPipelineState(StandardMaterial *pMaterial) -> dx::WRL::ComPtr<ID3D12PipelineState> {
+    auto GetPipelineState(StandardMaterial *pMaterial, SemanticMask meshSemanticMask, SemanticMask pipelineSemanticMask) -> dx::WRL::ComPtr<ID3D12PipelineState> {
 
         size_t hash = std::hash<std::string>{}(pMaterial->_defineList.ToString());
         auto iter = _pipelineStateMap.find(hash);
@@ -107,7 +108,7 @@ public:
         pipelineDesc.PS = psByteCode;
         pipelineDesc.DSVFormat = pGfxDevice->GetDepthStencilFormat();
 
-        auto inputLayouts = SemanticMaskToVertexInputElements(pMaterial->_semanticMask);
+        auto inputLayouts = SemanticMaskToVertexInputElements(meshSemanticMask, pipelineSemanticMask);
         pipelineDesc.InputLayout = D3D12_INPUT_LAYOUT_DESC{
             inputLayouts.data(),
             static_cast<UINT>(inputLayouts.size()),
@@ -147,9 +148,9 @@ public:
     }
 
     auto GetTextureSRV(dx::Texture *pTexture) -> dx::SRV {
-	    if (auto it = _textureSRVMap.find(pTexture); it != _textureSRVMap.end()) {
-		    return it->second;
-	    }
+        if (auto it = _textureSRVMap.find(pTexture); it != _textureSRVMap.end()) {
+            return it->second;
+        }
 
         GfxDevice *pGfxDevice = GfxDevice::GetInstance();
         dx::Device *pDevice = pGfxDevice->GetDevice();
@@ -182,8 +183,7 @@ private:
 static StandardMaterialDataManager gMaterialManager = {};
 
 StandardMaterial::StandardMaterial()
-    : _semanticMask(SemanticMask::eVertex | SemanticMask::eNormal | SemanticMask::eColor),
-      _renderMode(eOpaque),
+    : _renderMode(eOpaque),
       _albedo(Colors::White),
       _emission(Colors::Black),
       _tilingAndOffset(1.f),
@@ -209,8 +209,8 @@ void StandardMaterial::SetTextures(TextureType textureType, std::shared_ptr<dx::
 
     _textureHandles[textureType] = dx::SRV{};
     if (_textures[textureType] != nullptr) {
-	    _textureHandles[textureType] = gMaterialManager.GetTextureSRV(_textures[textureType].get());
-    } 
+        _textureHandles[textureType] = gMaterialManager.GetTextureSRV(_textures[textureType].get());
+    }
 }
 
 void StandardMaterial::SetAlbedo(const glm::vec4 &albedo) {
@@ -239,4 +239,32 @@ void StandardMaterial::SetMetallic(float metallic) {
 
 void StandardMaterial::SetNormalScale(float normalScale) {
     _normalScale = normalScale;
+}
+
+bool StandardMaterial::UpdatePipelineState(SemanticMask meshSemanticMask) {
+    SemanticMask pipelineSemanticMask = SemanticMask::eNormal | SemanticMask::eVertex;
+	if (_textures[eNormalTex] != nullptr) {
+		pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTangent);
+	}
+    for (auto &texture : _textures) {
+	    if (texture != nullptr) {
+		    pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTexCoord0);
+            break;
+	    }
+    }
+    if (!HasAllFlags(meshSemanticMask, pipelineSemanticMask)) {
+	    return false;
+    }
+
+    if (HasFlag(meshSemanticMask, SemanticMask::eColor)) {
+	    pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eColor);
+        _defineList.Set(ShaderFeatures::sEnableVertexColor, 1);
+    } else {
+	    _defineList.Set(ShaderFeatures::sEnableVertexColor, 0);
+    }
+
+    _pipeStateDirty = false;
+    _pPipelineState = gMaterialManager.GetPipelineState(this, meshSemanticMask, pipelineSemanticMask);
+    _pRootSignature = gMaterialManager.GetRootSignature();
+    return true;
 }
