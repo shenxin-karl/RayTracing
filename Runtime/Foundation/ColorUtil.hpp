@@ -5,7 +5,7 @@ namespace Colors {
 
 // clang-format off
 
-inline constexpr glm::vec4 Black        = { 0.f,             0.f,              0.f,              0.f };
+inline constexpr glm::vec4 Black        = { 0.f,             0.f,              0.f,              1.f };
 inline constexpr glm::vec4 White        = { 1.f,             1.f,              1.f,              1.f };
 inline constexpr glm::vec4 Red          = { 1.f,             0.f,              0.f,              1.f };
 inline constexpr glm::vec4 Green        = { 0.f,             1.f,              0.f,              1.f };

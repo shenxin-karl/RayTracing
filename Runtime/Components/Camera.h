@@ -27,6 +27,18 @@ public:
 	auto GetInverseViewProjectionMatrix() const -> const glm::mat4x4 & {
 		return _matInvViewProj;
 	}
+	auto GetNearClip() const -> float {
+		return _zNear;
+	}
+	auto GetFarClip() const -> float {
+		return _zFar;
+	}
+	auto GetScreenWidth() const -> float {
+		return _screenWidth;
+	}
+	auto GetScreenHeight() const -> float {
+		return _screenHeight;
+	}
 private:
     void OnAddToScene() override;
     void OnRemoveFormScene() override;
@@ -38,6 +50,8 @@ private:
 	float			_zNear;
 	float			_zFar;
 	float			_fov;
+	float			_screenWidth;
+	float			_screenHeight;
 	glm::mat4x4		_matView;
 	glm::mat4x4		_matProj;
 	glm::mat4x4		_matViewProj;

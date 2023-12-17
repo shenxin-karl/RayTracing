@@ -168,12 +168,7 @@ float4 PSMain(VertexOut pin) : SV_TARGET {
     float3 L = gCbLighting.directionalLight.direction;
     float3 H = normalize(V + L);
 
-    MaterialData materialData;
-    materialData.diffuseAlbedo = albedo.rgb;
-    materialData.roughness = roughness;
-    materialData.fresnelFactor = ComputeFresnelFactor(N, H, albedo, metallic);
-    materialData.metallic = metallic;
-
+    MaterialData materialData = CalcMaterialData(albedo, roughness, metallic);
     float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
     finalColor += ComputeAmbientLight(gCbLighting.directionalLight, materialData, ao);
     finalColor += GetEmission(pin);

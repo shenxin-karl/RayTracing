@@ -5,10 +5,11 @@
 #include "D3d12/Texture.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
-#include "replay/gl_pipestate.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "Utils/GlobalCallbacks.h"
+#include "Foundation/HashUtil.hpp"
+#include "Renderer/RenderPasses/ForwardPass.h"
 
 namespace ShaderFeatures {
 
@@ -58,22 +59,30 @@ public:
             dx::GetAnisotropicClampStaticSampler(5)};
         _pRootSignature->SetStaticSamplers(samplers);
         _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
+
+        // todo
+        //_materialID = ForwardPass::RegisterMaterialBatchDraw()
     }
     void OnDestroy() {
         _pRootSignature = nullptr;
         _pipelineStateMap.clear();
+        _pipelineIdMap.clear();
     }
 
-    auto GetRootSignature() -> std::shared_ptr<dx::RootSignature> {
-        return _pRootSignature;
+    auto GetRootSignature() const -> dx::RootSignature * {
+        return _pRootSignature.get();
     }
 
-    auto GetPipelineState(StandardMaterial *pMaterial, SemanticMask meshSemanticMask, SemanticMask pipelineSemanticMask) -> dx::WRL::ComPtr<ID3D12PipelineState> {
+    auto GetPipelineState(StandardMaterial *pMaterial, SemanticMask meshSemanticMask, SemanticMask pipelineSemanticMask)
+        -> ID3D12PipelineState * {
 
-        size_t hash = std::hash<std::string>{}(pMaterial->_defineList.ToString());
+        size_t hash = hash_value(pMaterial->_defineList.ToString());
+        hash = combine_and_hash_value(hash, pMaterial->_renderGroup);
+        hash = combine_and_hash_value(hash, static_cast<size_t>(meshSemanticMask));
+        hash = combine_and_hash_value(hash, static_cast<size_t>(pipelineSemanticMask));
         auto iter = _pipelineStateMap.find(hash);
         if (iter != _pipelineStateMap.end()) {
-            return iter->second;
+            return iter->second.Get();
         }
 
         ShaderLoadInfo shaderLoadInfo;
@@ -114,7 +123,7 @@ public:
             static_cast<UINT>(inputLayouts.size()),
         };
 
-        if (pMaterial->_renderMode == StandardMaterial::eTransparent) {
+        if (RenderGroup::IsTransparent(pMaterial->_renderGroup)) {
             CD3DX12_BLEND_DESC blendDesc(D3D12_DEFAULT);
             D3D12_RENDER_TARGET_BLEND_DESC rt0BlendDesc = {};
             rt0BlendDesc.BlendEnable = true;
@@ -144,7 +153,18 @@ public:
         dx::ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&pPipelineState)));
 
         _pipelineStateMap[hash] = pPipelineState;
-        return pPipelineState;
+        return pPipelineState.Get();
+    }
+
+    auto GetPipelineID(ID3D12PipelineState *pPipelineStateObject) -> uint16_t {
+        auto iter = _pipelineIdMap.find(pPipelineStateObject);
+        if (iter != _pipelineIdMap.end()) {
+            return iter->second;
+        }
+
+        uint16_t id = static_cast<uint16_t>(_pipelineIdMap.size());
+        _pipelineIdMap.emplace_hint(iter, std::make_pair(pPipelineStateObject, id));
+        return id;
     }
 
     auto GetTextureSRV(dx::Texture *pTexture) -> dx::SRV {
@@ -168,13 +188,22 @@ public:
         _textureSRVMap[pTexture] = srv;
         return srv;
     }
+
+    auto GetMaterialID() const -> uint16_t {
+	    return _materialID;
+    }
 private:
     using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
+    using PipelineIDMap = std::unordered_map<ID3D12PipelineState *, uint16_t>;
     using TextureSRVMap = std::unordered_map<dx::Texture *, dx::SRV>;
+
     // clang-format off
+    uint16_t                            _materialID;
     CallbackHandle                      _createCallbackHandle;
     CallbackHandle                      _destroyCallbackHandle;
     PipelineStateMap                    _pipelineStateMap;
+    PipelineIDMap                       _pipelineIdMap;
+
     TextureSRVMap                       _textureSRVMap;
     std::shared_ptr<dx::RootSignature>  _pRootSignature;
     // clang-format on
@@ -183,22 +212,26 @@ private:
 static StandardMaterialDataManager gMaterialManager = {};
 
 StandardMaterial::StandardMaterial()
-    : _renderMode(eOpaque),
+    : _renderGroup(RenderGroup::eOpaque),
       _albedo(Colors::White),
       _emission(Colors::Black),
       _tilingAndOffset(1.f),
       _cutoff(0.f),
       _roughness(0.5f),
       _metallic(0.5f),
-      _normalScale(1.f) {
+      _normalScale(1.f),
+      _pipeStateDirty(false),
+      _pRootSignature(nullptr),
+      _pPipelineState(nullptr),
+      _pipelineID(0) {
 }
 
 StandardMaterial::~StandardMaterial() {
 }
 
-void StandardMaterial::SetRenderMode(RenderMode renderMode) {
-    _renderMode = renderMode;
-    _defineList.Set(ShaderFeatures::sEnableAlphaTest, (renderMode == eAlphaTest));
+void StandardMaterial::SetRenderGroup(uint16_t renderGroup) {
+    _renderGroup = renderGroup;
+    _defineList.Set(ShaderFeatures::sEnableAlphaTest, (RenderGroup::IsAlphaTest(renderGroup)));
     _pipeStateDirty = true;
 }
 
@@ -243,28 +276,45 @@ void StandardMaterial::SetNormalScale(float normalScale) {
 
 bool StandardMaterial::UpdatePipelineState(SemanticMask meshSemanticMask) {
     SemanticMask pipelineSemanticMask = SemanticMask::eNormal | SemanticMask::eVertex;
-	if (_textures[eNormalTex] != nullptr) {
-		pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTangent);
-	}
+    if (_textures[eNormalTex] != nullptr) {
+        pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTangent);
+    }
     for (auto &texture : _textures) {
-	    if (texture != nullptr) {
-		    pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTexCoord0);
+        if (texture != nullptr) {
+            pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eTexCoord0);
             break;
-	    }
+        }
     }
     if (!HasAllFlags(meshSemanticMask, pipelineSemanticMask)) {
-	    return false;
+        return false;
     }
 
     if (HasFlag(meshSemanticMask, SemanticMask::eColor)) {
-	    pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eColor);
+        pipelineSemanticMask = SetFlags(pipelineSemanticMask, SemanticMask::eColor);
         _defineList.Set(ShaderFeatures::sEnableVertexColor, 1);
     } else {
-	    _defineList.Set(ShaderFeatures::sEnableVertexColor, 0);
+        _defineList.Set(ShaderFeatures::sEnableVertexColor, 0);
     }
 
     _pipeStateDirty = false;
     _pPipelineState = gMaterialManager.GetPipelineState(this, meshSemanticMask, pipelineSemanticMask);
+    _pipelineID = gMaterialManager.GetPipelineID(_pPipelineState);
     _pRootSignature = gMaterialManager.GetRootSignature();
     return true;
+}
+
+bool StandardMaterial::PipelineStateDirty() const {
+    return _pipeStateDirty;
+}
+
+auto StandardMaterial::GetRenderGroup() const -> uint16_t {
+    return _renderGroup;
+}
+
+auto StandardMaterial::GetPipelineID() const -> uint16_t {
+    return _pipelineID;
+}
+
+auto StandardMaterial::GetMaterialID() const -> uint16_t {
+    return gMaterialManager.GetMaterialID();
 }

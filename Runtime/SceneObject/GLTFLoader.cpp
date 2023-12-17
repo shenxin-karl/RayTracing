@@ -172,7 +172,7 @@ auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<Standard
 
     gltfMaterial.pStdMaterial = std::make_shared<StandardMaterial>();
     std::shared_ptr<StandardMaterial> &pMaterial = gltfMaterial.pStdMaterial;
-    pMaterial->SetRenderMode(static_cast<StandardMaterial::RenderMode>(gltfMaterial.renderMode));
+    pMaterial->SetRenderGroup(gltfMaterial.renderGroup);
     pMaterial->SetCutoff(gltfMaterial.alphaCutoff);
     if (gltfMaterial.baseColorMap.IsValid()) {
         std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
@@ -216,14 +216,14 @@ void GLTFLoader::Material::Create(stdfs::path directory, const aiScene *pAiScene
     if (pAiMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, aiAlphaMode) == aiReturn_SUCCESS) {
         if (std::strcmp(aiAlphaMode.data, "MASK") == 0) {
             float maskThreshold = 0.0;
-            renderMode = eAlphaTest;
+            renderGroup = RenderGroup::eAlphaTest;
             if (pAiMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold) == aiReturn_SUCCESS) {
                 alphaCutoff = maskThreshold;
             }
         } else if (std::strcmp(aiAlphaMode.data, "OPAQUE") == 0) {
-            renderMode = eOpaque;
+            renderGroup = RenderGroup::eOpaque;
         } else if (std::strcmp(aiAlphaMode.data, "BLEND") == 0) {
-            renderMode = eBlend;
+            renderGroup = RenderGroup::eTransparent;
         }
     }
 }

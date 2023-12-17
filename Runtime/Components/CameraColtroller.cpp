@@ -22,7 +22,7 @@ void CameraController::OnAddToScene() {
 
     Transform *pTransform = GetGameObject()->GetComponent<Transform>();
     if (pTransform == nullptr) {
-	    return;
+        return;
     }
 
     glm::vec3 translation;
@@ -44,10 +44,10 @@ class Camera;
 void CameraController::OnPostUpdate() {
     Transform *pTransform = GetGameObject()->GetComponent<Transform>();
     if (pTransform == nullptr || !GetGameObject()->HasComponent(::GetTypeID<Camera>())) {
-	    return;
+        return;
     }
 
-    InputSystem *pInputSystem = InputSystem::GetInstance(); 
+    InputSystem *pInputSystem = InputSystem::GetInstance();
     while (MouseEvent event = pInputSystem->pMouse->GetEvent()) {
         if (event.IsRPress()) {
             _mouseRightPress = true;
@@ -97,14 +97,14 @@ void CameraController::OnPostUpdate() {
     pTransform->GetLocalTRS(lookFrom, rotation, scale);
 
     if (advance != 0.f || deviation != 0.f || elevationRise != 0.f) {
-		glm::mat3x3 rotationMatrix = glm::mat3_cast(rotation);
+        glm::mat3x3 rotationMatrix = glm::mat3_cast(rotation);
         const glm::vec3 &right = rotationMatrix[0];
         const glm::vec3 &up = rotationMatrix[1];
         const glm::vec3 &forward = rotationMatrix[2];
         float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed;
         glm::vec3 offsetX = right * deviation;
-        glm::vec3 offsetY = up * elevationRise; 
-        glm::vec3 offsetZ = forward * advance; 
+        glm::vec3 offsetY = up * elevationRise;
+        glm::vec3 offsetZ = forward * advance;
         lookFrom += normalize(offsetX + offsetY + offsetZ) * moveStep;
     }
     // todo: apply roll

@@ -86,7 +86,7 @@ auto DefineList::Find(std::string_view key) const -> iterator {
 
 #pragma region ShaderCompiler
 
-class CustomIncludeHandler : public IDxcIncludeHandler {
+class CustomIncludeHandler : public IDxcIncludeHandler  {
 public:
     HRESULT STDMETHODCALLTYPE LoadSource(_In_ LPCWSTR pFilename,
         _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource) override {

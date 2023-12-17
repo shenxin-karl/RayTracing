@@ -1,5 +1,8 @@
 #pragma once
 #include "Renderer.h"
+#include "D3d12/Texture.h"
+#include "D3d12/DescriptorHandle.h"
+#include "RenderObject/ConstantBufferHelper.h"
 
 class Scene;
 class GLTFSample : public Renderer {
@@ -19,6 +22,14 @@ private:
 	void LoadGLTF();
 private:
 	// clang-format off
-	Scene	*_pScene = nullptr;
+	dx::Texture			_renderTargetTex;
+	dx::Texture			_depthStencilTex;
+	dx::RTV				_renderTextureRTV;
+	dx::DSV				_depthStencilDSV;
+
+	cbuffer::CbPrePass	_cbPrePass;
+
+	Scene			    *_pScene = nullptr;
+	GameObject			*_pCameraGO = nullptr;
 	// clang-format on
 };

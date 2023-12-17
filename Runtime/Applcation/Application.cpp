@@ -50,8 +50,8 @@ void Application::OnCreate() {
     GlobalCallbacks::Get().onCreate.Invoke();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
-    _pRenderer = std::make_unique<SimpleLighting>();
-    //_pRenderer = std::make_unique<GLTFSample>();
+    //_pRenderer = std::make_unique<SimpleLighting>();
+    _pRenderer = std::make_unique<GLTFSample>();
 
     _pRenderer->OnCreate();
     // register resize call back

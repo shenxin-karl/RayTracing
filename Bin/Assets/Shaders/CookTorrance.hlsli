@@ -6,7 +6,7 @@ struct MaterialData {
     float3 diffuseAlbedo;   
     float  roughness;       
     float3 fresnelFactor;   
-    float  metallic;        
+    float  metallic;
 };
 
 float3 ComputeDirectionLight(DirectionalLight light, MaterialData mat, float3 N, float3 V);
@@ -31,7 +31,7 @@ float3 ComputeSpotLight(SpotLight light, MaterialData mat, float3 N, float3 V, f
     #define SPEC_SHADING_FACTOR(NdotH) CarToonSpecShadingFactor(NdotH)
 #endif
 
-MaterialData calcMaterialData(float4 diffuseAlbedo, float roughness, float metallic) {
+MaterialData CalcMaterialData(float4 diffuseAlbedo, float roughness, float metallic) {
     MaterialData mat;
     mat.diffuseAlbedo = diffuseAlbedo.xyz;
     mat.roughness = max(roughness, 0.00001);
@@ -75,11 +75,6 @@ float GeometrySmith(float NdotL, float NdotV, float roughness) {
 // ----------------------------------------------------------------------------
 float3 FresnelSchlick(float cosTheta, float3 F0) {
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
-}
-
-float3 ComputeFresnelFactor(float3 N, float3 H, float3 albedo, float metallic) {
-    float3 F0 = lerp(0.04, albedo, metallic);
-    return FresnelSchlick(dot(N, H), F0);
 }
 
 float3 LambertDiffuse(float3 diffuse) {

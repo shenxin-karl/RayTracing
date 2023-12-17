@@ -7,6 +7,7 @@
 #include "Components/MeshRenderer.h"
 #include "Foundation/Memory/SharedPtr.hpp"
 #include "Foundation/ColorUtil.hpp"
+#include "RenderObject/RenderGroup.hpp"
 
 namespace dx {
 class Texture;
@@ -36,12 +37,6 @@ private:
 };
 
 struct GLTFLoader::Material {
-    enum RenderMode {
-        eOpaque = 0,
-        eAlphaTest = 1,
-        eBlend = 2,
-    };
-
     struct Texture {
         bool IsValid() const {
             return (!path.empty() && fileExist) || (pTextureData != nullptr && textureDataSize > 0);
@@ -65,7 +60,7 @@ private:
         const aiMaterial *pAiMaterial,
         aiTextureType type) const;
 public:
-    int renderMode = 0;    // 0 Opaque, 1 Alpha 2 Blend
+    uint16_t renderGroup = RenderGroup::eOpaque;    // 0 Opaque, 1 Alpha 2 Blend
     float alphaCutoff = 0.f;
     glm::vec4 albedo = Colors::White;
     Texture baseColorMap;

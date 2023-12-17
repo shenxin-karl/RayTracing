@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.h"
+#include "RenderObject/RenderObject.h"
 #include "RenderObject/VertexSemantic.hpp"
 
 class Mesh;
@@ -19,12 +20,14 @@ public:
 private:
 	struct CachedRenderData {
 		SemanticMask	  meshSemanticMask;
-		StandardMaterial *pMaterial;
+		Scene			 *pCurrentScene;
+		bool			  shouldRender;
+		RenderObject	  renderObject;
 	};
 private:
 	// clang-format off
 	std::shared_ptr<Mesh>				_pMesh;
 	std::shared_ptr<StandardMaterial>	_pMaterial;
-	CachedRenderData					_cached;
+	CachedRenderData					_renderData;
 	// clang-format on
 };

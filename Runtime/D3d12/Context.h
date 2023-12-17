@@ -67,7 +67,7 @@ public:
 
     template<typename T>
     auto AllocConstantBuffer(const T &data) -> D3D12_GPU_VIRTUAL_ADDRESS {
-	    return AllocConstantBuffer(sizeof(T), &data);
+        return AllocConstantBuffer(sizeof(T), &data);
     }
 public:
     virtual auto GetContextType() const -> ContextType = 0;
@@ -119,6 +119,11 @@ public:
         D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor);
     void ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE rtv,
         glm::vec4 color,
+        ReadonlyArraySpan<D3D12_RECT> rects = {});
+    void ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE dsv,
+        D3D12_CLEAR_FLAGS clearFlags,
+        float depth,
+        UINT8 stencil,
         ReadonlyArraySpan<D3D12_RECT> rects = {});
     void SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views);
     void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view);
@@ -333,6 +338,15 @@ inline void GraphicsContext::ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE r
     ReadonlyArraySpan<D3D12_RECT> rects) {
 
     _pCommandList->ClearRenderTargetView(rtv, glm::value_ptr(color), rects.Count(), rects.Data());
+}
+
+inline void GraphicsContext::ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE dsv,
+    D3D12_CLEAR_FLAGS clearFlags,
+    float depth,
+    UINT8 stencil,
+    ReadonlyArraySpan<D3D12_RECT> rects) {
+
+    _pCommandList->ClearDepthStencilView(dsv, clearFlags, depth, stencil, rects.Count(), rects.Data());
 }
 
 inline void GraphicsContext::SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views) {

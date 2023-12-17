@@ -73,4 +73,6 @@ void Camera::OnPreRender() {
 
 void Camera::OnResize(size_t width, size_t height) {
     _aspect = static_cast<float>(width) / static_cast<float>(height);
+    _screenWidth = static_cast<float>(width);
+    _screenHeight = static_cast<float>(height);
 }

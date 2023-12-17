@@ -2,7 +2,7 @@
 #include "Object/GameObject.h"
 #include "Foundation/Exception.h"
 #include "SceneLightManager.h"
-#include "SceneRenderObjectManager.hpp"
+#include "SceneRenderObjectManager.h"
 
 Scene::Scene() {
     _pLightManager = std::make_unique<SceneLightManager>();
@@ -85,4 +85,5 @@ void Scene::OnRender(GameTimer &timer) {
 
 void Scene::OnPostRender(GameTimer &timer) {
     InvokeTickFunc(&GameObject::InnerOnPostRender);
+    _pRenderObjectMgr->Reset();
 }
