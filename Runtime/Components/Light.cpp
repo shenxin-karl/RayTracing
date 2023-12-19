@@ -10,7 +10,7 @@ Light::Light() : _color(1.f), _intensity(1.f) {
 Light::~Light() {
 }
 
-void Light::SetColor(const glm::vec4 &color) {
+void Light::SetColor(const glm::vec3 &color) {
 	_color = color;
 }
 
@@ -18,7 +18,7 @@ void Light::SetIntensity(float intensity) {
 	_intensity = intensity;
 }
 
-auto Light::GetColor() const -> const glm::vec4 & {
+auto Light::GetColor() const -> const glm::vec3 & {
 	return _color;
 }
 

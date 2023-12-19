@@ -127,6 +127,15 @@ public:
         ReadonlyArraySpan<D3D12_RECT> rects = {});
     void SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views);
     void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view);
+    void DrawInstanced(UINT vertexCountPreInstance,
+        UINT instanceCount,
+        UINT startVertexLocation,
+        UINT startInstanceLocation);
+    void DrawIndexedInstanced(UINT indexCountPreInstance,
+        UINT instanceCount,
+        UINT startIndexLocation,
+        UINT baseVertexLocation,
+        UINT startInstanceLocation);
     void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
     void SetGraphicsRootSignature(RootSignature *pRootSignature);
     void SetGraphics32Constant(UINT rootIndex, DWParam val, UINT offset = 0);
@@ -355,6 +364,25 @@ inline void GraphicsContext::SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<
 
 inline void GraphicsContext::SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view) {
     _pCommandList->IASetIndexBuffer(&view);
+}
+
+inline void GraphicsContext::DrawInstanced(UINT vertexCountPreInstance,
+    UINT instanceCount,
+    UINT startVertexLocation,
+    UINT startInstanceLocation) {
+    _pCommandList->DrawInstanced(vertexCountPreInstance, instanceCount, startVertexLocation, startInstanceLocation);
+}
+
+inline void GraphicsContext::DrawIndexedInstanced(UINT indexCountPreInstance,
+    UINT instanceCount,
+    UINT startIndexLocation,
+    UINT baseVertexLocation,
+    UINT startInstanceLocation) {
+    _pCommandList->DrawIndexedInstanced(indexCountPreInstance,
+        instanceCount,
+        startIndexLocation,
+        baseVertexLocation,
+        startInstanceLocation);
 }
 
 inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology) {

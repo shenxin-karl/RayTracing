@@ -13,6 +13,9 @@ class GPUMeshData : private NonCopyable {
 public:
 	GPUMeshData();
 	~GPUMeshData();
+public:
+	auto GetVertexBufferView() const -> D3D12_VERTEX_BUFFER_VIEW;
+	auto GetIndexBufferView() const -> D3D12_INDEX_BUFFER_VIEW;
 private:
 	friend class Mesh;
 	void UploadGpuMemory(const CPUMeshData *pMeshData);

@@ -31,9 +31,12 @@ void Mesh::GetVertices(std::vector<glm::vec3> &vertices) const {
     }
 }
 
-void Mesh::Resize(SemanticMask mask, size_t vertexCount, size_t indexCount) {
-    _pCpuMeshData->Resize(mask, vertexCount, indexCount);
-    _vertexAttributeDirty = true;
+auto Mesh::GetSubMeshes() const -> const std::vector<SubMesh> & {
+    return _subMeshes;
+}
+
+auto Mesh::GetGPUMeshData() const -> const GPUMeshData * {
+    return _pGpuMeshData.get();
 }
 
 template<typename T>
@@ -87,6 +90,15 @@ void Mesh::SetUV0(ReadonlyArraySpan<glm::vec2> uvs) {
     _vertexAttributeDirty = true;
 }
 
+void Mesh::SetSubMeshes(std::vector<SubMesh> subMeshes) {
+    _subMeshes = std::move(subMeshes);
+}
+
+void Mesh::Resize(SemanticMask mask, size_t vertexCount, size_t indexCount) {
+    _pCpuMeshData->Resize(mask, vertexCount, indexCount);
+    _vertexAttributeDirty = true;
+}
+
 void Mesh::UploadMeshData(bool generateBottomLevelAS, bool isOpaque) {
     if (_vertexAttributeDirty) {
 		_pGpuMeshData->UploadGpuMemory(_pCpuMeshData.get());
@@ -95,6 +107,14 @@ void Mesh::UploadMeshData(bool generateBottomLevelAS, bool isOpaque) {
     if (generateBottomLevelAS && _bottomLevelASDirty) {
 		_pGpuMeshData->GenerateBottomLevelAccelerationStructure(isOpaque);
 	    _bottomLevelASDirty = false;
+    }
+    if (_subMeshes.empty()) {
+	    SubMesh subMesh;
+        subMesh.vertexCount = _pCpuMeshData->GetVertexCount();
+        subMesh.indexCount = _pCpuMeshData->GetIndexCount();
+        subMesh.baseIndexLocation = 0;
+        subMesh.baseVertexLocation = 0;
+        _subMeshes.push_back(subMesh);
     }
 }
 

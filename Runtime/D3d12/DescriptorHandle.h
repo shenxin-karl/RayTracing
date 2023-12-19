@@ -66,3 +66,7 @@ struct std::hash<D3D12_CPU_DESCRIPTOR_HANDLE> {
         return std::hash<size_t>{}(handle.ptr);
     }
 };
+
+inline bool operator==(D3D12_CPU_DESCRIPTOR_HANDLE lhs, D3D12_CPU_DESCRIPTOR_HANDLE rhs) {
+	return lhs.ptr == rhs.ptr;
+} 

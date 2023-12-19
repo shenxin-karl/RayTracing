@@ -170,7 +170,7 @@ float4 PSMain(VertexOut pin) : SV_TARGET {
 
     MaterialData materialData = CalcMaterialData(albedo, roughness, metallic);
     float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
-    finalColor += ComputeAmbientLight(gCbLighting.directionalLight, materialData, ao);
+    finalColor += ComputeAmbientLight(gCbLighting.ambientLight, materialData, ao);
     finalColor += GetEmission(pin);
     return float4(finalColor, albedo.a);
 }

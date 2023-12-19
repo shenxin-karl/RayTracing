@@ -3,7 +3,7 @@
 #include "RenderObject/RenderGroup.hpp"
 #include "Components/Transform.h"
 #include "RenderObject/RenderObject.h"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/StandardMaterial/StandardMaterial.h"
 
 RenderObjectKey::RenderObjectKey() : key1(0), key2(0) {
 }

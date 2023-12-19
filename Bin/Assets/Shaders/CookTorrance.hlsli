@@ -10,7 +10,7 @@ struct MaterialData {
 };
 
 float3 ComputeDirectionLight(DirectionalLight light, MaterialData mat, float3 N, float3 V);
-float3 ComputeAmbientLight(DirectionalLight light, MaterialData mat, float ao);
+float3 ComputeAmbientLight(AmbientLight light, MaterialData mat, float ao);
 float3 ComputePointLight(PointLight pointLight, MaterialData mat, float3 N, float3 V, float3 worldPosition);
 float3 ComputeSpotLight(SpotLight light, MaterialData mat, float3 N, float3 V, float3 worldPosition);
 
@@ -112,12 +112,12 @@ float CalcAttenuation(float d, float falloffStart, float falloffEnd) {
 float3 ComputeDirectionLight(DirectionalLight light, MaterialData mat, float3 N, float3 V) {
     float3 L = light.direction;
     float NdotL = DIFF_SHADING_FACTOR(max(dot(N, L), 0.0));
-    float3 lightStrength = light.directionalColor * NdotL * light.directionalIntensity;
+    float3 lightStrength = light.direction * NdotL * light.intensity;
     return CookTorrance(lightStrength, L, N, V, mat, NdotL);
 }
 
-float3 ComputeAmbientLight(DirectionalLight light, MaterialData mat, float ao) {
-	float3 ambient = light.ambientIntensity * ao * light.ambientColor * mat.diffuseAlbedo;
+float3 ComputeAmbientLight(AmbientLight ambientLight, MaterialData mat, float ao) {
+	float3 ambient = ambientLight.intensity * ao * ambientLight.color * mat.diffuseAlbedo;
 	return ambient;
 }
 

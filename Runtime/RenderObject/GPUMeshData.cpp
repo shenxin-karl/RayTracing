@@ -11,6 +11,14 @@ GPUMeshData::GPUMeshData() : _vertexBufferView{}, _indexBufferView{} {
 GPUMeshData::~GPUMeshData() {
 }
 
+auto GPUMeshData::GetVertexBufferView() const -> D3D12_VERTEX_BUFFER_VIEW {
+    return _vertexBufferView;
+}
+
+auto GPUMeshData::GetIndexBufferView() const -> D3D12_INDEX_BUFFER_VIEW {
+    return _indexBufferView;
+}
+
 void GPUMeshData::UploadGpuMemory(const CPUMeshData *pMeshData) {
     SemanticMask semanticMask = pMeshData->GetSemanticMask();
     size_t vertexStride = GetSemanticStride(semanticMask);

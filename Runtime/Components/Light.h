@@ -9,13 +9,13 @@ public:
 	Light();
 	~Light() override;
 public:
-	void SetColor(const glm::vec4 &color);
+	void SetColor(const glm::vec3 &color);
 	void SetIntensity(float intensity);
-	auto GetColor() const -> const glm::vec4 &;
+	auto GetColor() const -> const glm::vec3 &;
 	auto GetIntensity() const -> float;
 private:
 	// clang-format off
-	glm::vec4	_color;
+	glm::vec3	_color;
 	float		_intensity;
 	// clang-format on
 };

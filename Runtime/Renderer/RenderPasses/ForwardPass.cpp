@@ -1,7 +1,7 @@
 #include "ForwardPass.h"
 #include "Foundation/Logger.h"
 #include "RenderObject/RenderObject.h"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/StandardMaterial/StandardMaterial.h"
 
 void ForwardPass::DrawBatchList(const std::vector<RenderObject *> &batchList,
     const GlobalShaderParam &globalShaderParam) {

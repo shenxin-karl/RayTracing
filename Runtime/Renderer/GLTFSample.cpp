@@ -10,13 +10,15 @@
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/UploadHeap.h"
 #include "Object/GameObject.h"
+#include "RenderPasses/ForwardPass.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
+#include "RenderPasses/ForwardPass.h"
 
-GLTFSample::GLTFSample() : _cbPrePass{} {
+GLTFSample::GLTFSample() : _cbPrePass{}, _cbLighting{} {
 }
 
 GLTFSample::~GLTFSample() {
@@ -25,6 +27,7 @@ GLTFSample::~GLTFSample() {
 void GLTFSample::OnCreate() {
     Renderer::OnCreate();
     InitScene();
+    _pForwardPass = std::make_unique<ForwardPass>();
     _pUploadHeap->FlushAndFinish();
     _pASBuilder->FlushAndFinish();
 }
@@ -38,11 +41,11 @@ void GLTFSample::OnDestroy() {
 void GLTFSample::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    _cbPrePass = cbuffer::MakePrePass(_pCameraGO);
+    _cbPrePass = cbuffer::MakeCbPrePass(_pCameraGO);
+    _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
 
-    Camera *pCamera = Camera::GetAvailableCameras()[0];
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
-    pRenderObjectMgr->ClassifyRenderObjects(pCamera->GetGameObject()->GetTransform()->GetWorldPosition());
+    pRenderObjectMgr->ClassifyRenderObjects(_pCameraGO->GetTransform()->GetWorldPosition());
 }
 
 void GLTFSample::OnRender(GameTimer &timer) {
@@ -66,9 +69,18 @@ void GLTFSample::OnRender(GameTimer &timer) {
     pGfxCxt->SetViewport(viewport);
     pGfxCxt->SetScissor(scissor);
 
-    SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
-    std::vector<RenderObject*> opaqueRenderObjects = pRenderObjectMgr->GetOpaqueRenderObjects();
+    GlobalShaderParam globalShaderParam = {};
+    globalShaderParam.pGfxCtx = pGfxCxt.get();
+    globalShaderParam.pCbPrePass = &_cbPrePass;
+    globalShaderParam.pCbLighting = &_cbLighting;
+    globalShaderParam.cbPrePassCBuffer = pGfxCxt->AllocConstantBuffer(_cbPrePass);
+    globalShaderParam.cbLightBuffer = pGfxCxt->AllocConstantBuffer(_cbLighting);
 
+    SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
+    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetOpaqueRenderObjects(), globalShaderParam);
+    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetAlphaTestRenderObjects(), globalShaderParam);
+    // SkyBox pass
+    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetTransparentRenderObjects(), globalShaderParam);
 
     _pFrameResourceRing->OnEndFrame();
 }

@@ -4,6 +4,7 @@
 #include "D3d12/DescriptorHandle.h"
 #include "RenderObject/ConstantBufferHelper.h"
 
+class ForwardPass;
 class Scene;
 class GLTFSample : public Renderer {
 public:
@@ -22,14 +23,17 @@ private:
 	void LoadGLTF();
 private:
 	// clang-format off
-	dx::Texture			_renderTargetTex;
-	dx::Texture			_depthStencilTex;
-	dx::RTV				_renderTextureRTV;
-	dx::DSV				_depthStencilDSV;
+	dx::Texture					 _renderTargetTex;
+	dx::Texture					 _depthStencilTex;
+	dx::RTV						 _renderTextureRTV;
+	dx::DSV						 _depthStencilDSV;
 
-	cbuffer::CbPrePass	_cbPrePass;
+	cbuffer::CbPrePass			 _cbPrePass;
+	cbuffer::CbLighting			 _cbLighting;
 
-	Scene			    *_pScene = nullptr;
-	GameObject			*_pCameraGO = nullptr;
+	std::unique_ptr<ForwardPass> _pForwardPass;
+
+	Scene						*_pScene = nullptr;
+	GameObject					*_pCameraGO = nullptr;
 	// clang-format on
 };

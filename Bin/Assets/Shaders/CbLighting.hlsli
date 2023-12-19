@@ -1,13 +1,16 @@
 #ifndef __CB_LIGHTING_HISLI__
 #define __CB_LIGHTING_HISLI__
 
+struct AmbientLight {
+	float3	color;
+    float	intensity;
+};
+
 struct DirectionalLight {
-    float3 ambientColor;
-    float ambientIntensity;
-    float3 directionalColor;
-    float directionalIntensity;
-    float3 direction;
-    float padding0;
+    float3  color;
+    float   intensity;
+    float3  direction;
+    float   padding0;
 };
 
 struct SpotLight {
@@ -28,6 +31,7 @@ struct PointLight {
 
 
 struct CbLighting {
+    AmbientLight     ambientLight;
     DirectionalLight directionalLight;
 };
 

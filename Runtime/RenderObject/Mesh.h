@@ -10,6 +10,14 @@ enum class SemanticIndex;
 class CPUMeshData;
 class GPUMeshData;
 
+
+struct SubMesh {
+	size_t vertexCount;
+	size_t indexCount;
+	size_t baseVertexLocation;
+	size_t baseIndexLocation;
+};
+
 class Mesh : private NonCopyable {
 public:
     Mesh();
@@ -19,18 +27,22 @@ public:
 	auto GetIndexCount() const -> size_t;
 	auto GetSemanticMask() const -> SemanticMask;
 	void GetVertices(std::vector<glm::vec3> &vertices) const;
+	auto GetSubMeshes() const -> const std::vector<SubMesh> &;
+	auto GetGPUMeshData() const -> const GPUMeshData *;
 public:
-	void Resize(SemanticMask mask, size_t vertexCount, size_t indexCount);
 	void SetVertices(ReadonlyArraySpan<glm::vec3> vertices);
 	void SetNormals(ReadonlyArraySpan<glm::vec3> normals);
 	void SetTangents(ReadonlyArraySpan<glm::vec4> tangents);
 	void SetColors(ReadonlyArraySpan<glm::vec4> colors);
 	void SetUV0(ReadonlyArraySpan<glm::vec2> uvs);
+	void SetSubMeshes(std::vector<SubMesh> subMeshes);
+	void Resize(SemanticMask mask, size_t vertexCount, size_t indexCount);
 	void UploadMeshData(bool generateBottomLevelAS, bool isOpaque = true);
 private:
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
 private:
 	// clang-format off
+	std::vector<SubMesh>			_subMeshes;
 	std::unique_ptr<CPUMeshData>	_pCpuMeshData;
 	std::unique_ptr<GPUMeshData>	_pGpuMeshData;
 	bool							_vertexAttributeDirty;

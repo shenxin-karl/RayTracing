@@ -2,7 +2,6 @@
 #include "Object/GameObject.h"
 #include "RenderObject/Mesh.h"
 #include "SceneObject/SceneManager.h"
-#include "RenderObject/StandardMaterial.h"
 #include "RenderObject/StandardMaterial/StandardMaterial.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneRenderObjectManager.h"

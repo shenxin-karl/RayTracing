@@ -1,10 +1,12 @@
 #include "StandardMaterialDataManater.h"
+#include "StandardManterialBatchDraw.h"
 #include "StandardMaterial.h"
 #include "D3d12/Device.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
 #include "Foundation/HashUtil.hpp"
 #include "Renderer/GfxDevice.h"
+#include "Renderer/RenderPasses/ForwardPass.h"
 #include "RenderObject/RenderGroup.hpp"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
@@ -41,8 +43,8 @@ void StandardMaterialDataManager::OnCreate() {
     _pRootSignature->SetStaticSamplers(samplers);
     _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
 
-    // todo
-    //_materialID = ForwardPass::RegisterMaterialBatchDraw()
+    _materialID = ForwardPass::RegisterMaterialBatchDraw(GetTypeName<StandardMaterial>(),
+        std::make_unique<StandardMaterialBatchDraw>());
 }
 
 void StandardMaterialDataManager::OnDestroy() {

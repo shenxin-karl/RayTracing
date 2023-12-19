@@ -4,10 +4,13 @@
 #include "Object/GameObject.h"
 #include "Components/Transform.h"
 #include "Foundation/GameTimer.h"
+#include "SceneObject/SceneLightManager.h"
+#include "Components/Light.h"
+#include "Renderer/RenderSetting.h"
 
 namespace cbuffer {
 
-auto MakePreObject(const Transform *pTransform) -> CbPreObject {
+auto MakeCbPreObject(const Transform *pTransform) -> CbPreObject {
     CbPreObject cbuffer;
     cbuffer.matWorld = pTransform->GetWorldMatrix();
     cbuffer.matInvWorld = inverse(cbuffer.matWorld);
@@ -16,7 +19,7 @@ auto MakePreObject(const Transform *pTransform) -> CbPreObject {
     return cbuffer;
 }
 
-auto MakePrePass(const GameObject *pCameraGO) -> CbPrePass {
+auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
     if (pCameraGO->GetComponent<Camera>() == nullptr) {
         Exception::Throw("the pCameraGo not Camera Component!");
     }
@@ -51,13 +54,39 @@ auto MakePrePass(const GameObject *pCameraGO) -> CbPrePass {
     return cbuffer;
 }
 
+auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting {
+	const std::vector<GameObject*> &directionalLightObjects = pSceneLightManager->GetDirectionalLightObjects();
+	CbLighting cbuffer = {};
+
+    // initialize directional light
+    // If there is no directional light, the scene is black
+    if (directionalLightObjects.size() > 0) {
+	    GameObject *pGameObject = directionalLightObjects.back();
+
+	    ::DirectionalLight *pDirectionalLight = pGameObject->GetComponent<::DirectionalLight>();
+        cbuffer.directionalLight.color = pDirectionalLight->GetColor();
+        cbuffer.directionalLight.intensity = pDirectionalLight->GetIntensity();
+
+        glm::quat worldRotation = pGameObject->GetTransform()->GetWorldRotation();
+        glm::vec3 x, y, z;
+        Quaternion2BasisAxis(worldRotation, x, y, z);
+        cbuffer.directionalLight.direction = -z;
+    }
+
+    // initialize ambient lighting
+	RenderSetting &renderSetting = RenderSetting::Get();
+    cbuffer.ambientLight.color = renderSetting.GetAmbientColor();
+    cbuffer.ambientLight.intensity = renderSetting.GetAmbientIntensity();
+    return cbuffer;
+}
+
 D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform) {
-	CbPreObject cbuffer = MakePreObject(pTransform);
+	CbPreObject cbuffer = MakeCbPreObject(pTransform);
     return pContext->AllocConstantBuffer(cbuffer);
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO) {
-    CbPrePass cbuffer = MakePrePass(pCameraGO);
+    CbPrePass cbuffer = MakeCbPrePass(pCameraGO);
     return pContext->AllocConstantBuffer(cbuffer);
 }
 

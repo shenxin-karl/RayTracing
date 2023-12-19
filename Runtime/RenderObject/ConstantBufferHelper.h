@@ -3,8 +3,10 @@
 #include "Foundation/GlmStd.hpp"
 #include "D3d12/D3dUtils.h"
 
+class SceneLightManager;
 class Transform;
 class GameObject;
+
 namespace cbuffer {
 
 constexpr size_t kAlignment = sizeof(glm::vec4);
@@ -40,11 +42,14 @@ struct alignas(kAlignment) CbPrePass {
 };
 
 
+struct alignas(kAlignment) AmbientLight {
+	glm::vec3	color;
+    float		intensity;
+};
+
 struct alignas(kAlignment) DirectionalLight {
-    glm::vec3	ambientColor;
-    float		ambientIntensity;
-    glm::vec3	directionalColor;
-    float		directionalIntensity;
+    glm::vec3	color;
+    float		intensity;
     glm::vec3	direction;
     float		padding0;
 };
@@ -64,10 +69,17 @@ struct alignas(kAlignment) PointLight {
     glm::vec3	position;
     float		range;
 };
+
+struct CbLighting {
+	AmbientLight	 ambientLight;
+	DirectionalLight directionalLight;
+};
+
 // clang-format on
 
-auto MakePreObject(const Transform *pTransform) -> CbPreObject;
-auto MakePrePass(const GameObject *pCameraGO) -> CbPrePass;
+auto MakeCbPreObject(const Transform *pTransform) -> CbPreObject;
+auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass;
+auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting;
 
 D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform);
 D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO);
