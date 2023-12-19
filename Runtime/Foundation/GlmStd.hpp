@@ -32,4 +32,8 @@ inline quat MakeQuaternionByEuler(float pitch, float yaw, float roll) {
     return quat(glm::degrees(vec3(pitch, yaw, roll)));
 }
 
+inline mat4x4 WorldMatrixToNormalMatrix(const mat4x4 &world) {
+	return mat4x4(transpose(inverse(mat3x3(world))));
+}
+
 }

@@ -9,6 +9,30 @@
 class StandardMaterial;
 class StandardMaterialDataManager : private NonCopyable {
 public:
+    enum RootParam {
+	    ePrePass    = 0,
+        ePreObject  = 1,
+        eLighting   = 3,
+        eMaterial   = 2,
+        eTextureList = 4,
+    };
+
+    struct alignas(sizeof(glm::vec4)) CbPreMaterial {
+        glm::vec4 albedo;
+        glm::vec4 emission;
+        glm::vec4 tilingAndOffset;
+        float     cutoff;
+        float     roughness;
+        float     metallic;
+        float     normalScale;
+        int       samplerStateIndex;
+        int       albedoTexIndex;
+        int       ambientOcclusionTexIndex;
+        int       emissionTexIndex;
+        int       metalRoughnessTexIndex;
+        int       normalTexIndex;
+    };
+
     StandardMaterialDataManager();
     void OnCreate();
     void OnDestroy();

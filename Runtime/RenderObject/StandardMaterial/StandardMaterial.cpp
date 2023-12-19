@@ -29,17 +29,26 @@ static const char *sTextureKeyword[] = {
 
 StandardMaterial::StandardMaterial()
     : _renderGroup(RenderGroup::eOpaque),
-      _albedo(Colors::White),
-      _emission(Colors::Black),
-      _tilingAndOffset(1.f),
-      _cutoff(0.f),
-      _roughness(0.5f),
-      _metallic(0.5f),
-      _normalScale(1.f),
       _pipeStateDirty(false),
       _pRootSignature(nullptr),
       _pPipelineState(nullptr),
       _pipelineID(0) {
+
+    _cbPreMaterial.albedo = Colors::White;
+    _cbPreMaterial.emission = Colors::Black;
+    _cbPreMaterial.tilingAndOffset = glm::vec4(1.f, 1.f, 0.f, 0.f);
+    _cbPreMaterial.cutoff = 0.f;
+    _cbPreMaterial.roughness = 0.5f;
+    _cbPreMaterial.metallic = 0.5f;
+    _cbPreMaterial.normalScale = 1.f;
+    _cbPreMaterial.samplerStateIndex = eLinearClamp;
+    _cbPreMaterial.albedoTexIndex = 0;
+    _cbPreMaterial.ambientOcclusionTexIndex = 0;
+    _cbPreMaterial.emissionTexIndex = 0;
+    _cbPreMaterial.metalRoughnessTexIndex = 0;
+    _cbPreMaterial.normalTexIndex = 0;
+    _cbPreMaterial.padding0 = 0;
+    _cbPreMaterial.padding1 = 0;
 }
 
 StandardMaterial::~StandardMaterial() {
@@ -63,31 +72,35 @@ void StandardMaterial::SetTextures(TextureType textureType, std::shared_ptr<dx::
 }
 
 void StandardMaterial::SetAlbedo(const glm::vec4 &albedo) {
-    _albedo = albedo;
+   _cbPreMaterial.albedo = albedo;
 }
 
 void StandardMaterial::SetEmission(const glm::vec4 &emission) {
-    _emission = emission;
+    _cbPreMaterial.emission = emission;
 }
 
 void StandardMaterial::SetTillingAndOffset(const glm::vec4 &tilingAndOffset) {
-    _tilingAndOffset = tilingAndOffset;
+    _cbPreMaterial.tilingAndOffset = tilingAndOffset;
 }
 
 void StandardMaterial::SetCutoff(float cutoff) {
-    _cutoff = cutoff;
+    _cbPreMaterial.cutoff = cutoff;
 }
 
 void StandardMaterial::SetRoughness(float roughness) {
-    _roughness = roughness;
+    _cbPreMaterial.roughness = roughness;
 }
 
 void StandardMaterial::SetMetallic(float metallic) {
-    _metallic = metallic;
+    _cbPreMaterial.metallic = metallic;
 }
 
 void StandardMaterial::SetNormalScale(float normalScale) {
-    _normalScale = normalScale;
+    _cbPreMaterial.normalScale = normalScale;
+}
+
+void StandardMaterial::SetSamplerAddressMode(SamplerAddressMode mode) {
+    _cbPreMaterial.samplerStateIndex = mode;
 }
 
 bool StandardMaterial::UpdatePipelineState(SemanticMask meshSemanticMask) {

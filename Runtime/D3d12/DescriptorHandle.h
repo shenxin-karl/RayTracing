@@ -54,3 +54,15 @@ class SRV       final : public DescriptorHandle {};
 // clang-format on
 
 }    // namespace dx
+
+template<>
+struct std::hash<D3D12_CPU_DESCRIPTOR_HANDLE> {
+    using argument_type = D3D12_CPU_DESCRIPTOR_HANDLE;
+    using result_type = size_t;
+
+    [[nodiscard]]
+    result_type
+    operator()(const argument_type &handle) const noexcept {
+        return std::hash<size_t>{}(handle.ptr);
+    }
+};

@@ -7,12 +7,11 @@
 
 namespace cbuffer {
 
-auto MakePreObject(const GameObject *pObject) -> CbPreObject {
-    const Transform *pTransform = pObject->GetTransform();
+auto MakePreObject(const Transform *pTransform) -> CbPreObject {
     CbPreObject cbuffer;
     cbuffer.matWorld = pTransform->GetWorldMatrix();
     cbuffer.matInvWorld = inverse(cbuffer.matWorld);
-    cbuffer.matNormal = glm::mat3x3(transpose(inverse(cbuffer.matWorld)));
+    cbuffer.matNormal = glm::WorldMatrixToNormalMatrix(cbuffer.matWorld);
     cbuffer.matInvNormal = inverse(cbuffer.matNormal);
     return cbuffer;
 }
@@ -52,8 +51,8 @@ auto MakePrePass(const GameObject *pCameraGO) -> CbPrePass {
     return cbuffer;
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const GameObject *pObject) {
-	CbPreObject cbuffer = MakePreObject(pObject);
+D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform) {
+	CbPreObject cbuffer = MakePreObject(pTransform);
     return pContext->AllocConstantBuffer(cbuffer);
 }
 

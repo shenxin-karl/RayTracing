@@ -14,6 +14,7 @@ class Texture;
 class StandardMaterial : NonCopyable {
 public:
     enum TextureType { eAlbedoTex, eAmbientOcclusionTex, eEmissionTex, eMetalRoughnessTex, eNormalTex, eMaxNum };
+    enum SamplerAddressMode { ePointWrap, ePointClamp, eLinearWrap, eLinearClamp, eAnisotropicWrap, eAnisotropicClamp };
 public:
     StandardMaterial();
     ~StandardMaterial();
@@ -26,11 +27,30 @@ public:
     void SetRoughness(float roughness);
     void SetMetallic(float metallic);
     void SetNormalScale(float normalScale);
+    void SetSamplerAddressMode(SamplerAddressMode mode);
     bool UpdatePipelineState(SemanticMask meshSemanticMask);
     bool PipelineStateDirty() const;
     auto GetRenderGroup() const -> uint16_t;
     auto GetPipelineID() const -> uint16_t;
-	auto GetMaterialID() const -> uint16_t;
+    auto GetMaterialID() const -> uint16_t;
+private:
+    struct alignas(sizeof(glm::vec4)) CbPreMaterial {
+        glm::vec4 albedo;
+        glm::vec4 emission;
+        glm::vec4 tilingAndOffset;
+        float     cutoff;
+        float     roughness;
+        float     metallic;
+        float     normalScale;
+        int       samplerStateIndex;
+        int       albedoTexIndex;
+        int       ambientOcclusionTexIndex;
+        int       emissionTexIndex;
+        int       metalRoughnessTexIndex;
+        int       normalTexIndex;
+        int       padding0;
+        int       padding1;
+    };
 private:
     friend class StandardMaterialDataManager;
     friend class StandardMaterialBatchDraw;
@@ -39,14 +59,7 @@ private:
     dx::DefineList               _defineList;
     dx::SRV                      _textureHandles[eMaxNum];
     std::shared_ptr<dx::Texture> _textures[eMaxNum];
-
-    glm::vec4                    _albedo;
-    glm::vec4                    _emission;
-    glm::vec4                    _tilingAndOffset;
-    float                        _cutoff;
-    float                        _roughness;
-    float                        _metallic;
-    float                        _normalScale;
+    CbPreMaterial                _cbPreMaterial;
 
     bool                         _pipeStateDirty;
     dx::RootSignature           *_pRootSignature;

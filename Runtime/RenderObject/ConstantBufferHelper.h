@@ -3,6 +3,7 @@
 #include "Foundation/GlmStd.hpp"
 #include "D3d12/D3dUtils.h"
 
+class Transform;
 class GameObject;
 namespace cbuffer {
 
@@ -65,10 +66,10 @@ struct alignas(kAlignment) PointLight {
 };
 // clang-format on
 
-auto MakePreObject(const GameObject *pObject) -> CbPreObject;
+auto MakePreObject(const Transform *pTransform) -> CbPreObject;
 auto MakePrePass(const GameObject *pCameraGO) -> CbPrePass;
 
-D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const GameObject *pObject);
+D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform);
 D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO);
 
 }    // namespace cbuffer
