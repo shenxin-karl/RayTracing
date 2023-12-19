@@ -8,7 +8,7 @@
 #include "Object/GameObject.h"
 #include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/StandardMaterial/StandardMaterial.h"
 #include "RenderObject/VertexSemantic.hpp"
 #include "TextureObject/DDSLoader.h"
 #include "TextureObject/TextureManager.h"

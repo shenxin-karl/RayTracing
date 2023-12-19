@@ -4,7 +4,6 @@
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/D3dUtils.h"
-#include "RenderGroup.hpp"
 
 enum class SemanticMask;
 
@@ -34,6 +33,7 @@ public:
 	auto GetMaterialID() const -> uint16_t;
 private:
     friend class StandardMaterialDataManager;
+    friend class StandardMaterialBatchDraw;
     // clang-format off
     uint32_t                     _renderGroup;
     dx::DefineList               _defineList;

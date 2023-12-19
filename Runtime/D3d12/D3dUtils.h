@@ -50,6 +50,9 @@ using NativeCommandList                                     = ID3D12GraphicsComm
 constexpr inline std::size_t kMaxRootParameter              = 16;	
 constexpr inline std::size_t kMaxDescriptor                 = 256;	
 constexpr inline std::size_t kMaxDescriptorInRootParameter  = 256;
+constexpr inline std::size_t kDynamicDescriptorMaxView		= 256;
+constexpr inline std::size_t kDynamicDescriptorMaxSampler	= 32;
+
 // clang-format on
 
 class Device;

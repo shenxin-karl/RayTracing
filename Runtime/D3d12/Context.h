@@ -145,8 +145,8 @@ public:
 
 inline Context::Context(Device *pDevice)
     : _pCommandList(nullptr),
-      _dynamicViewDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128),
-      _dynamicSampleDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 32) {
+      _dynamicViewDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kDynamicDescriptorMaxView),
+      _dynamicSampleDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, kDynamicDescriptorMaxSampler) {
 
     _dynamicBufferAllocator.OnCreate(pDevice);
 }
