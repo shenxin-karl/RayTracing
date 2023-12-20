@@ -36,8 +36,9 @@ auto ShaderDependency::GetLastWriteTimeInternal(std::unordered_set<stdfs::path> 
     }
     hashSet.insert(_sourcePath);
     stdfs::file_time_type lastWriteTime = stdfs::last_write_time(_sourcePath);
+    stdfs::path directory = _sourcePath.parent_path();
     for (const auto &dependencyFile : _dependencies) {
-        ShaderDependency &dependency = ShaderManager::GetInstance()->GetShaderDependency(dependencyFile);
+        ShaderDependency &dependency = ShaderManager::GetInstance()->GetShaderDependency(directory / dependencyFile);
         lastWriteTime = std::max(lastWriteTime, dependency.GetLastWriteTimeInternal(hashSet));
     }
 

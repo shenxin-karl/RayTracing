@@ -93,6 +93,7 @@ public:
     void SetComputeRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetComputeRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+    void Dispatch(UINT groupX, UINT groupY, UINT groupZ);
 
     template<typename T>
     void SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data);
@@ -294,6 +295,10 @@ inline void ComputeContext::SetComputeRootShaderResourceView(UINT rootIndex, D3D
 inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
     _pCommandList->SetComputeRootUnorderedAccessView(rootIndex, bufferLocation);
+}
+
+inline void ComputeContext::Dispatch(UINT groupX, UINT groupY, UINT groupZ) {
+    _pCommandList->Dispatch(groupX, groupY, groupZ);
 }
 
 template<typename T>

@@ -10,6 +10,8 @@ struct IMaterialBatchDraw : private NonCopyable {
 
 class ForwardPass : private NonCopyable {
 public:
+    void OnCreate();
+    void OnDestroy();
     void DrawBatchList(const std::vector<RenderObject *> &batchList, const GlobalShaderParam &globalShaderParam);
 public:
     /**

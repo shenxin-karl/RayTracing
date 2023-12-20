@@ -44,6 +44,10 @@ void ASBuilder::OnDestroy() {
 }
 
 void ASBuilder::FlushAndFinish() {
+    if (_bottomAsBuildItems.empty() && _topAsBuildItems.empty()) {
+	    return;
+    }
+
     size_t instanceCount = 0;
     size_t scratchBufferSize = 0;
     for (BottomASBuildItem &bottomBuildItem : _bottomAsBuildItems) {

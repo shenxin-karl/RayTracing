@@ -8,6 +8,7 @@
 #include "D3d12/Device.h"
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
+#include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
 #include "Object/GameObject.h"
 #include "RenderPasses/ForwardPass.h"
@@ -17,6 +18,7 @@
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "RenderPasses/ForwardPass.h"
+#include "RenderPasses/PostProcessPass.h"
 
 GLTFSample::GLTFSample() : _cbPrePass{}, _cbLighting{} {
 }
@@ -26,8 +28,8 @@ GLTFSample::~GLTFSample() {
 
 void GLTFSample::OnCreate() {
     Renderer::OnCreate();
+    InitRenderPass();
     InitScene();
-    _pForwardPass = std::make_unique<ForwardPass>();
     _pUploadHeap->FlushAndFinish();
     _pASBuilder->FlushAndFinish();
 }
@@ -36,6 +38,11 @@ void GLTFSample::OnDestroy() {
     Renderer::OnDestroy();
     SceneManager::GetInstance()->RemoveScene(_pScene->GetName());
     _pScene = nullptr;
+
+    _pForwardPass->OnDestroy();
+    _pPostProcessPass->OnDestroy();
+    _pForwardPass = nullptr;
+    _pPostProcessPass = nullptr;
 }
 
 void GLTFSample::OnPreRender(GameTimer &timer) {
@@ -82,6 +89,18 @@ void GLTFSample::OnRender(GameTimer &timer) {
     // SkyBox pass
     _pForwardPass->DrawBatchList(pRenderObjectMgr->GetTransparentRenderObjects(), globalShaderParam);
 
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    PostProcessPassDrawArgs postProcessPassDrawArgs = {
+        _width,
+        _height,
+        _renderTextureSRV.GetCpuHandle(),
+        _pSwapChain->GetCurrentBackBufferUAV(),
+        pGfxCxt.get(),
+    };
+    _pPostProcessPass->Draw(postProcessPassDrawArgs);
+    pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
+
     _pFrameResourceRing->OnEndFrame();
 }
 
@@ -123,11 +142,24 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     rtv.Texture2D.PlaneSlice = 0;
     device->CreateRenderTargetView(_renderTargetTex.GetResource(), &rtv, _renderTextureRTV.GetCpuHandle());
 
+    if (_renderTextureSRV.IsNull()) {
+	    _renderTextureSRV = _pDevice->AllocDescriptor<dx::SRV>(1);
+    }
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.Format = pGfxDevice->GetRenderTargetFormat();
+    srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv.Texture2D.MostDetailedMip = 0;
+    srv.Texture2D.MipLevels = 1;
+    srv.Texture2D.PlaneSlice = 0;
+    srv.Texture2D.ResourceMinLODClamp = 0.f;
+    device->CreateShaderResourceView(_renderTargetTex.GetResource(), &srv, _renderTextureSRV.GetCpuHandle());
+
     // recreate depth stencil
     _depthStencilTex.OnDestroy();
     D3D12_RESOURCE_DESC depthStencilDesc = renderTargetDesc;
-    renderTargetDesc.Format = pGfxDevice->GetDepthStencilFormat();
-    renderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    depthStencilDesc.Format = pGfxDevice->GetDepthStencilFormat();
+    depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     D3D12_CLEAR_VALUE depthStencilClearValue = {};
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilClearValue.DepthStencil.Depth = 0.f;
@@ -143,6 +175,13 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv.Texture2D.MipSlice = 0;
     device->CreateDepthStencilView(_depthStencilTex.GetResource(), &dsv, _depthStencilDSV.GetCpuHandle());
+}
+
+void GLTFSample::InitRenderPass() {
+    _pForwardPass = std::make_unique<ForwardPass>();
+    _pPostProcessPass = std::make_unique<PostProcessPass>();
+    _pForwardPass->OnCreate();
+    _pPostProcessPass->OnCreate();
 }
 
 void GLTFSample::InitScene() {

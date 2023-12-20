@@ -40,7 +40,7 @@ void SwapChain::OnCreate(Device *pDevice, uint32_t numBackBuffers, HWND hwnd, DX
 
     ThrowIfFailed(_pFactory->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
     ThrowIfFailed(pSwapChain->QueryInterface(__uuidof(IDXGISwapChain4), &_pSwapChain));
-	_rtvViews = _pDevice->AllocDescriptor<RTV>(numBackBuffers);
+    _rtvViews = _pDevice->AllocDescriptor<RTV>(numBackBuffers);
 }
 
 void SwapChain::OnDestroy() {
@@ -86,7 +86,7 @@ void SwapChain::SetVSync(bool bVSync) {
 
 void SwapChain::CreateRtv() {
     for (WRL::ComPtr<ID3D12Resource> &pResource : _renderTargetResources) {
-	    GlobalResourceState::RemoveResourceState(pResource.Get());
+        GlobalResourceState::RemoveResourceState(pResource.Get());
     }
 
     _renderTargetResources.resize(_swapChainDesc.BufferCount);
@@ -102,7 +102,7 @@ void SwapChain::CreateRtv() {
         pDevice->CreateRenderTargetView(pBackBuffer.Get(), &colorDesc, _rtvViews.GetCpuHandle(i));
         pBackBuffer->SetName(nstd::to_wstring(fmt::format("SwapChainBuffer_{}", i)).c_str());
         _renderTargetResources[i] = pBackBuffer;
-	    GlobalResourceState::SetResourceState(pBackBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
+        GlobalResourceState::SetResourceState(pBackBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
     }
 }
 

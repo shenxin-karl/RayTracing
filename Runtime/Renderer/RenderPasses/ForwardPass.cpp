@@ -3,8 +3,14 @@
 #include "RenderObject/RenderObject.h"
 #include "RenderObject/StandardMaterial/StandardMaterial.h"
 
+void ForwardPass::OnCreate() {
+}
+
+void ForwardPass::OnDestroy() {
+}
+
 void ForwardPass::DrawBatchList(const std::vector<RenderObject *> &batchList,
-    const GlobalShaderParam &globalShaderParam) {
+                                const GlobalShaderParam &globalShaderParam) {
 
     size_t index = 0;
     while (index < batchList.size()) {
