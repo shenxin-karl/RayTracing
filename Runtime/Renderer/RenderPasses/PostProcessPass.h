@@ -6,8 +6,7 @@ struct PostProcessPassDrawArgs {
 	size_t width;
 	size_t height;
 	D3D12_CPU_DESCRIPTOR_HANDLE inputSRV;
-	D3D12_CPU_DESCRIPTOR_HANDLE outputUAV;
-	dx::ComputeContext *pComputeCtx;
+	dx::GraphicsContext *pGfxCtx;
 };
 
 class PostProcessPass : public NonCopyable {

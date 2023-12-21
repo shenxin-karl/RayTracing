@@ -139,3 +139,21 @@ float3 ACESFilm(float3 x)
     float e = 0.14f;
     return saturate((x*(a*x + b)) / (x*(c*x + d) + e));
 }
+
+
+float3 ApplyToneMapping(float3 input, int type) {
+	switch (type) {
+	case 0: return AMDTonemapper(input);
+	case 1: return DX11DSK(input);
+	case 2: return Reinhard(input);
+	case 3: return Uncharted2Tonemap(input);
+	case 4: return ACESFilm(input);
+	default:
+		return input;
+	}
+}
+
+float3 ApplyGammaCorrection(float3 input) {
+	static const float gamma = 2.2;
+	return pow(input, 1.f / gamma);
+}

@@ -67,7 +67,7 @@ auto StandardMaterialDataManager::GetPipelineState(StandardMaterial *pMaterial,
     }
 
     ShaderLoadInfo shaderLoadInfo;
-    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/StandardMaterial.hlsli");
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/StandardMaterial.hlsl");
     shaderLoadInfo.entryPoint = "VSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::eVS;
     shaderLoadInfo.pDefineList = &pMaterial->_defineList;

@@ -86,16 +86,18 @@ void GLTFSample::OnRender(GameTimer &timer) {
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     _pForwardPass->DrawBatchList(pRenderObjectMgr->GetOpaqueRenderObjects(), globalShaderParam);
     _pForwardPass->DrawBatchList(pRenderObjectMgr->GetAlphaTestRenderObjects(), globalShaderParam);
-    // SkyBox pass
+
+    // todo SkyBox pass
+
     _pForwardPass->DrawBatchList(pRenderObjectMgr->GetTransparentRenderObjects(), globalShaderParam);
 
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     PostProcessPassDrawArgs postProcessPassDrawArgs = {
         _width,
         _height,
         _renderTextureSRV.GetCpuHandle(),
-        _pSwapChain->GetCurrentBackBufferUAV(),
         pGfxCxt.get(),
     };
     _pPostProcessPass->Draw(postProcessPassDrawArgs);

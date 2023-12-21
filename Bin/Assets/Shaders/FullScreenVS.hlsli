@@ -5,12 +5,12 @@ static const float2 FullScreenVertsUVs[3] = { float2(0, 0), float2(2, 0), float2
 
 struct VertexOut {
 	float4 SVPosition	: SV_POSITION;
-	float2 texcoord0	: TEXCOORD0;
+	float2 uv			: TEXCOORD0;
 };
 
 VertexOut VSMain(uint vertexID : SV_VertexID) {
 	VertexOut vout;
 	vout.SVPosition = FullScreenVertsPos[vertexID];
-	vout.texcoord0 = FullScreenVertsUVs[vertexID];
+	vout.uv = FullScreenVertsUVs[vertexID];
 	return vout;
 }

@@ -2,6 +2,7 @@
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
 #include "D3d12/ShaderCompiler.h"
+#include "D3d12/SwapChain.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
 #include "ShaderLoader/ShaderManager.h"
@@ -12,22 +13,46 @@ void PostProcessPass::OnCreate() {
 	dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
 
 	_rootSignature.OnCreate(2);
-	_rootSignature.At(0).InitAsConstants(3, 0);		// CbSetting
+	_rootSignature.At(0).InitAsConstants(2, 0);		// CbSetting
 	_rootSignature.At(1).InitAsDescriptorTable({
 		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0),	// gInput
-		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0),	// gOutput
 	});
 	_rootSignature.Generate(pGfxDevice->GetDevice());
 
-	ShaderLoadInfo shaderLoadInfo = {};
-	shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/PostProcess.hlsli");
-	shaderLoadInfo.entryPoint = "CSMain";
-	shaderLoadInfo.shaderType = dx::ShaderType::eCS;
+	struct PipelineStateStream {
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+    };
 
-	D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
-	desc.pRootSignature = _rootSignature.GetRootSignature();
-	desc.CS = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
-	dx::ThrowIfFailed(device->CreateComputePipelineState(&desc, IID_PPV_ARGS(&_pPipelineState)));
+	ShaderLoadInfo vsShaderLoadInfo = {};
+	vsShaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/FullScreenVS.hlsli");
+	vsShaderLoadInfo.entryPoint = "VSMain";
+	vsShaderLoadInfo.shaderType = dx::ShaderType::eVS;
+
+	ShaderLoadInfo psShaderLoadInfo = {};
+	psShaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/PostProcessPS.hlsl");
+	psShaderLoadInfo.entryPoint = "PSMain";
+	psShaderLoadInfo.shaderType = dx::ShaderType::ePS;
+
+	PipelineStateStream pipelineDesc = {};
+	pipelineDesc.pRootSignature = _rootSignature.GetRootSignature();
+	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineDesc.VS = ShaderManager::GetInstance()->LoadShaderByteCode(vsShaderLoadInfo);
+	pipelineDesc.PS = ShaderManager::GetInstance()->LoadShaderByteCode(psShaderLoadInfo);
+
+	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+	rtvFormats.NumRenderTargets = 1;
+	rtvFormats.RTFormats[0] = pGfxDevice->GetSwapChain()->GetFormat();
+	pipelineDesc.RTVFormats = rtvFormats;
+
+	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+        sizeof(PipelineStateStream),
+        &pipelineDesc,
+    };
+    dx::ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&_pPipelineState)));
 }
 
 void PostProcessPass::OnDestroy() {
@@ -39,18 +64,13 @@ void PostProcessPass::Draw(const PostProcessPassDrawArgs &args) {
 	Assert(args.width > 0);
 	Assert(args.height > 0);
 
-
-	args.pComputeCtx->SetComputeRootSignature(&_rootSignature);
-	args.pComputeCtx->SetPipelineState(_pPipelineState.Get());
+	args.pGfxCtx->SetGraphicsRootSignature(&_rootSignature);
+	args.pGfxCtx->SetPipelineState(_pPipelineState.Get());
 
 	std::vector<dx::DWParam> constants;
 	constants.push_back(RenderSetting::Get().GetExposure());
 	constants.push_back(static_cast<int>(RenderSetting::Get().GetToneMapperType()));
-	args.pComputeCtx->SetCompute32Constants(0, constants);
-	args.pComputeCtx->SetDynamicViews(1, args.inputSRV, 0);
-	args.pComputeCtx->SetDynamicViews(1, args.outputUAV, 1);
-
-	UINT threadX = dx::AlignUp(args.width, 8);
-	UINT threadY = dx::AlignUp(args.height, 8);
-	args.pComputeCtx->Dispatch(threadX, threadY, 1);
+	args.pGfxCtx->SetGraphics32Constants(0, constants);
+	args.pGfxCtx->SetDynamicViews(1, args.inputSRV);
+	args.pGfxCtx->DrawInstanced(3, 1, 0, 0);
 }

@@ -50,7 +50,9 @@ void Pix::BeginFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
 
 void Pix::EndFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
     pDevice->WaitForGPUFlush();
-    dx::ThrowIfFailed(PIXEndCapture(false));
+    while(PIXEndCapture(false) == E_PENDING) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
 }
 
 void Pix::OpenCaptureInUI() {
