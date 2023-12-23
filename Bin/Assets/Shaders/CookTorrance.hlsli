@@ -112,7 +112,7 @@ float CalcAttenuation(float d, float falloffStart, float falloffEnd) {
 float3 ComputeDirectionLight(DirectionalLight light, MaterialData mat, float3 N, float3 V) {
     float3 L = light.direction;
     float NdotL = DIFF_SHADING_FACTOR(max(dot(N, L), 0.0));
-    float3 lightStrength = light.direction * NdotL * light.intensity;
+    float3 lightStrength = light.color * NdotL * light.intensity;
     return CookTorrance(lightStrength, L, N, V, mat, NdotL);
 }
 

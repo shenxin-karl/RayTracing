@@ -38,6 +38,7 @@ private:
 private:
     // clang-format off
 	Device							   *_pDevice;
+	const RootSignature				   *_pRootSignature;
 	size_t								_numDescriptorsPreHeap;
 	size_t								_descriptorHandleIncrementSize;
 	D3D12_DESCRIPTOR_HEAP_TYPE			_heapType;

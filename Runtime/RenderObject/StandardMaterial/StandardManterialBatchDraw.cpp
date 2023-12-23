@@ -14,6 +14,7 @@ void StandardMaterialBatchDraw::Draw(std::span<RenderObject *const> batch, const
     dx::RootSignature *pRootSignature = batch[0]->pMaterial->_pRootSignature;
     pGfxCtx->SetGraphicsRootSignature(pRootSignature);
     pGfxCtx->SetPipelineState(pPipelineState);
+    pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     pGfxCtx->SetGraphicsRootConstantBufferView(StandardMaterialDataManager::ePrePass,
         globalShaderParam.cbPrePassCBuffer);
@@ -52,7 +53,7 @@ void StandardMaterialBatchDraw::Draw(std::span<RenderObject *const> batch, const
         for (size_t i = index; i != batchIdx; ++i) {
             Transform *pTransform = batch[i]->pTransform;
             cbuffer::CbPreObject cbPreObject = cbuffer::MakeCbPreObject(pTransform);
-            pGfxCtx->SetComputeRootDynamicConstantBuffer(StandardMaterialDataManager::ePreObject, cbPreObject);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(StandardMaterialDataManager::ePreObject, cbPreObject);
 
             using TextureType = StandardMaterial::TextureType;
             StandardMaterial *pMaterial = batch[i]->pMaterial;
@@ -64,7 +65,7 @@ void StandardMaterialBatchDraw::Draw(std::span<RenderObject *const> batch, const
             cbMaterial.metalRoughnessTexIndex = GetTextureIndex(
                 pMaterial->_textureHandles[TextureType::eMetalRoughnessTex]);
             cbMaterial.normalTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eNormalTex]);
-            pGfxCtx->SetComputeRootDynamicConstantBuffer(StandardMaterialDataManager::eMaterial, cbMaterial);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(StandardMaterialDataManager::eMaterial, cbMaterial);
 
             Mesh *pMesh = batch[i]->pMesh;
             const GPUMeshData *pGpuMeshData = pMesh->GetGPUMeshData();

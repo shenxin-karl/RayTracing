@@ -41,7 +41,7 @@ StandardMaterial::StandardMaterial()
     _cbPreMaterial.roughness = 0.5f;
     _cbPreMaterial.metallic = 0.5f;
     _cbPreMaterial.normalScale = 1.f;
-    _cbPreMaterial.samplerStateIndex = eLinearClamp;
+    _cbPreMaterial.samplerStateIndex = eLinearWrap;
     _cbPreMaterial.albedoTexIndex = 0;
     _cbPreMaterial.ambientOcclusionTexIndex = 0;
     _cbPreMaterial.emissionTexIndex = 0;

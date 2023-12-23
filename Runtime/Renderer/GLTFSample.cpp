@@ -1,5 +1,7 @@
 #include "GLTFSample.h"
+#include "FrameCaptrue.h"
 #include "GfxDevice.h"
+#include "RenderSetting.h"
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
 #include "Components/Light.h"
@@ -10,6 +12,8 @@
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
+#include "InputSystem/InputSystem.h"
+#include "InputSystem/Keyboard.h"
 #include "Object/GameObject.h"
 #include "RenderPasses/ForwardPass.h"
 #include "SceneObject/GLTFLoader.h"
@@ -59,6 +63,11 @@ void GLTFSample::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
     _pFrameResourceRing->OnBeginFrame();
+    bool frameCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
+    if (frameCapture) {
+        FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+    }
+
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
@@ -71,7 +80,7 @@ void GLTFSample::OnRender(GameTimer &timer) {
     pGfxCxt->ClearRenderTargetView(_renderTextureRTV.GetCpuHandle(), Colors::Black);
     pGfxCxt->ClearDepthStencilView(_depthStencilDSV.GetCpuHandle(),
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-        0.f,
+        1.f,
         0);
     pGfxCxt->SetViewport(viewport);
     pGfxCxt->SetScissor(scissor);
@@ -93,6 +102,7 @@ void GLTFSample::OnRender(GameTimer &timer) {
 
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {
         _width,
@@ -102,6 +112,13 @@ void GLTFSample::OnRender(GameTimer &timer) {
     };
     _pPostProcessPass->Draw(postProcessPassDrawArgs);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
+    pFrameResource.ExecuteContexts(pGfxCxt.get());
+    _pSwapChain->Present();
+
+    if (frameCapture) {
+	    FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::OpenCaptureInUI();
+    }
 
     _pFrameResourceRing->OnEndFrame();
 }
@@ -164,7 +181,7 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     D3D12_CLEAR_VALUE depthStencilClearValue = {};
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();
-    depthStencilClearValue.DepthStencil.Depth = 0.f;
+    depthStencilClearValue.DepthStencil.Depth = 1.f;
     depthStencilClearValue.DepthStencil.Stencil = 0;
     _depthStencilTex.OnCreate(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
     _depthStencilTex.SetName("DepthStencilTexture");
@@ -188,6 +205,7 @@ void GLTFSample::InitRenderPass() {
 
 void GLTFSample::InitScene() {
     _pScene = SceneManager::GetInstance()->CreateScene("Scene");
+    RenderSetting::Get().SetExposure(1);
     SetupCamera();
     SetupLight();
     LoadGLTF();
@@ -196,27 +214,29 @@ void GLTFSample::InitScene() {
 void GLTFSample::SetupCamera() {
     SharedPtr<GameObject> pGameObject = GameObject::Create();
     pGameObject->AddComponent<Camera>();
-    pGameObject->AddComponent<CameraController>();
+    pGameObject->AddComponent<CameraController>()->cameraMoveSpeed = 50;
     Transform *pTransform = pGameObject->GetTransform();
-    pTransform->SetLocalPosition(glm::vec3(25, 10, 0));
-    pTransform->LookAt(glm::vec3(0));
+    pTransform->SetLocalPosition(glm::vec3(25, 10, -200));
+    pTransform->LookAt(glm::vec3(25, 10, 1));
     _pCameraGO = pGameObject.Get();
     _pScene->AddGameObject(pGameObject);
 }
 
 void GLTFSample::SetupLight() {
     SharedPtr<GameObject> pGameObject = GameObject::Create();
-    pGameObject->AddComponent<DirectionalLight>();
+    DirectionalLight *pDirectionalLight = pGameObject->AddComponent<DirectionalLight>();
+    pDirectionalLight->SetColor(glm::vec3(10.f));
 
     Transform *pTransform = pGameObject->GetTransform();
-    glm::vec3 direction = glm::normalize(glm::vec3(0, -0.7, 0.5));
-    glm::vec3 worldPosition(0, 1000, 0);
-    glm::quat worldRotation = glm::Direction2Quaternion(direction);
-    pTransform->SetWorldTRS(worldPosition, worldRotation, glm::vec3(1.f));
+    pTransform->SetLocalPosition(glm::vec3(-10, 10, 0));
+    pTransform->LookAt(glm::vec3(0.f));
+    _pScene->AddGameObject(pGameObject);
 }
 
 void GLTFSample::LoadGLTF() {
     GLTFLoader loader;
     loader.Load(AssetProjectSetting::ToAssetPath("Models/DamagedHelmet/DamagedHelmet.gltf"));
-    _pScene->AddGameObject(loader.GetRootGameObject());
+    SharedPtr<GameObject> pRootGameObject = loader.GetRootGameObject();
+    pRootGameObject->GetTransform()->SetLocalScale(glm::vec3(100.f));
+    _pScene->AddGameObject(pRootGameObject);
 }

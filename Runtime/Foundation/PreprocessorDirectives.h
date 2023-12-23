@@ -194,10 +194,6 @@
     Type(const Type &) = delete;                                                                                       \
     Type &operator=(const Type &) = delete
 
-#ifndef ENABLE_RENDER_DOC
-    #define ENABLE_RENDER_DOC 0
-#endif
-
 #ifdef __clang__
     #define __FUNCTION_NAME__ __PRETTY_FUNCTION__
 #elif defined(__GNUC__)

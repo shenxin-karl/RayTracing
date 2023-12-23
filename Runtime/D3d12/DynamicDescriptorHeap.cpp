@@ -17,6 +17,7 @@ DynamicDescriptorHeap::DynamicDescriptorHeap(Device *pDevice,
 }
 
 void DynamicDescriptorHeap::ParseRootSignature(const RootSignature *pRootSignature) {
+    _pRootSignature = pRootSignature;
     _staleDescriptorTableBitMask = pRootSignature->GetDescriptorTableBitMask(_heapType);
     const auto &rootParamDescriptorTableInfo = pRootSignature->GetRootParamDescriptorTableInfo(_heapType);
     for (size_t rootIndex = 0; rootIndex < kMaxRootParameter; ++rootIndex) {
@@ -31,6 +32,7 @@ void DynamicDescriptorHeap::Reset() {
     _currentCPUDescriptorHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(D3D12_DEFAULT);
     _currentGPUDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(D3D12_DEFAULT);
     _pCurrentDescriptorHeap = nullptr;
+    _pRootSignature = nullptr;
     _staleDescriptorTableBitMask.reset();
     _availableDescriptorHeaps = _descriptorHeapPool;
     for (std::size_t i = 0; i < kMaxRootParameter; ++i) {
@@ -44,29 +46,30 @@ void DynamicDescriptorHeap::StageDescriptors(size_t rootParameterIndex,
     size_t offset) {
 
     if (numDescriptors > 1) {
-	    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
-	    handles.reserve(numDescriptors);
-	    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(baseDescriptor);
-		for (size_t i = 0; i < numDescriptors; ++i) {
-			handles.push_back(handle);
-	        handle.Offset(_descriptorHandleIncrementSize);
-		}
-	    StageDescriptors(rootParameterIndex, handles, offset);
+        std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+        handles.reserve(numDescriptors);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(baseDescriptor);
+        for (size_t i = 0; i < numDescriptors; ++i) {
+            handles.push_back(handle);
+            handle.Offset(_descriptorHandleIncrementSize);
+        }
+        StageDescriptors(rootParameterIndex, handles, offset);
     } else {
-	    StageDescriptors(rootParameterIndex, baseDescriptor, offset);
+        StageDescriptors(rootParameterIndex, baseDescriptor, offset);
     }
 }
 
 void DynamicDescriptorHeap::StageDescriptors(size_t rootParameterIndex,
-	ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset) {
+    ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles,
+    size_t offset) {
 
     if (rootParameterIndex >= kMaxRootParameter) {
-	    Exception::Throw("Invalid RootParameterIndex: {}", rootParameterIndex);
+        Exception::Throw("Invalid RootParameterIndex: {}", rootParameterIndex);
     }
 
     size_t capacity = _descriptorTableCache[rootParameterIndex].capacity;
     if (!_descriptorTableCache[rootParameterIndex].enableBindless && (offset + handles.Count()) > capacity) {
-	    Exception::Throw("OutOfRange! rootParameterIndex: {}", rootParameterIndex);
+        Exception::Throw("OutOfRange! rootParameterIndex: {}", rootParameterIndex);
     }
 
     _descriptorTableCache[rootParameterIndex].Fill(offset, handles);
@@ -74,11 +77,11 @@ void DynamicDescriptorHeap::StageDescriptors(size_t rootParameterIndex,
 }
 
 void DynamicDescriptorHeap::CommitStagedDescriptorForDraw(NativeCommandList *pCommandList) {
-	CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+    CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
 }
 
 void DynamicDescriptorHeap::CommitStagedDescriptorForDispatch(NativeCommandList *pCommandList) {
-	CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+    CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
 }
 
 void DynamicDescriptorHeap::DescriptorTableCache::Reset(bool enableBindless, size_t capacity) {
@@ -87,7 +90,8 @@ void DynamicDescriptorHeap::DescriptorTableCache::Reset(bool enableBindless, siz
     std::ranges::fill(cachedHandles, D3D12_CPU_DESCRIPTOR_HANDLE(0));
 }
 
-void DynamicDescriptorHeap::DescriptorTableCache::Fill(size_t offset, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles) {
+void DynamicDescriptorHeap::DescriptorTableCache::Fill(size_t offset,
+    ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles) {
     size_t targetSize = offset + handles.Count();
     if (cachedHandles.size() < targetSize) {
         std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> newCachedHandles;
@@ -96,7 +100,7 @@ void DynamicDescriptorHeap::DescriptorTableCache::Fill(size_t offset, ReadonlyAr
         std::swap(cachedHandles, newCachedHandles);
     }
     for (size_t i = 0; i < handles.Count(); ++i) {
-	    cachedHandles[i + offset] = handles[i];
+        cachedHandles[i + offset] = handles[i];
     }
     count = std::max(count, offset + handles.Count());
 }
@@ -109,7 +113,7 @@ auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
     size_t numStaleDescriptors = 0;
     for (std::size_t i = 0; i < kMaxRootParameter; ++i) {
         if (_staleDescriptorTableBitMask[i]) {
-	        numStaleDescriptors += _descriptorTableCache[i].count;
+            numStaleDescriptors += _descriptorTableCache[i].count;
         }
     }
     return numStaleDescriptors;
@@ -122,13 +126,7 @@ void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandLi
     }
 
     if (_pCurrentDescriptorHeap == nullptr || _numFreeHandles < numStaleDescriptors) {
-        _staleDescriptorTableBitMask.reset();
-        for (size_t i = 0; i < kMaxRootParameter; ++i) {
-            if (_descriptorTableCache[i].capacity > 0) {
-			   _staleDescriptorTableBitMask.set(i, true);
-            }
-        }
-
+        _staleDescriptorTableBitMask = _pRootSignature->GetDescriptorTableBitMask(_heapType);
         _pCurrentDescriptorHeap = RequestDescriptorHeap();
         _currentCPUDescriptorHandle = _pCurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         _currentGPUDescriptorHandle = _pCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
@@ -159,6 +157,8 @@ void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandLi
         _numFreeHandles -= numDescriptors;
         (pCommandList->*commitFunc)(static_cast<UINT>(rootIndex), _currentGPUDescriptorHandle);
         _currentCPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
+            static_cast<UINT>(_descriptorHandleIncrementSize));
+        _currentGPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
             static_cast<UINT>(_descriptorHandleIncrementSize));
     }
     _staleDescriptorTableBitMask.reset();

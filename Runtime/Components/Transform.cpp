@@ -18,7 +18,7 @@ Transform::Transform()
 
 Transform::~Transform() {
     if (_pParent != nullptr) {
-		SetParent(nullptr);
+        SetParent(nullptr);
     }
 
     for (auto it = _children.begin(); it != _children.end(); ++it) {
@@ -102,10 +102,10 @@ void Transform::RemoveChild(Transform *pTransform) {
 
 auto Transform::GetLocalMatrix() const -> const glm::mat4x4 & {
     if (HasFlag(_dirtyFlag, eLocalMatrix)) {
-        _matWorld = MakeAffineMatrix(_translation, _rotation, _scale);
+        _matLocal = MakeAffineMatrix(_translation, _rotation, _scale);
         _dirtyFlag = ClearFlags(_dirtyFlag, eLocalMatrix);
     }
-    return _matWorld;
+    return _matLocal;
 }
 
 auto Transform::GetWorldMatrix() const -> const glm::mat4x4 & {
@@ -165,18 +165,18 @@ void Transform::GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::ve
 }
 
 void Transform::LookAt(const glm::vec3 &target, const glm::vec3 &up) {
-	glm::mat4 view = glm::lookAt(GetWorldPosition(), target, up);
-    glm::quat lookAtQuaternion = glm::quat_cast(view);
+    glm::vec3 direction = target - GetWorldPosition();
+    glm::quat lookAtQuaternion = glm::Direction2Quaternion(direction, up);
     glm::quat parentRotation = glm::identity<glm::quat>();
     if (_pParent != nullptr) {
-	    parentRotation = _pParent->GetWorldRotation();
+        parentRotation = _pParent->GetWorldRotation();
     }
     // W = lookAtQuaternion     target world Quaternion
     // P = parent world world quaternion
     // W = P * L
     // I_P * W = I_P * P * L
     // I_P * W = L
-	glm::quat localQuaternion = inverse(parentRotation) * lookAtQuaternion;
+    glm::quat localQuaternion = inverse(parentRotation) * lookAtQuaternion;
     SetLocalRotation(localQuaternion);
 }
 
@@ -208,7 +208,6 @@ void Transform::MakeChildrenDirty(TransformDirtyFlag flag) {
         pChild->_dirtyFlag = SetFlags(pChild->_dirtyFlag, flag);
     }
 }
-
 
 void Transform::SetParent(Transform *pTransform) {
     if (_pParent != pTransform) {

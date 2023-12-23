@@ -15,8 +15,8 @@ struct ComputeIn {
 [numthreads(8, 8, 1)]
 void CSMain(ComputeIn cin) {
 	float4 input = gInput[cin.DispatchThreadID.xy];
-	input.rgb *= exposure;
-	input.rgb = ApplyToneMapping(input.rgb, toneMapperType);
-	input.rgb = ApplyGammaCorrection(input.rgb);
+	// input.rgb *= exposure;
+	// input.rgb = ApplyToneMapping(input.rgb, toneMapperType);
+	// input.rgb = ApplyGammaCorrection(input.rgb);
 	gOutput[cin.DispatchThreadID.xy] = input;
 }

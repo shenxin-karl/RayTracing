@@ -58,11 +58,11 @@ void Camera::OnPreRender() {
     [[maybe_unused]] glm::vec3 scale;
     pTransform->GetWorldTRS(lookForm, lookQuat, scale);
 
-    glm::mat3x3 rotationMatrix = glm::mat3_cast(lookQuat);
-    glm::vec3 cameraUp = rotationMatrix[1];
-    glm::vec3 cameraForward = rotationMatrix[2];
+    auto &&[x, y, z] = glm::Quaternion2BasisAxis(lookQuat);
 
-    _matView = glm::lookAt(lookForm, lookForm + cameraForward, cameraUp);
+    glm::mat4x4 rotationMatrix = glm::mat4_cast(lookQuat);
+    glm::mat4x4 translationMatrix = glm::translate(rotationMatrix, -lookForm);
+    _matView = translationMatrix; glm::lookAt(lookForm, lookForm + z, glm::vec3(0, 1, 0));
     _matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
     _matViewProj = _matProj * _matView;
 

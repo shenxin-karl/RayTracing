@@ -38,10 +38,10 @@ void Logger::LogMessage(DebugLevel level, const std::source_location &location, 
         _logCallback(level, output);
     }
 
-#if PLATFORM_WIN
-    OutputDebugStringA(output.c_str());
-    OutputDebugStringA("\n");
-#endif
+//#if PLATFORM_WIN
+    //OutputDebugStringA(output.c_str());
+    //OutputDebugStringA("\n");
+//#endif
 }
 
 void Logger::OnCreate() {

@@ -30,6 +30,8 @@ public:
 	auto GetSubMeshes() const -> const std::vector<SubMesh> &;
 	auto GetGPUMeshData() const -> const GPUMeshData *;
 public:
+	void SetIndices(ReadonlyArraySpan<uint16_t> indices);
+	void SetIndices(ReadonlyArraySpan<int16_t> indices);
 	void SetVertices(ReadonlyArraySpan<glm::vec3> vertices);
 	void SetNormals(ReadonlyArraySpan<glm::vec3> normals);
 	void SetTangents(ReadonlyArraySpan<glm::vec4> tangents);

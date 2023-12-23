@@ -1,4 +1,6 @@
 #include "SimpleLighting.h"
+
+#include "FrameCaptrue.h"
 #include "D3d12/ASBuilder.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
@@ -15,8 +17,6 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
-#include "Modules/Pix/Pix.h"
-
 #include "Object/GameObject.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
@@ -114,7 +114,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     bool beginCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
     if (beginCapture) {
-        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
     Renderer::OnRender(timer);
@@ -177,8 +177,8 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     _pFrameResourceRing->OnEndFrame();
 
     if (beginCapture) {
-        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
-		Pix::OpenCaptureInUI();
+        FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+		FrameCapture::OpenCaptureInUI();
     }
 }
 

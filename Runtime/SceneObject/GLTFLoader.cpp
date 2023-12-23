@@ -160,6 +160,10 @@ auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh> {
         pMesh->SetUV0(uv0);
     }
 
+    if (indices.size() > 0) {
+	    pMesh->SetIndices(indices);
+    }
+
     pMesh->UploadMeshData(false);
     return pMesh;
 }
@@ -189,6 +193,8 @@ auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<Standard
     if (gltfMaterial.metalnessRoughnessMap.IsValid()) {
         std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
         pMaterial->SetTextures(StandardMaterial::eMetalRoughnessTex, pMetalRoughnessMap);
+        pMaterial->SetRoughness(1.f);
+        pMaterial->SetMetallic(1.f);
     }
     if (gltfMaterial.ambientOcclusionMap.IsValid()) {
         std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);

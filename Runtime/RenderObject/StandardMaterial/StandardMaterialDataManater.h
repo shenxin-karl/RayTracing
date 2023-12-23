@@ -12,8 +12,8 @@ public:
     enum RootParam {
 	    ePrePass    = 0,
         ePreObject  = 1,
-        eLighting   = 3,
-        eMaterial   = 2,
+        eLighting   = 2,
+        eMaterial   = 3,
         eTextureList = 4,
     };
 

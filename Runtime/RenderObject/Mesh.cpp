@@ -39,6 +39,18 @@ auto Mesh::GetGPUMeshData() const -> const GPUMeshData * {
     return _pGpuMeshData.get();
 }
 
+void Mesh::SetIndices(ReadonlyArraySpan<uint16_t> indices) {
+    Assert(indices.Count() == _pCpuMeshData->GetIndexCount());
+    auto ptr = _pCpuMeshData->GetIndicesBegin();
+    std::memcpy(ptr, indices.Data(), sizeof(uint16_t) * indices.Count());
+}
+
+void Mesh::SetIndices(ReadonlyArraySpan<int16_t> indices) {
+    Assert(indices.Count() == _pCpuMeshData->GetIndexCount());
+    auto ptr = _pCpuMeshData->GetIndicesBegin();
+    std::memcpy(ptr, indices.Data(), sizeof(uint16_t) * indices.Count());
+}
+
 template<typename T>
 static void fill(CPUMeshData::StrideIterator begin, CPUMeshData::StrideIterator end, ReadonlyArraySpan<T> data) {
     size_t index = 0;

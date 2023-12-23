@@ -76,7 +76,7 @@ Texture2D<float4>               gTextureList[]          : register(t0);
 VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
     float4 worldPosition = mul(gCbPreObject.gMatWorld, float4(vin.position, 1.0));
-    vout.SVPosition = mul(gCbPrePass.gMatViewProj, float4(vin.position, 1.0));
+    vout.SVPosition = mul(gCbPrePass.gMatViewProj, worldPosition);
     vout.position = worldPosition.xyz;
     vout.normal = mul((float3x3)gCbPreObject.gMatNormal, vin.normal);
     #if ENABLE_NORMAL_TEX

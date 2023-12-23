@@ -119,7 +119,7 @@ auto StandardMaterialDataManager::GetPipelineState(StandardMaterial *pMaterial,
         pipelineDesc.BlendDesc = blendDesc;
     }
 
-    D3D12_RT_FORMAT_ARRAY rtvFormats;
+    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.RTFormats[0] = pGfxDevice->GetRenderTargetFormat();
     rtvFormats.NumRenderTargets = 1;
     pipelineDesc.RTVFormats = rtvFormats;

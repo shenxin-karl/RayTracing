@@ -65,7 +65,9 @@ void CameraController::OnPostUpdate() {
         if (event._state == MouseState::Move) {
             float dx = static_cast<float>(event.x - _lastMousePosition.x) * mouseMoveSensitivity;
             float dy = static_cast<float>(event.y - _lastMousePosition.y) * mouseMoveSensitivity;
-            SetPitch(_pitch + dy);
+            //dx = -dx;
+            //dy = -dy;
+            SetPitch(_pitch - dy);
             SetYaw(_yaw + dx);
             _lastMousePosition = POINT{event.x, event.y};
         } /*else if (event._state == MouseState::Wheel) {
@@ -97,10 +99,11 @@ void CameraController::OnPostUpdate() {
     pTransform->GetLocalTRS(lookFrom, rotation, scale);
 
     if (advance != 0.f || deviation != 0.f || elevationRise != 0.f) {
-        glm::mat3x3 rotationMatrix = glm::mat3_cast(rotation);
-        const glm::vec3 &right = rotationMatrix[0];
-        const glm::vec3 &up = rotationMatrix[1];
-        const glm::vec3 &forward = rotationMatrix[2];
+        glm::vec3 right = {};
+        glm::vec3 up = {};
+        glm::vec3 forward = {};
+        glm::Quaternion2BasisAxis(rotation, right, up, forward);
+
         float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed;
         glm::vec3 offsetX = right * deviation;
         glm::vec3 offsetY = up * elevationRise;
@@ -109,8 +112,11 @@ void CameraController::OnPostUpdate() {
     }
     // todo: apply roll
 
-    rotation = glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
+    glm::vec3 front;
+    front.y = std::sin(glm::radians(_pitch));
+    front.x = std::cos(glm::radians(_pitch)) * std::sin(glm::radians(_yaw));
+    front.z = std::cos(glm::radians(_pitch)) * std::cos(glm::radians(_yaw));
+    rotation = glm::Direction2Quaternion(front);
     pTransform->SetLocalTRS(lookFrom, rotation, scale);
-
     std::ranges::fill(_moveState, false);
 }

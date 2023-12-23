@@ -1,7 +1,8 @@
-#include "RenderDoc.h"
-#include "Foundation/NamespeceAlias.h"
 #include <app/renderdoc_app.h>
 #include <Windows.h>
+#include "RenderDoc.h"
+#include "Foundation/NamespeceAlias.h"
+#include "D3d12/Device.h"
 #include "Foundation/Exception.h"
 
 #if PLATFORM_WIN
@@ -17,7 +18,6 @@ bool RenderDoc::IsLoaded() {
 }
 
 bool RenderDoc::Load() {
-#if ENABLE_RENDER_DOC
     if (IsLoaded()) {
         Exception::Throw("RenderDoc Is Loaded!");
         return true;
@@ -53,41 +53,31 @@ bool RenderDoc::Load() {
 
     InitRenderDocApi("renderdoc.dll");
     return sRenderDocApi != nullptr;
-#endif
-    return false;
 }
 
 void RenderDoc::Free() {
-#if ENABLE_RENDER_DOC
     if (sRenderDocDllModule) {
         FreeModule(sRenderDocDllModule);
         sRenderDocDllModule = nullptr;
     }
-#endif
 }
 
 void RenderDoc::BeginFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
-#if ENABLE_RENDER_DOC
     if (sRenderDocApi == nullptr) {
         return;
     }
     sRenderDocApi->StartFrameCapture(pDevice->GetNativeDevice(), pNativeWindowHandle);
-#endif
 }
 
 void RenderDoc::EndFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
-#if ENABLE_RENDER_DOC
     if (sRenderDocApi == nullptr) {
         return;
     }
-    sRenderDocApi->EndFrameCapture(pDevice, pNativeWindowHandle);
-#endif
+    sRenderDocApi->EndFrameCapture(pDevice->GetNativeDevice(), pNativeWindowHandle);
 }
 
 void RenderDoc::OpenCaptureInUI() {
-#if ENABLE_RENDER_DOC
     if (!sRenderDocApi->IsRemoteAccessConnected()) {
         sRenderDocApi->LaunchReplayUI(true, "");
     }
-#endif
 }

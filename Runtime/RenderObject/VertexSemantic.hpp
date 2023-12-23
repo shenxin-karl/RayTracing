@@ -105,8 +105,8 @@ constexpr size_t GetSemanticOffset(SemanticMask mask, SemanticIndex index) {
 
 	size_t offset = 0;
 	for (SemanticIndex i = SemanticIndex::eVertex; i != index; ++i) {
-		if (HasFlag(mask, SemanticMaskCast(index))) {
-			offset += GetSemanticInfo(index).dataSize;
+		if (HasFlag(mask, SemanticMaskCast(i))) {
+			offset += GetSemanticInfo(i).dataSize;
 		}
 	}
 	return offset;

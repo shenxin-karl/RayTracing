@@ -1,4 +1,6 @@
 #include "TriangleRenderer.h"
+
+#include "FrameCaptrue.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
@@ -14,7 +16,6 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
-#include "Modules/Pix/Pix.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -63,7 +64,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     InputSystem *pInputSystem = InputSystem::GetInstance();
     bool beginCapture = pInputSystem->pKeyboard->IsKeyClicked(VK_F11);
     if (beginCapture) {
-        Pix::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
     _pFrameResourceRing->OnBeginFrame();
@@ -112,8 +113,8 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     _pFrameResourceRing->OnEndFrame();
 
     if (beginCapture) {
-        Pix::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
-        Pix::OpenCaptureInUI();
+        FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::OpenCaptureInUI();
     }
 }
 

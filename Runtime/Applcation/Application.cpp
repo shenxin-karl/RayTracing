@@ -2,17 +2,16 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Window.h"
-#include "Modules/Pix/Pix.h"
 #include "Renderer/Renderer.h"
-#include "Modules/Renderdoc/RenderDoc.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "SceneObject/SceneManager.h"
 #include "TextureObject/TextureManager.h"
 #include "Utils/GlobalCallbacks.h"
 #include "Foundation/Memory/GarbageCollection.h"
-
 //#include "Render/TriangleRenderer.h"
+#include "D3d12/Device.h"
+#include "Renderer/FrameCaptrue.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/GLTFSample.h"
 #include "Renderer/SimpleLighting.h"
@@ -37,7 +36,7 @@ void Application::OnCreate() {
     AssetProjectSetting::GetInstance()->OnCreate();
     InputSystem *pInputSystem = InputSystem::GetInstance();
     pInputSystem->OnCreate("RayTracing", 1280, 720);
-    Pix::Load();
+    FrameCapture::Load();
     GfxDevice::GetInstance()->OnCreate(3,
         pInputSystem->pWindow->GetHWND(),
         DXGI_FORMAT_R16G16B16A16_FLOAT,
@@ -74,7 +73,7 @@ void Application::OnDestroy() {
     ShaderManager::GetInstance()->OnDestroy();
     GarbageCollection::GetInstance()->OnDestroy();
     GfxDevice::GetInstance()->OnDestroy();
-    Pix::Free();
+    FrameCapture::Free();
     InputSystem::GetInstance()->OnDestroy();
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
@@ -152,5 +151,6 @@ void Application::OnPostRender(GameTimer &timer) {
 
 void Application::OnResize(uint32_t width, uint32_t height) {
     GlobalCallbacks::Get().onResize.Invoke(width, height);
+    GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
     _pRenderer->OnResize(width, height);
 }

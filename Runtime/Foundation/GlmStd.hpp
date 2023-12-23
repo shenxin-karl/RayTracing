@@ -4,13 +4,15 @@
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <fmt/format.h>
 
 namespace glm {
 
-inline quat Direction2Quaternion(vec3 direction) {
+inline quat Direction2Quaternion(vec3 direction, glm::vec3 up = glm::vec3(0.f, 1.f, 0.f)) {
     direction = normalize(direction);
-    float angle = acos(dot(direction, vec3(0, 0, 1)));
-    return angleAxis(angle, cross(vec3(0, 0, 1), direction));
+    up = normalize(up);
+	mat4x4 view = lookAt(glm::vec3(0.f), direction, up);
+    return quat_cast(view);
 }
 
 inline mat4x4 MakeAffineMatrix(const vec3 &translation, const quat &rotation, const vec3 &scale) {
@@ -22,9 +24,21 @@ inline mat4x4 MakeAffineMatrix(const vec3 &translation, const quat &rotation, co
 inline void Quaternion2BasisAxis(quat q, vec3 &x, vec3 &y, vec3 &z) {
 	q = normalize(q);
     mat3 matrix = mat3_cast(q);
-    x = matrix[0];
-    y = matrix[1];
-    z = matrix[2];
+    x = vec3(matrix[0][0], matrix[1][0], matrix[2][0]);
+    y = vec3(matrix[0][1], matrix[1][1], matrix[2][1]);
+    z = vec3(matrix[0][2], matrix[1][2], matrix[2][2]);
+}
+
+struct BasisAxis {
+	vec3 x;
+    vec3 y;
+    vec3 z;
+};
+
+inline BasisAxis Quaternion2BasisAxis(quat q) {
+	BasisAxis ret;
+    Quaternion2BasisAxis(q, ret.x, ret.y, ret.z);
+    return ret;
 }
 
 // pitch, yaw, roll is degrees
@@ -37,3 +51,39 @@ inline mat4x4 WorldMatrixToNormalMatrix(const mat4x4 &world) {
 }
 
 }
+
+template<>
+struct fmt::formatter<glm::vec2> {
+    template<typename ParseContext>
+    static constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+    template<typename FormatContext>
+    auto format(const glm::vec2 &v, FormatContext &ctx) {
+        return fmt::format_to(ctx.out(), "({}, {})", v.x, v.y);
+    }
+};
+
+template<>
+struct fmt::formatter<glm::vec3> {
+    template<typename ParseContext>
+    static constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+    template<typename FormatContext>
+    auto format(const glm::vec3 &v, FormatContext &ctx) {
+        return fmt::format_to(ctx.out(), "({}, {}, {})", v.x, v.y, v.z);
+    }
+};
+
+template<>
+struct fmt::formatter<glm::vec4> {
+    template<typename ParseContext>
+    static constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+    template<typename FormatContext>
+    auto format(const glm::vec4 &v, FormatContext &ctx) {
+        return fmt::format_to(ctx.out(), "({}, {}, {}, {})", v.x, v.y, v.z, v.w);
+    }
+};

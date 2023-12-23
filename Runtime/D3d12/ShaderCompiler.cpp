@@ -185,6 +185,7 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
     if (makeDebugInfo) {
         arguments.push_back(L"-Zi");
         arguments.push_back(L"-Od");
+        arguments.push_back(L"-O0");
         arguments.push_back(L"-Qembed_debug");
     }
 

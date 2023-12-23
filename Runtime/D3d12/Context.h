@@ -126,6 +126,7 @@ public:
         float depth,
         UINT8 stencil,
         ReadonlyArraySpan<D3D12_RECT> rects = {});
+    void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
     void SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views);
     void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW &view);
     void DrawInstanced(UINT vertexCountPreInstance,
@@ -137,7 +138,6 @@ public:
         UINT startIndexLocation,
         UINT baseVertexLocation,
         UINT startInstanceLocation);
-    void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
     void SetGraphicsRootSignature(RootSignature *pRootSignature);
     void SetGraphics32Constant(UINT rootIndex, DWParam val, UINT offset = 0);
     void SetGraphics32Constants(UINT rootIndex, ReadonlyArraySpan<DWParam> span, UINT offset = 0);
@@ -145,6 +145,9 @@ public:
     void SetGraphicsRootConstantBufferView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetGraphicsRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetGraphicsRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
+
+    template<typename T>
+    void SetGraphicsRootDynamicConstantBuffer(UINT rootIndex, const T &data);
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eGraphics;
@@ -298,6 +301,9 @@ inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
 }
 
 inline void ComputeContext::Dispatch(UINT groupX, UINT groupY, UINT groupZ) {
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    FlushResourceBarriers();
     _pCommandList->Dispatch(groupX, groupY, groupZ);
 }
 
@@ -313,9 +319,9 @@ inline void ComputeContext::SetRayTracingPipelineState(ID3D12StateObject *pState
 }
 
 inline void ComputeContext::DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc) {
-    FlushResourceBarriers();
     _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
     _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    FlushResourceBarriers();
     _pCommandList->DispatchRays(&dispatchRaysDesc);
 }
 #endif
@@ -363,6 +369,10 @@ inline void GraphicsContext::ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE d
     _pCommandList->ClearDepthStencilView(dsv, clearFlags, depth, stencil, rects.Count(), rects.Data());
 }
 
+inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology) {
+    _pCommandList->IASetPrimitiveTopology(topology);
+}
+
 inline void GraphicsContext::SetVertexBuffers(UINT startSlot, ReadonlyArraySpan<D3D12_VERTEX_BUFFER_VIEW> views) {
     _pCommandList->IASetVertexBuffers(startSlot, views.Count(), views.Data());
 }
@@ -375,6 +385,9 @@ inline void GraphicsContext::DrawInstanced(UINT vertexCountPreInstance,
     UINT instanceCount,
     UINT startVertexLocation,
     UINT startInstanceLocation) {
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    FlushResourceBarriers();
     _pCommandList->DrawInstanced(vertexCountPreInstance, instanceCount, startVertexLocation, startInstanceLocation);
 }
 
@@ -383,6 +396,9 @@ inline void GraphicsContext::DrawIndexedInstanced(UINT indexCountPreInstance,
     UINT startIndexLocation,
     UINT baseVertexLocation,
     UINT startInstanceLocation) {
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    FlushResourceBarriers();
     _pCommandList->DrawIndexedInstanced(indexCountPreInstance,
         instanceCount,
         startIndexLocation,
@@ -390,11 +406,9 @@ inline void GraphicsContext::DrawIndexedInstanced(UINT indexCountPreInstance,
         startInstanceLocation);
 }
 
-inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology) {
-    _pCommandList->IASetPrimitiveTopology(topology);
-}
-
 inline void GraphicsContext::SetGraphicsRootSignature(RootSignature *pRootSignature) {
+    _dynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
+    _dynamicSampleDescriptorHeap.ParseRootSignature(pRootSignature);
     _pCommandList->SetGraphicsRootSignature(pRootSignature->GetRootSignature());
 }
 
@@ -426,6 +440,12 @@ inline void GraphicsContext::SetGraphicsRootShaderResourceView(UINT rootIndex,
 inline void GraphicsContext::SetGraphicsRootUnorderedAccessView(UINT rootIndex,
     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
     _pCommandList->SetGraphicsRootUnorderedAccessView(rootIndex, bufferLocation);
+}
+
+template <typename T>
+void GraphicsContext::SetGraphicsRootDynamicConstantBuffer(UINT rootIndex, const T &data) {
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLoc = _dynamicBufferAllocator.AllocConstantBuffer(sizeof(T), &data);
+    _pCommandList->SetGraphicsRootConstantBufferView(rootIndex, bufferLoc);
 }
 
 #pragma endregion

@@ -202,10 +202,10 @@ void RootSignature::Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
                     continue;
                 }
                 // enable bindless
+                _descriptorTableBitMap[descriptorTypeIndex].set(rootIndex);
                 if (range.Flags & D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE) {
                     _descriptorTableInfo[descriptorTypeIndex][rootIndex].enableBindless = true;
                 } else {
-                    _descriptorTableBitMap[descriptorTypeIndex].set(rootIndex);
                     _descriptorTableInfo[descriptorTypeIndex][rootIndex].numDescriptor += range.NumDescriptors;
                 }
             }

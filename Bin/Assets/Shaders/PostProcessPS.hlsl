@@ -11,6 +11,7 @@ cbuffer CbSetting : register(b0) {
 
 float4 PSMain(VertexOut pin) : SV_TARGET0 {
 	float4 input = gInput.SampleLevel(gLinearClamp, pin.uv, 0);
+	input *= exposure;
 	input.rgb = ApplyToneMapping(input.rgb, toneMapperType);
 	input.rgb = ApplyGammaCorrection(input.rgb);
 	return input;

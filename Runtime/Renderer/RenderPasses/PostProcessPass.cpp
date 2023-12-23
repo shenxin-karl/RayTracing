@@ -12,7 +12,8 @@ void PostProcessPass::OnCreate() {
 	GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 	dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
 
-	_rootSignature.OnCreate(2);
+	_rootSignature.OnCreate(2, 1);
+	_rootSignature.SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
 	_rootSignature.At(0).InitAsConstants(2, 0);		// CbSetting
 	_rootSignature.At(1).InitAsDescriptorTable({
 		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0),	// gInput
