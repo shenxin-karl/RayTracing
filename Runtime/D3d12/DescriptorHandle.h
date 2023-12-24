@@ -34,6 +34,9 @@ public:
     explicit operator bool() const {
         return IsValid();
     }
+    auto operator[](size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
+	    return GetCpuHandle(index);
+    }
 private:
     // clang-format off
 	uint32_t					_numHandle;

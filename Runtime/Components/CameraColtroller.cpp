@@ -65,8 +65,6 @@ void CameraController::OnPostUpdate() {
         if (event._state == MouseState::Move) {
             float dx = static_cast<float>(event.x - _lastMousePosition.x) * mouseMoveSensitivity;
             float dy = static_cast<float>(event.y - _lastMousePosition.y) * mouseMoveSensitivity;
-            //dx = -dx;
-            //dy = -dy;
             SetPitch(_pitch - dy);
             SetYaw(_yaw + dx);
             _lastMousePosition = POINT{event.x, event.y};
