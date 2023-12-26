@@ -92,11 +92,4 @@ void DescriptorHandle::Release() {
     _baseHandle = {};
 }
 
-auto DescriptorHandle::GetCpuHandle(size_t offset) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
-    Assert(offset < _numHandle);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(_baseHandle);
-    handle.Offset(static_cast<INT>(offset), static_cast<UINT>(_handleSize));
-    return handle;
-}
-
 }    // namespace dx

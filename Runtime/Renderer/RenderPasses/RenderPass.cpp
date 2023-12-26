@@ -1,6 +1,6 @@
 #include "RenderPass.h"
 #include "RenderObject/RenderObject.h"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/Material.h"
 
 void RenderPass::DrawBatchList(const std::vector<RenderObject *> &batchList, const DrawBatchListCallback &callback) {
     size_t index = 0;

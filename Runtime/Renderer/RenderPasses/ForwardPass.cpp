@@ -7,9 +7,11 @@
 #include "RenderObject/RenderGroup.hpp"
 #include "RenderObject/RenderObject.h"
 #include "RenderObject/VertexSemantic.hpp"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/Material.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
+#include "D3d12/BindlessCollection.hpp"
+#include "Renderer/RenderSetting.h"
 
 void ForwardPass::OnCreate() {
     _pRootSignature = std::make_unique<dx::RootSignature>();
@@ -60,51 +62,40 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
     pGfxCtx->SetGraphicsRootConstantBufferView(ePrePass, drawArgs.cbPrePassCBuffer);
     pGfxCtx->SetGraphicsRootConstantBufferView(eLighting, drawArgs.cbLightBuffer);
 
+    using TextureType = Material::TextureType;
+
     size_t index = 0;
     while (index < batch.size()) {
-        // collection texture srv
-        std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
-        std::unordered_map<D3D12_CPU_DESCRIPTOR_HANDLE, size_t> handleIndexMap;
-
-        auto GetTextureIndex = [&](const dx::SRV &srv) -> size_t {
-            auto iter = handleIndexMap.find(srv.GetCpuHandle());
-            if (iter != handleIndexMap.end()) {
-                return iter->second;
-            }
-            return 0;
-        };
+        dx::BindlessCollection bindlessCollection;
 
         size_t batchIdx = index;
-        while (batchIdx < batch.size() && handles.size() < dx::kDynamicDescriptorMaxView) {
-            StandardMaterial *pMaterial = batch[batchIdx]->pMaterial;
+        while (batchIdx < batch.size() && bindlessCollection.EnsureCapacity(TextureType::eMaxNum)) {
+            Material *pMaterial = batch[batchIdx]->pMaterial;
             for (dx::SRV &srv : pMaterial->_textureHandles) {
-                D3D12_CPU_DESCRIPTOR_HANDLE handle = srv.GetCpuHandle();
-                auto iter = handleIndexMap.find(handle);
-                if (iter == handleIndexMap.end()) {
-                    handles.push_back(handle);
-                    handleIndexMap.emplace_hint(iter, std::make_pair(handle, handles.size() - 1));
-                }
+                bindlessCollection.AddHandle(srv.GetCpuHandle());
             }
             ++batchIdx;
         }
 
         // texture list bindless
-        pGfxCtx->SetDynamicViews(eTextureList, handles);
+        pGfxCtx->SetDynamicViews(eTextureList, bindlessCollection.GetHandles());
         for (size_t i = index; i != batchIdx; ++i) {
             Transform *pTransform = batch[i]->pTransform;
             cbuffer::CbPreObject cbPreObject = cbuffer::MakeCbPreObject(pTransform);
             pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, cbPreObject);
 
-            using TextureType = StandardMaterial::TextureType;
-            StandardMaterial *pMaterial = batch[i]->pMaterial;
-            StandardMaterial::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;
-            cbMaterial.albedoTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eAlbedoTex]);
-            cbMaterial.ambientOcclusionTexIndex = GetTextureIndex(
-                pMaterial->_textureHandles[TextureType::eAmbientOcclusionTex]);
-            cbMaterial.emissionTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eEmissionTex]);
-            cbMaterial.metalRoughnessTexIndex = GetTextureIndex(
-                pMaterial->_textureHandles[TextureType::eMetalRoughnessTex]);
-            cbMaterial.normalTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eNormalTex]);
+            Material *pMaterial = batch[i]->pMaterial;
+            Material::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;
+            cbMaterial.albedoTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eAlbedoTex].GetCpuHandle());
+            cbMaterial.ambientOcclusionTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eAmbientOcclusionTex].GetCpuHandle());
+            cbMaterial.emissionTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eEmissionTex].GetCpuHandle());
+            cbMaterial.metalRoughnessTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eMetalRoughnessTex].GetCpuHandle());
+            cbMaterial.normalTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eNormalTex].GetCpuHandle());
             pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eMaterial, cbMaterial);
 
             Mesh *pMesh = batch[i]->pMesh;
@@ -126,13 +117,12 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
                 }
             }
         }
-
         index = batchIdx;
     }
 }
 
 auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState * {
-    StandardMaterial *pMaterial = pRenderObject->pMaterial;
+    Material *pMaterial = pRenderObject->pMaterial;
     auto iter = _pipelineStateMap.find(pMaterial->GetPipelineID());
     if (iter != _pipelineStateMap.end()) {
         return iter->second.Get();
@@ -157,6 +147,7 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
         CD3DX12_PIPELINE_STATE_STREAM_VS VS;
         CD3DX12_PIPELINE_STATE_STREAM_PS PS;
         CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendDesc;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
         CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
     };
@@ -169,6 +160,10 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
     pipelineDesc.VS = vsByteCode;
     pipelineDesc.PS = psByteCode;
     pipelineDesc.DSVFormat = pGfxDevice->GetDepthStencilFormat();
+
+    CD3DX12_DEPTH_STENCIL_DESC depthStencil(D3D12_DEFAULT);
+    depthStencil.DepthFunc = RenderSetting::Get().GetDepthFunc();
+    pipelineDesc.DepthStencil = depthStencil;
 
     SemanticMask meshSemanticMask = pRenderObject->pMesh->GetSemanticMask();
     SemanticMask pipelineSemanticMask = pMaterial->_pipelineSemanticMask;

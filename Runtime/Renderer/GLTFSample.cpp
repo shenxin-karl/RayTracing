@@ -80,7 +80,7 @@ void GLTFSample::OnRender(GameTimer &timer) {
     pGfxCxt->ClearRenderTargetView(_renderTextureRTV.GetCpuHandle(), Colors::Black);
     pGfxCxt->ClearDepthStencilView(_depthStencilDSV.GetCpuHandle(),
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-        1.f,
+        RenderSetting::Get().GetDepthClearValue(),
         0);
     pGfxCxt->SetViewport(viewport);
     pGfxCxt->SetScissor(scissor);
@@ -181,7 +181,7 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     D3D12_CLEAR_VALUE depthStencilClearValue = {};
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();
-    depthStencilClearValue.DepthStencil.Depth = 1.f;
+    depthStencilClearValue.DepthStencil.Depth = RenderSetting::Get().GetDepthClearValue();
     depthStencilClearValue.DepthStencil.Stencil = 0;
     _depthStencilTex.OnCreate(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
     _depthStencilTex.SetName("DepthStencilTexture");
@@ -205,7 +205,7 @@ void GLTFSample::InitRenderPass() {
 
 void GLTFSample::InitScene() {
     _pScene = SceneManager::GetInstance()->CreateScene("Scene");
-    RenderSetting::Get().SetExposure(1);
+    RenderSetting::Get().SetExposure(1.5f);
     SetupCamera();
     SetupLight();
     LoadGLTF();

@@ -2,7 +2,7 @@
 #include "Object/GameObject.h"
 #include "RenderObject/Mesh.h"
 #include "SceneObject/SceneManager.h"
-#include "RenderObject/StandardMaterial.h"
+#include "RenderObject/Material.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 
@@ -14,7 +14,7 @@ void MeshRenderer::SetMesh(std::shared_ptr<Mesh> pMesh) {
     _pMesh = std::move(pMesh);
 }
 
-void MeshRenderer::SetMaterial(std::shared_ptr<StandardMaterial> pMaterial) {
+void MeshRenderer::SetMaterial(std::shared_ptr<Material> pMaterial) {
     _pMaterial = std::move(pMaterial);
 }
 

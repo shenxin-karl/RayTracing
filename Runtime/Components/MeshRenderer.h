@@ -4,7 +4,7 @@
 #include "RenderObject/VertexSemantic.hpp"
 
 class Mesh;
-class StandardMaterial;
+class Material;
 class Scene;
 
 class MeshRenderer : public Component {
@@ -12,7 +12,7 @@ class MeshRenderer : public Component {
 public:
 	MeshRenderer();
 	void SetMesh(std::shared_ptr<Mesh> pMesh);
-	void SetMaterial(std::shared_ptr<StandardMaterial> pMaterial);
+	void SetMaterial(std::shared_ptr<Material> pMaterial);
 public:
 	void OnRemoveFormScene() override;
 	void OnAddToScene() override;
@@ -27,7 +27,7 @@ private:
 private:
 	// clang-format off
 	std::shared_ptr<Mesh>				_pMesh;
-	std::shared_ptr<StandardMaterial>	_pMaterial;
+	std::shared_ptr<Material>	_pMaterial;
 	CachedRenderData					_renderData;
 	// clang-format on
 };

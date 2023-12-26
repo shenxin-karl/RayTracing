@@ -11,13 +11,13 @@ namespace dx {
 class Texture;
 }
 
-class StandardMaterial : NonCopyable {
+class Material : NonCopyable {
 public:
     enum TextureType { eAlbedoTex, eAmbientOcclusionTex, eEmissionTex, eMetalRoughnessTex, eNormalTex, eMaxNum };
     enum SamplerAddressMode { ePointWrap, ePointClamp, eLinearWrap, eLinearClamp, eAnisotropicWrap, eAnisotropicClamp };
 public:
-    StandardMaterial();
-    ~StandardMaterial();
+    Material();
+    ~Material();
     void SetRenderGroup(uint16_t renderGroup);
     void SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv);
     void SetAlbedo(const glm::vec4 &albedo);
@@ -37,18 +37,18 @@ private:
         glm::vec4 albedo;
         glm::vec4 emission;
         glm::vec4 tilingAndOffset;
-        float     cutoff;
-        float     roughness;
-        float     metallic;
-        float     normalScale;
-        int       samplerStateIndex;
-        int       albedoTexIndex;
-        int       ambientOcclusionTexIndex;
-        int       emissionTexIndex;
-        int       metalRoughnessTexIndex;
-        int       normalTexIndex;
-        int       padding0;
-        int       padding1;
+        float cutoff;
+        float roughness;
+        float metallic;
+        float normalScale;
+        int samplerStateIndex;
+        int albedoTexIndex;
+        int ambientOcclusionTexIndex;
+        int emissionTexIndex;
+        int metalRoughnessTexIndex;
+        int normalTexIndex;
+        int padding0;
+        int padding1;
     };
 private:
     friend class ForwardPass;

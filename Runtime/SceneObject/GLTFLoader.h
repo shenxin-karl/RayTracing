@@ -15,7 +15,7 @@ class Texture;
 }
 
 class GameObject;
-class StandardMaterial;
+class Material;
 class GLTFLoader : NonCopyable {
 public:
     constexpr static int kDefaultLoadFlag = (aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded |
@@ -23,22 +23,22 @@ public:
     bool Load(stdfs::path path, int flag = kDefaultLoadFlag);
     auto GetRootGameObject() const -> SharedPtr<GameObject>;
 private:
-    struct Material;
+    struct GLTFMaterial;
     auto RecursiveBuildGameObject(aiNode *pAiNode) -> SharedPtr<GameObject>;
     auto BuildMeshRenderer(size_t meshIndex, aiMesh *pAiMesh) -> SharedPtr<MeshRenderer>;
     static auto BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh>;
-    auto BuildMaterial(size_t materialIndex) -> std::shared_ptr<StandardMaterial>;
+    auto BuildMaterial(size_t materialIndex) -> std::shared_ptr<Material>;
 private:
     // clang-format off
     const aiScene              *_pAiScene = nullptr;
     std::string                 _errorMessage;
-    std::vector<Material>       _materials;
+    std::vector<GLTFMaterial>       _materials;
     SharedPtr<GameObject>       _pRootGameObject;
     TextureLoader               _textureLoader;
     // clang-format on
 };
 
-struct GLTFLoader::Material {
+struct GLTFLoader::GLTFMaterial {
     struct Texture {
         bool IsValid() const {
             return (!path.empty() && fileExist) || (pTextureData != nullptr && textureDataSize > 0);
@@ -71,6 +71,6 @@ public:
     Texture metalnessRoughnessMap;
     Texture ambientOcclusionMap;
     TextureLoader *pTextureLoader = nullptr;
-    std::shared_ptr<StandardMaterial> pStdMaterial;
+    std::shared_ptr<::Material> pStdMaterial;
     std::unordered_map<Texture *, std::shared_ptr<dx::Texture>> textureMap;
 };

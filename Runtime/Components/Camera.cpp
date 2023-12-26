@@ -5,6 +5,7 @@
 #include "Transform.h"
 #include "Foundation/Logger.h"
 #include "Object/GameObject.h"
+#include "Renderer/RenderSetting.h"
 
 Camera::Camera() {
     _aspect = 1.f;
@@ -63,7 +64,13 @@ void Camera::OnPreRender() {
     glm::mat4x4 rotationMatrix = glm::mat4_cast(lookQuat);
     glm::mat4x4 translationMatrix = glm::translate(rotationMatrix, -lookForm);
     _matView = translationMatrix; glm::lookAt(lookForm, lookForm + z, glm::vec3(0, 1, 0));
-    _matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
+
+    if (RenderSetting::Get().GetReversedZ()) {
+		_matProj = glm::perspective(glm::radians(_fov), _aspect, _zFar, _zNear);
+    } else {
+		_matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
+    }
+
     _matViewProj = _matProj * _matView;
 
     _matInvView = inverse(_matView);

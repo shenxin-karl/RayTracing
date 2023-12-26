@@ -17,15 +17,17 @@ public:
     void OnResize(size_t width, size_t height);
     auto GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
 
+    // clang-format off
     struct DrawArgs {
-        dx::GraphicsContext *pGfxCtx = nullptr;
-        const cbuffer::CbPrePass *pCbPrePass = nullptr;
-        const cbuffer::CbLighting *pCbLighting = nullptr;
-        D3D12_GPU_VIRTUAL_ADDRESS cbPrePassCBuffer = 0;
-        D3D12_GPU_VIRTUAL_ADDRESS cbLightBuffer = 0;
-        ID3D12Resource             *pDepthBufferResource = nullptr;
-        D3D12_CPU_DESCRIPTOR_HANDLE depthBufferDSV = {};
+        dx::GraphicsContext         *pGfxCtx                = nullptr;
+        const cbuffer::CbPrePass    *pCbPrePass             = nullptr;
+        const cbuffer::CbLighting   *pCbLighting            = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS    cbPrePassCBuffer       = 0;
+        D3D12_GPU_VIRTUAL_ADDRESS    cbLightBuffer          = 0;
+        ID3D12Resource              *pDepthBufferResource   = nullptr;
+        D3D12_CPU_DESCRIPTOR_HANDLE  depthBufferDSV         = {};
     };
+    // clang-format on
 
     void PreDraw(const DrawArgs &args);
     void DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args);

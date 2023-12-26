@@ -1,4 +1,4 @@
-#include "StandardMaterial.h"
+#include "Material.h"
 #include "D3d12/Device.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
@@ -24,7 +24,7 @@ static const char *sTextureKeyword[] = {
 
 }    // namespace ShaderFeatures
 
-StandardMaterial::StandardMaterial()
+Material::Material()
     : _renderGroup(RenderGroup::eOpaque), _pipelineIDDirty(false), _pipelineSemanticMask(), _pipelineID(0) {
 
     _cbPreMaterial.albedo = Colors::White;
@@ -44,70 +44,70 @@ StandardMaterial::StandardMaterial()
     _cbPreMaterial.padding1 = 0;
 }
 
-StandardMaterial::~StandardMaterial() {
+Material::~Material() {
 }
 
-void StandardMaterial::SetRenderGroup(uint16_t renderGroup) {
+void Material::SetRenderGroup(uint16_t renderGroup) {
     _renderGroup = renderGroup;
     _defineList.Set(ShaderFeatures::sEnableAlphaTest, (RenderGroup::IsAlphaTest(renderGroup)));
     _pipelineIDDirty = true;
 }
 
-void StandardMaterial::SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv) {
+void Material::SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv) {
     _textures[textureType] = std::move(pTexture);
     _defineList.Set(ShaderFeatures::sTextureKeyword[textureType], _textures[textureType] != nullptr);
     _pipelineIDDirty = true;
 
     _textureHandles[textureType] = dx::SRV{};
     if (_textures[textureType] != nullptr) {
-        _textureHandles[textureType] = std::move(srv); 
+        _textureHandles[textureType] = std::move(srv);
     }
 }
 
-void StandardMaterial::SetAlbedo(const glm::vec4 &albedo) {
+void Material::SetAlbedo(const glm::vec4 &albedo) {
     _cbPreMaterial.albedo = albedo;
 }
 
-void StandardMaterial::SetEmission(const glm::vec4 &emission) {
+void Material::SetEmission(const glm::vec4 &emission) {
     _cbPreMaterial.emission = emission;
 }
 
-void StandardMaterial::SetTillingAndOffset(const glm::vec4 &tilingAndOffset) {
+void Material::SetTillingAndOffset(const glm::vec4 &tilingAndOffset) {
     _cbPreMaterial.tilingAndOffset = tilingAndOffset;
 }
 
-void StandardMaterial::SetCutoff(float cutoff) {
+void Material::SetCutoff(float cutoff) {
     _cbPreMaterial.cutoff = cutoff;
 }
 
-void StandardMaterial::SetRoughness(float roughness) {
+void Material::SetRoughness(float roughness) {
     _cbPreMaterial.roughness = roughness;
 }
 
-void StandardMaterial::SetMetallic(float metallic) {
+void Material::SetMetallic(float metallic) {
     _cbPreMaterial.metallic = metallic;
 }
 
-void StandardMaterial::SetNormalScale(float normalScale) {
+void Material::SetNormalScale(float normalScale) {
     _cbPreMaterial.normalScale = normalScale;
 }
 
-void StandardMaterial::SetSamplerAddressMode(SamplerAddressMode mode) {
+void Material::SetSamplerAddressMode(SamplerAddressMode mode) {
     _cbPreMaterial.samplerStateIndex = mode;
 }
 
 static std::vector<size_t> sPipelineIDList = {};
 size_t GetPipelineIDByHash(size_t hash) {
-	for (size_t i = 0; i < sPipelineIDList.size(); ++i) {
-		if (sPipelineIDList[i] == hash) {
-			return i;
-		}
-	}
+    for (size_t i = 0; i < sPipelineIDList.size(); ++i) {
+        if (sPipelineIDList[i] == hash) {
+            return i;
+        }
+    }
     sPipelineIDList.push_back(hash);
-    return sPipelineIDList.size()-1;
+    return sPipelineIDList.size() - 1;
 }
 
-bool StandardMaterial::UpdatePipelineID(SemanticMask meshSemanticMask) {
+bool Material::UpdatePipelineID(SemanticMask meshSemanticMask) {
     _pipelineSemanticMask = SemanticMask::eNormal | SemanticMask::eVertex;
     if (_textures[eNormalTex] != nullptr) {
         _pipelineSemanticMask = SetFlags(_pipelineSemanticMask, SemanticMask::eTangent);
@@ -139,15 +139,14 @@ bool StandardMaterial::UpdatePipelineID(SemanticMask meshSemanticMask) {
     return true;
 }
 
-bool StandardMaterial::PipelineIDDirty() const {
+bool Material::PipelineIDDirty() const {
     return _pipelineIDDirty;
 }
 
-auto StandardMaterial::GetRenderGroup() const -> uint16_t {
+auto Material::GetRenderGroup() const -> uint16_t {
     return _renderGroup;
 }
 
-auto StandardMaterial::GetPipelineID() const -> uint16_t {
+auto Material::GetPipelineID() const -> uint16_t {
     return _pipelineID;
 }
-

@@ -21,7 +21,15 @@ public:
         DescriptorPage *pPage);
 public:
     void Release();
-    auto GetCpuHandle(size_t offset = 0) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
+    auto GetCpuHandle(size_t offset) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
+        Assert(offset < _numHandle);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(_baseHandle);
+        handle.Offset(static_cast<INT>(offset), static_cast<UINT>(_handleSize));
+        return handle;
+    }
+    auto GetCpuHandle() const -> D3D12_CPU_DESCRIPTOR_HANDLE {
+        return _baseHandle;
+    }
     auto GetNumHandle() const -> size_t {
         return _numHandle;
     }
@@ -35,7 +43,7 @@ public:
         return IsValid();
     }
     auto operator[](size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
-	    return GetCpuHandle(index);
+        return GetCpuHandle(index);
     }
 private:
     // clang-format off
@@ -57,19 +65,3 @@ class SRV       final : public DescriptorHandle {};
 // clang-format on
 
 }    // namespace dx
-
-template<>
-struct std::hash<D3D12_CPU_DESCRIPTOR_HANDLE> {
-    using argument_type = D3D12_CPU_DESCRIPTOR_HANDLE;
-    using result_type = size_t;
-
-    [[nodiscard]]
-    result_type
-    operator()(const argument_type &handle) const noexcept {
-        return std::hash<size_t>{}(handle.ptr);
-    }
-};
-
-inline bool operator==(D3D12_CPU_DESCRIPTOR_HANDLE lhs, D3D12_CPU_DESCRIPTOR_HANDLE rhs) {
-	return lhs.ptr == rhs.ptr;
-} 

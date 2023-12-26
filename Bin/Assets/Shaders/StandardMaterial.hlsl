@@ -165,8 +165,6 @@ float4 PSMain(VertexOut pin) : SV_TARGET {
     float ao = GetAmbientOcclusion(pin);
     float3 N = GetNormal(pin);
     float3 V = normalize(gCbPrePass.gCameraPos - pin.position);
-    float3 L = gCbLighting.directionalLight.direction;
-    float3 H = normalize(V + L);
 
     MaterialData materialData = CalcMaterialData(albedo, roughness, metallic);
     float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);

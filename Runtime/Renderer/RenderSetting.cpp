@@ -10,6 +10,7 @@ RenderSetting::RenderSetting() {
 	_ambientIntensity = 1.f;
 	_toneMapperType = ToneMapperType::eAMDToneMapper;
 	_exposure = 1.f;
+	_reversedZ = true;
 }
 
 void RenderSetting::SetAmbientColor(glm::vec3 ambientColor) {

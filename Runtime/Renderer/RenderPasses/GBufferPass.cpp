@@ -26,20 +26,29 @@ void GBufferPass::OnDestroy() {
 void GBufferPass::OnResize(size_t width, size_t height) {
     GfxDevice *pDevice = GfxDevice::GetInstance();
 
+    D3D12_CLEAR_VALUE clearValue;
+    clearValue.Color[0] = 0.f;
+    clearValue.Color[1] = 0.f;
+    clearValue.Color[2] = 0.f;
+    clearValue.Color[3] = 1.f;
+
     _gBuffer0.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer0Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height);
     gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-    _gBuffer0.OnCreate(pDevice->GetDevice(), gBuffer0Desc, D3D12_RESOURCE_STATE_COMMON);
+    clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    _gBuffer0.OnCreate(pDevice->GetDevice(), gBuffer0Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
     _gBuffer1.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer1Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, width, height);
     gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-    _gBuffer1.OnCreate(pDevice->GetDevice(), gBuffer1Desc, D3D12_RESOURCE_STATE_COMMON);
+    clearValue.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    _gBuffer1.OnCreate(pDevice->GetDevice(), gBuffer1Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
     _gBuffer2.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer2Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R11G11B10_FLOAT, width, height);
     gBuffer2Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-    _gBuffer2.OnCreate(pDevice->GetDevice(), gBuffer2Desc, D3D12_RESOURCE_STATE_COMMON);
+    clearValue.Format = DXGI_FORMAT_R11G11B10_FLOAT;
+    _gBuffer2.OnCreate(pDevice->GetDevice(), gBuffer2Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
     auto CreateView = [=](dx::Texture &texture, D3D12_CPU_DESCRIPTOR_HANDLE rtv, D3D12_CPU_DESCRIPTOR_HANDLE srv) {
         dx::NativeDevice *device = pDevice->GetDevice()->GetNativeDevice();
@@ -95,7 +104,7 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
 
     args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_WRITE);
     args.pGfxCtx->ClearDepthStencilView(args.depthBufferDSV,
-        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_DEPTH,
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
         RenderSetting::Get().GetDepthClearValue(),
         0);
 }
@@ -104,7 +113,10 @@ void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const 
     if (batchList.empty()) {
         return;
     }
+
+    
 }
 
 void GBufferPass::PostDraw(const DrawArgs &args) {
+
 }
