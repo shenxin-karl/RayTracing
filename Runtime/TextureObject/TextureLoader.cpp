@@ -1,4 +1,4 @@
-#include "TextureManager.h"
+#include "TextureLoader.h"
 #include "DDSLoader.h"
 #include "WICLoader.h"
 #include "Foundation/PathUtils.h"
@@ -11,18 +11,9 @@
 #include "D3d12/UploadHeap.h"
 #include "Foundation/Formatter.hpp"
 #include <ranges>
+#include "Renderer/GfxDevice.h"
 
-void TextureManager::OnCreate() {
-}
-
-void TextureManager::OnDestroy() {
-    for (std::shared_ptr<dx::Texture> &pTexture : _textureMap | std::views::values) {
-	    pTexture->OnDestroy();
-    }
-    _textureMap.clear();
-}
-
-auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap, bool makeSRGB) -> std::shared_ptr<dx::Texture> {
+auto TextureLoader::LoadFromFile(stdfs::path path, bool forceSRGB) -> std::shared_ptr<dx::Texture> {
     if (!path.is_absolute()) {
         path = stdfs::absolute(path);
     }
@@ -57,16 +48,61 @@ auto TextureManager::LoadFromFile(stdfs::path path, dx::UploadHeap *pUploadHeap,
     if (pImageLoader == nullptr) {
         Exception::Throw("Unsupported extended file formats: {}", extension);
     }
-
     pImageLoader->Load(path, 1.f);
-    std::shared_ptr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), pUploadHeap, makeSRGB);
+    std::shared_ptr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), forceSRGB);
     pTexture->SetName(path.string());
     _textureMap[path] = pTexture;
     return pTexture;
 }
 
-auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pUploadHeap, bool makeSRGB)
-    -> std::shared_ptr<dx::Texture> {
+auto TextureLoader::GetSRV2D(const dx::Texture *pTexture) -> dx::SRV {
+    auto iter = _srv2DMap.find(pTexture);
+    if (iter != _srv2DMap.end()) {
+	    return iter->second;
+    }
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    dx::Device *pDevice = pGfxDevice->GetDevice();
+
+    dx::SRV srv = pDevice->AllocDescriptor<dx::SRV>(1);
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+    desc.Format = pTexture->GetFormat();
+    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    desc.Texture2D.MostDetailedMip = 0;
+    desc.Texture2D.MipLevels = pTexture->GetMipCount();
+    desc.Texture2D.PlaneSlice = 0;
+    desc.Texture2D.ResourceMinLODClamp = 0.f;
+    pDevice->GetNativeDevice()->CreateShaderResourceView(pTexture->GetResource(), &desc, srv.GetCpuHandle());
+    _srv2DMap.emplace_hint(iter, std::make_pair(pTexture, srv));
+    return srv;
+}
+
+auto TextureLoader::GetSRVCube(const dx::Texture *pTexture) -> dx::SRV {
+    Assert(pTexture->GetDepthOrArraySize() == 6);
+    auto iter = _srvCubeMap.find(pTexture);
+    if (iter != _srvCubeMap.end()) {
+	    return iter->second;
+    }
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    dx::NativeDevice *device= pGfxDevice->GetDevice()->GetNativeDevice();
+
+    dx::SRV srv = pGfxDevice->GetDevice()->AllocDescriptor<dx::SRV>(1);
+    D3D12_SHADER_RESOURCE_VIEW_DESC view = {};
+    view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    view.Format = pTexture->GetFormat();
+    view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    view.TextureCube.MostDetailedMip = 0;
+    view.TextureCube.MipLevels = pTexture->GetMipCount();
+    view.TextureCube.ResourceMinLODClamp = 0.f;
+    device->CreateShaderResourceView(pTexture->GetResource(), &view, srv.GetCpuHandle());
+    _srvCubeMap.emplace_hint(iter, std::make_pair(pTexture, srv));
+    return srv;
+}
+
+auto TextureLoader::UploadTexture(dx::IImageLoader *pLoader, bool forceSRGB) -> std::shared_ptr<dx::Texture> {
+	dx::UploadHeap *pUploadHeap = GfxDevice::GetInstance()->GetUploadHeap();
 
     std::shared_ptr<dx::Texture> pTexture = std::make_shared<dx::Texture>();
     dx::ImageHeader imageHeader = pLoader->GetImageHeader();
@@ -81,7 +117,7 @@ auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pU
         0,
         D3D12_RESOURCE_FLAG_NONE);
 
-    if (makeSRGB) {
+    if (forceSRGB) {
 		textureDesc.Format = dx::GetSRGBFormat(textureDesc.Format);    
     }
     pTexture->OnCreate(pDevice, textureDesc, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -113,6 +149,7 @@ auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pU
                 placedTex2D[mip].Footprint.RowPitch,
                 (placedTex2D[mip].Footprint.Width * bytePP) / pixelsPerBlock,
                 num_rows[mip]);
+
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT slice = placedTex2D[mip];
             slice.Offset += (pixels - pUploadHeap->GetBasePtr());
 
@@ -126,6 +163,5 @@ auto TextureManager::UploadTexture(dx::IImageLoader *pLoader, dx::UploadHeap *pU
 	    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
     UINT subResources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     pUploadHeap->AddPostUploadTranslation(pTexture->GetResource(), state, subResources);
-
     return pTexture;
 }

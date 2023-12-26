@@ -43,3 +43,13 @@ void RenderSetting::SetExposure(float exposure) {
 auto RenderSetting::GetExposure() const -> float {
 	return _exposure;
 }
+
+void RenderSetting::SetReversedZ(bool enable) {
+	_reversedZ = enable;
+}
+
+bool RenderSetting::GetReversedZ() const {
+	return _reversedZ;
+}
+
+

@@ -8,10 +8,10 @@
 #include "Object/GameObject.h"
 #include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
-#include "RenderObject/StandardMaterial/StandardMaterial.h"
+#include "RenderObject/StandardMaterial.h"
 #include "RenderObject/VertexSemantic.hpp"
 #include "TextureObject/DDSLoader.h"
-#include "TextureObject/TextureManager.h"
+#include "TextureObject/TextureLoader.h"
 #include "TextureObject/WICLoader.h"
 
 bool GLTFLoader::Load(stdfs::path path, int flag) {
@@ -33,7 +33,7 @@ bool GLTFLoader::Load(stdfs::path path, int flag) {
         if (flags[pAiMesh->mMaterialIndex]) {
             continue;
         }
-        _materials[pAiMesh->mMaterialIndex].Create(directory, _pAiScene, pAiMaterial);
+        _materials[pAiMesh->mMaterialIndex].Create(&_textureLoader, directory, _pAiScene, pAiMaterial);
         flags[pAiMesh->mMaterialIndex] = true;
     }
 
@@ -180,30 +180,36 @@ auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<Standard
     pMaterial->SetCutoff(gltfMaterial.alphaCutoff);
     if (gltfMaterial.baseColorMap.IsValid()) {
         std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
-        pMaterial->SetTextures(StandardMaterial::eAlbedoTex, pBaseTexture);
+        dx::SRV srv = _textureLoader.GetSRV2D(pBaseTexture.get());
+        pMaterial->SetTextures(StandardMaterial::eAlbedoTex, pBaseTexture, std::move(srv));
     }
     if (gltfMaterial.normalMap.IsValid()) {
         std::shared_ptr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap, false);
-        pMaterial->SetTextures(StandardMaterial::eNormalTex, pNormalMap);
+        dx::SRV srv = _textureLoader.GetSRV2D(pNormalMap.get());
+        pMaterial->SetTextures(StandardMaterial::eNormalTex, pNormalMap, std::move(srv));
     }
     if (gltfMaterial.emissionMap.IsValid()) {
         std::shared_ptr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap, false);
-        pMaterial->SetTextures(StandardMaterial::eEmissionTex, pEmissionMap);
+        dx::SRV srv = _textureLoader.GetSRV2D(pEmissionMap.get());
+        pMaterial->SetTextures(StandardMaterial::eEmissionTex, pEmissionMap, std::move(srv));
     }
     if (gltfMaterial.metalnessRoughnessMap.IsValid()) {
         std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
-        pMaterial->SetTextures(StandardMaterial::eMetalRoughnessTex, pMetalRoughnessMap);
+        dx::SRV srv = _textureLoader.GetSRV2D(pMetalRoughnessMap.get());
+        pMaterial->SetTextures(StandardMaterial::eMetalRoughnessTex, pMetalRoughnessMap, std::move(srv));
         pMaterial->SetRoughness(1.f);
         pMaterial->SetMetallic(1.f);
     }
     if (gltfMaterial.ambientOcclusionMap.IsValid()) {
         std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);
-        pMaterial->SetTextures(StandardMaterial::eAmbientOcclusionTex, pAmbientOcclusionMap);
+        dx::SRV srv = _textureLoader.GetSRV2D(pAmbientOcclusionMap.get());
+        pMaterial->SetTextures(StandardMaterial::eAmbientOcclusionTex, pAmbientOcclusionMap, std::move(srv));
     }
     return pMaterial;
 }
 
-void GLTFLoader::Material::Create(stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial) {
+void GLTFLoader::Material::Create(TextureLoader *pTextureLoader, stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial) {
+    this->pTextureLoader = pTextureLoader;
     if (!ProcessTexture(baseColorMap, directory, pAiScene, pAiMaterial, aiTextureType_BASE_COLOR)) {
         ProcessTexture(baseColorMap, directory, pAiScene, pAiMaterial, aiTextureType_DIFFUSE);
     }
@@ -239,9 +245,10 @@ auto GLTFLoader::Material::LoadTexture(Texture &texture, bool makeSRGB) -> std::
         return it->second;
     }
 
-    bool loadSuccess = false;
+    std::shared_ptr<dx::Texture> pTexture = nullptr;
     std::unique_ptr<dx::IImageLoader> pImageLoader;
     if (texture.pTextureData != nullptr) {
+	    bool loadSuccess = false;
 	    if (texture.extension == "DDS" || texture.extension == "dds") {
 		    std::unique_ptr<MemoryDDSLoader> pLoader = std::make_unique<MemoryDDSLoader>();
             loadSuccess = pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
@@ -251,25 +258,12 @@ auto GLTFLoader::Material::LoadTexture(Texture &texture, bool makeSRGB) -> std::
             loadSuccess = pLoader->Load(texture.pTextureData.get(), texture.textureDataSize, 0.f);
             pImageLoader = std::move(pLoader);
 	    }
-    } else {
-	    if (texture.extension == "DDS" || texture.extension == "dds") {
-		    std::unique_ptr<FileDDSLoader> pLoader = std::make_unique<FileDDSLoader>();
-            loadSuccess = pLoader->Load(texture.path, 0.f);
-            pImageLoader = std::move(pLoader);
-	    } else {
-		    std::unique_ptr<WICLoader> pLoader = std::make_unique<WICLoader>();
-            loadSuccess = pLoader->Load(texture.path, 0.f);
-            pImageLoader = std::move(pLoader);
+	    if (loadSuccess) {
+            pTexture = TextureLoader::UploadTexture(pImageLoader.get(), makeSRGB);
 	    }
+    } else {
+		pTextureLoader->LoadFromFile(texture.path, makeSRGB);
     }
-
-    if (!loadSuccess) {
-	    return nullptr;
-    }
-
-    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    std::shared_ptr<dx::Texture> pTexture = TextureManager::GetInstance()->UploadTexture(
-	    pImageLoader.get(), pGfxDevice->GetUploadHeap(), makeSRGB);
 
     textureMap[&texture] = pTexture;
     return pTexture;

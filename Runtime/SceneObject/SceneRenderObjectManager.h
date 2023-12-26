@@ -8,15 +8,13 @@ class RenderObjectKey {
 	uint64_t key2;
 public:
 	RenderObjectKey();
-	void SetMaterialID(uint16_t materialID);
-	auto GetMaterialID() const -> uint16_t;
-	void SetPipelineID(uint16_t variantID);
-	auto GetPipelineID() const -> uint16_t;
 	void SetRenderGroup(uint16_t renderGroup);
 	auto GetRenderGroup() const -> uint16_t;
-	void SetDepthSquare(double depthSqr);
 	void SetPriority(uint16_t priority);
 	auto GetPriority() const -> uint16_t;
+	void SetPipelineID(uint32_t variantID);
+	auto GetPipelineID() const -> uint32_t;
+	void SetDepthSquare(double depthSqr);
 	friend std::strong_ordering operator<=>(const RenderObjectKey &, const RenderObjectKey &);
 };
 

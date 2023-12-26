@@ -1,57 +1,212 @@
 #include "ForwardPass.h"
+#include "D3d12/Device.h"
 #include "Foundation/Logger.h"
+#include "Renderer/GfxDevice.h"
+#include "RenderObject/GPUMeshData.h"
+#include "RenderObject/Mesh.h"
+#include "RenderObject/RenderGroup.hpp"
 #include "RenderObject/RenderObject.h"
-#include "RenderObject/StandardMaterial/StandardMaterial.h"
+#include "RenderObject/VertexSemantic.hpp"
+#include "RenderObject/StandardMaterial.h"
+#include "ShaderLoader/ShaderManager.h"
+#include "Utils/AssetProjectSetting.h"
 
 void ForwardPass::OnCreate() {
+    _pRootSignature = std::make_unique<dx::RootSignature>();
+    _pRootSignature->OnCreate(5, 6);
+    _pRootSignature->At(0).InitAsBufferCBV(0);    // gCbPrePass;
+    _pRootSignature->At(1).InitAsBufferCBV(1);    // gCbPreObject;
+    _pRootSignature->At(2).InitAsBufferCBV(3);    // gCbLighting;
+    _pRootSignature->At(3).InitAsBufferCBV(2);    // gCbMaterial;
+
+    CD3DX12_DESCRIPTOR_RANGE1 range = {
+        D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+        static_cast<UINT>(-1),
+        0,
+        0,
+        D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+    };
+    _pRootSignature->At(4).InitAsDescriptorTable({range});    // gTextureList
+
+    D3D12_STATIC_SAMPLER_DESC samplers[6] = {
+        dx::GetPointWrapStaticSampler(0),
+        dx::GetPointClampStaticSampler(1),
+        dx::GetLinearWrapStaticSampler(2),
+        dx::GetLinearClampStaticSampler(3),
+        dx::GetAnisotropicWrapStaticSampler(4),
+        dx::GetAnisotropicClampStaticSampler(5),
+    };
+    _pRootSignature->SetStaticSamplers(samplers);
+    _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
 }
 
 void ForwardPass::OnDestroy() {
+    _pRootSignature = nullptr;
 }
 
-void ForwardPass::DrawBatchList(const std::vector<RenderObject *> &batchList,
-                                const GlobalShaderParam &globalShaderParam) {
+void ForwardPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &drawArgs) {
+    DrawBatchList(batchList, [&](std::span<RenderObject *const> batch) { DrawBatchInternal(batch, drawArgs); });
+}
+
+void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const DrawArgs &drawArgs) {
+    dx::GraphicsContext *pGfxCtx = drawArgs.pGfxCtx;
+
+    // bind pipeline state object
+    ID3D12PipelineState *pPipelineState = GetPipelineState(batch.front());
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetPipelineState(pPipelineState);
+    pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    pGfxCtx->SetGraphicsRootConstantBufferView(ePrePass, drawArgs.cbPrePassCBuffer);
+    pGfxCtx->SetGraphicsRootConstantBufferView(eLighting, drawArgs.cbLightBuffer);
 
     size_t index = 0;
-    while (index < batchList.size()) {
-        size_t materialID = batchList[index]->pMaterial->GetMaterialID();
-        size_t pipelineID = batchList[index]->pMaterial->GetPipelineID();
-        size_t first = index++;
-        while (index < batchList.size()) {
-            if (materialID == batchList[index]->pMaterial->GetMaterialID() &&
-                pipelineID == batchList[index]->pMaterial->GetPipelineID()) {
-	            ++index;
-            } else {
-	            break;
+    while (index < batch.size()) {
+        // collection texture srv
+        std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+        std::unordered_map<D3D12_CPU_DESCRIPTOR_HANDLE, size_t> handleIndexMap;
+
+        auto GetTextureIndex = [&](const dx::SRV &srv) -> size_t {
+            auto iter = handleIndexMap.find(srv.GetCpuHandle());
+            if (iter != handleIndexMap.end()) {
+                return iter->second;
+            }
+            return 0;
+        };
+
+        size_t batchIdx = index;
+        while (batchIdx < batch.size() && handles.size() < dx::kDynamicDescriptorMaxView) {
+            StandardMaterial *pMaterial = batch[batchIdx]->pMaterial;
+            for (dx::SRV &srv : pMaterial->_textureHandles) {
+                D3D12_CPU_DESCRIPTOR_HANDLE handle = srv.GetCpuHandle();
+                auto iter = handleIndexMap.find(handle);
+                if (iter == handleIndexMap.end()) {
+                    handles.push_back(handle);
+                    handleIndexMap.emplace_hint(iter, std::make_pair(handle, handles.size() - 1));
+                }
+            }
+            ++batchIdx;
+        }
+
+        // texture list bindless
+        pGfxCtx->SetDynamicViews(eTextureList, handles);
+        for (size_t i = index; i != batchIdx; ++i) {
+            Transform *pTransform = batch[i]->pTransform;
+            cbuffer::CbPreObject cbPreObject = cbuffer::MakeCbPreObject(pTransform);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, cbPreObject);
+
+            using TextureType = StandardMaterial::TextureType;
+            StandardMaterial *pMaterial = batch[i]->pMaterial;
+            StandardMaterial::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;
+            cbMaterial.albedoTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eAlbedoTex]);
+            cbMaterial.ambientOcclusionTexIndex = GetTextureIndex(
+                pMaterial->_textureHandles[TextureType::eAmbientOcclusionTex]);
+            cbMaterial.emissionTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eEmissionTex]);
+            cbMaterial.metalRoughnessTexIndex = GetTextureIndex(
+                pMaterial->_textureHandles[TextureType::eMetalRoughnessTex]);
+            cbMaterial.normalTexIndex = GetTextureIndex(pMaterial->_textureHandles[TextureType::eNormalTex]);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eMaterial, cbMaterial);
+
+            Mesh *pMesh = batch[i]->pMesh;
+            const GPUMeshData *pGpuMeshData = pMesh->GetGPUMeshData();
+            pGfxCtx->SetVertexBuffers(0, pGpuMeshData->GetVertexBufferView());
+            if (pMesh->GetIndexCount() > 0) {
+                pGfxCtx->SetIndexBuffer(pGpuMeshData->GetIndexBufferView());
+            }
+
+            for (const SubMesh &subMesh : pMesh->GetSubMeshes()) {
+                if (subMesh.indexCount > 0) {
+                    pGfxCtx->DrawIndexedInstanced(subMesh.indexCount,
+                        1,
+                        subMesh.baseIndexLocation,
+                        subMesh.baseVertexLocation,
+                        0);
+                } else {
+                    pGfxCtx->DrawInstanced(subMesh.vertexCount, 1, subMesh.baseVertexLocation, 0);
+                }
             }
         }
 
-        if (materialID >= sMaterialBatchDrawItems.size()) {
-	        Logger::Error("No BatchDraw object was found for MaterialID: {}", materialID);
-            break;
-        }
-
-        size_t count = index - first;
-        std::span batch = { batchList.begin() + first, count };
-		sMaterialBatchDrawItems[materialID].pMaterialBatchDraw->Draw(batch, globalShaderParam);
+        index = batchIdx;
     }
 }
 
-auto ForwardPass::RegisterMaterialBatchDraw(std::string_view materialTypeName,
-	std::unique_ptr<IMaterialBatchDraw> pMaterialBatchDraw) -> uint16_t {
-    MainThread::EnsureMainThread();
-#if !MODE_RELEASE
-    for (auto &item : sMaterialBatchDrawItems) {
-	    if (item.materialTypeName == materialTypeName) {
-		    Exception::Throw("Register material batch d again");
-	    }
+auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState * {
+    StandardMaterial *pMaterial = pRenderObject->pMaterial;
+    auto iter = _pipelineStateMap.find(pMaterial->GetPipelineID());
+    if (iter != _pipelineStateMap.end()) {
+        return iter->second.Get();
     }
-#endif
 
-    uint16_t materialID = sMaterialBatchDrawItems.size();
-    Assert(pMaterialBatchDraw != nullptr);
-    sMaterialBatchDrawItems.push_back({ materialTypeName, std::move(pMaterialBatchDraw) });
-    return materialID;
+    ShaderLoadInfo shaderLoadInfo;
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/StandardMaterial.hlsl");
+    shaderLoadInfo.entryPoint = "VSMain";
+    shaderLoadInfo.shaderType = dx::ShaderType::eVS;
+    shaderLoadInfo.pDefineList = &pMaterial->_defineList;
+    D3D12_SHADER_BYTECODE vsByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
+    Assert(vsByteCode.pShaderBytecode != nullptr);
+
+    shaderLoadInfo.entryPoint = "PSMain";
+    shaderLoadInfo.shaderType = dx::ShaderType::ePS;
+    D3D12_SHADER_BYTECODE psByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
+
+    struct PipelineStateStream {
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+        CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendDesc;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+    };
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+
+    PipelineStateStream pipelineDesc = {};
+    pipelineDesc.pRootSignature = _pRootSignature->GetRootSignature();
+    pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipelineDesc.VS = vsByteCode;
+    pipelineDesc.PS = psByteCode;
+    pipelineDesc.DSVFormat = pGfxDevice->GetDepthStencilFormat();
+
+    SemanticMask meshSemanticMask = pRenderObject->pMesh->GetSemanticMask();
+    SemanticMask pipelineSemanticMask = pMaterial->_pipelineSemanticMask;
+    auto inputLayouts = SemanticMaskToVertexInputElements(meshSemanticMask, pipelineSemanticMask);
+    pipelineDesc.InputLayout = D3D12_INPUT_LAYOUT_DESC{
+        inputLayouts.data(),
+        static_cast<UINT>(inputLayouts.size()),
+    };
+
+    if (RenderGroup::IsTransparent(pMaterial->_renderGroup)) {
+        CD3DX12_BLEND_DESC blendDesc(D3D12_DEFAULT);
+        D3D12_RENDER_TARGET_BLEND_DESC rt0BlendDesc = {};
+        rt0BlendDesc.BlendEnable = true;
+        rt0BlendDesc.LogicOpEnable = false;
+        rt0BlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+        rt0BlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        rt0BlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+        rt0BlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+        rt0BlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+        rt0BlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0] = rt0BlendDesc;
+        pipelineDesc.BlendDesc = blendDesc;
+    }
+
+    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+    rtvFormats.RTFormats[0] = pGfxDevice->GetRenderTargetFormat();
+    rtvFormats.NumRenderTargets = 1;
+    pipelineDesc.RTVFormats = rtvFormats;
+
+    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+        sizeof(PipelineStateStream),
+        &pipelineDesc,
+    };
+
+    dx::WRL::ComPtr<ID3D12PipelineState> pPipelineState;
+    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
+    dx::ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&pPipelineState)));
+
+    _pipelineStateMap[pMaterial->GetPipelineID()] = pPipelineState;
+    return pPipelineState.Get();
 }
-
-std::vector<ForwardPass::MaterialBatchDrawItem> ForwardPass::sMaterialBatchDrawItems = {};

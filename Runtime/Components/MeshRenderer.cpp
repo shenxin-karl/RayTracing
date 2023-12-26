@@ -2,7 +2,7 @@
 #include "Object/GameObject.h"
 #include "RenderObject/Mesh.h"
 #include "SceneObject/SceneManager.h"
-#include "RenderObject/StandardMaterial/StandardMaterial.h"
+#include "RenderObject/StandardMaterial.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 
@@ -36,9 +36,9 @@ void MeshRenderer::OnPreRender() {
     }
 
     if (_pMesh->GetSemanticMask() != _renderData.meshSemanticMask ||
-        _pMaterial.get() != _renderData.renderObject.pMaterial || _pMaterial->PipelineStateDirty()) {
+        _pMaterial.get() != _renderData.renderObject.pMaterial || _pMaterial->PipelineIDDirty()) {
         _renderData.meshSemanticMask = _pMesh->GetSemanticMask();
-        _renderData.shouldRender = _pMaterial->UpdatePipelineState(_renderData.meshSemanticMask);
+        _renderData.shouldRender = _pMaterial->UpdatePipelineID(_renderData.meshSemanticMask);
         _renderData.renderObject.pMaterial = _pMaterial.get();
         _renderData.renderObject.pMesh = _pMesh.get();
         _renderData.renderObject.pTransform = GetGameObject()->GetTransform();

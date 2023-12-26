@@ -27,7 +27,7 @@
 #include "Components/CameraColtroller.h"
 #include "Components/Transform.h"
 #include "D3d12/UploadHeap.h"
-#include "TextureObject/TextureManager.h"
+#include "TextureObject/TextureLoader.h"
 
 static const wchar_t *sMyRayGenShader = L"MyRaygenShader";
 static const wchar_t *sClosestHitShader = L"MyClosestHitShader";
@@ -358,19 +358,10 @@ void SimpleLighting::BuildAccelerationStructure() {
 
 void SimpleLighting::LoadCubeMap() {
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
-    _pCubeMap = TextureManager::GetInstance()->LoadFromFile(path, _pUploadHeap);
 
-    _cubeMapHandle = _pDevice->AllocDescriptor<dx::SRV>(1);
-    D3D12_SHADER_RESOURCE_VIEW_DESC view = {};
-    view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-    view.Format = _pCubeMap->GetFormat();
-    view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    view.TextureCube.MostDetailedMip = 0;
-    view.TextureCube.MipLevels = _pCubeMap->GetMipCount();
-    view.TextureCube.ResourceMinLODClamp = 0.f;
-
-    dx::NativeDevice *device = _pDevice->GetNativeDevice();
-    device->CreateShaderResourceView(_pCubeMap->GetResource(), &view, _cubeMapHandle.GetCpuHandle());
+    TextureLoader textureLoader;
+    _pCubeMap = textureLoader.LoadFromFile(path);
+    _cubeMapHandle = textureLoader.GetSRVCube(_pCubeMap.get());
 }
 
 void SimpleLighting::InitScene() {

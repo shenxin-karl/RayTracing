@@ -3,25 +3,9 @@
 #include "RenderObject/RenderGroup.hpp"
 #include "Components/Transform.h"
 #include "RenderObject/RenderObject.h"
-#include "RenderObject/StandardMaterial/StandardMaterial.h"
+#include "RenderObject/StandardMaterial.h"
 
 RenderObjectKey::RenderObjectKey() : key1(0), key2(0) {
-}
-
-void RenderObjectKey::SetMaterialID(uint16_t materialID) {
-    key1 = (key1 | static_cast<uint64_t>(materialID) << 16);
-}
-
-auto RenderObjectKey::GetMaterialID() const -> uint16_t {
-    return (key1 & (0x00000000FFFF0000)) >> 16;
-}
-
-void RenderObjectKey::SetPipelineID(uint16_t variantID) {
-    key1 = (key1 | variantID);
-}
-
-auto RenderObjectKey::GetPipelineID() const -> uint16_t {
-    return key1 & (0x000000000000FFFF);
 }
 
 void RenderObjectKey::SetRenderGroup(uint16_t renderGroup) {
@@ -32,6 +16,22 @@ auto RenderObjectKey::GetRenderGroup() const -> uint16_t {
     return (key1 & 0xFFFF000000000000) >> 48;
 }
 
+void RenderObjectKey::SetPriority(uint16_t priority) {
+    key1 = (key1 | static_cast<uint64_t>(priority) << 32);
+}
+
+auto RenderObjectKey::GetPriority() const -> uint16_t {
+    return (key1 & 0x0000FFFF0000000) >> 32;
+}
+
+void RenderObjectKey::SetPipelineID(uint32_t variantID) {
+    key1 = (key1 | variantID);
+}
+
+auto RenderObjectKey::GetPipelineID() const -> uint32_t {
+    return key1 & (0x00000000FFFFFFFF);
+}
+
 void RenderObjectKey::SetDepthSquare(double depthSqr) {
     uint64_t integerDepthSqr = std::bit_cast<uint64_t>(depthSqr);
     if (RenderGroup::IsTransparent(GetRenderGroup())) {
@@ -40,13 +40,6 @@ void RenderObjectKey::SetDepthSquare(double depthSqr) {
     key2 = integerDepthSqr;
 }
 
-void RenderObjectKey::SetPriority(uint16_t priority) {
-    key1 = (key1 | static_cast<uint64_t>(priority) << 32);
-}
-
-auto RenderObjectKey::GetPriority() const -> uint16_t {
-    return (key1 & 0x0000FFFF0000000) >> 32;
-}
 
 void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCameraPos) {
     struct Item {
@@ -60,8 +53,7 @@ void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCamer
         RenderObject *pRenderObject = _renderObjects[i];
         Item item;
         item.key.SetRenderGroup(pRenderObject->pMaterial->GetRenderGroup());
-        item.key.SetPriority(0);
-        item.key.SetMaterialID(pRenderObject->pMaterial->GetMaterialID());
+        item.key.SetPriority(pRenderObject->priority);
         item.key.SetPipelineID(pRenderObject->pMaterial->GetPipelineID());
 
         glm::vec3 vector = worldCameraPos - pRenderObject->pTransform->GetWorldPosition();

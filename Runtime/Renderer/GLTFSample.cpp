@@ -85,20 +85,20 @@ void GLTFSample::OnRender(GameTimer &timer) {
     pGfxCxt->SetViewport(viewport);
     pGfxCxt->SetScissor(scissor);
 
-    GlobalShaderParam globalShaderParam = {};
-    globalShaderParam.pGfxCtx = pGfxCxt.get();
-    globalShaderParam.pCbPrePass = &_cbPrePass;
-    globalShaderParam.pCbLighting = &_cbLighting;
-    globalShaderParam.cbPrePassCBuffer = pGfxCxt->AllocConstantBuffer(_cbPrePass);
-    globalShaderParam.cbLightBuffer = pGfxCxt->AllocConstantBuffer(_cbLighting);
+    ForwardPass::DrawArgs forwardPassDrawArgs = {};
+    forwardPassDrawArgs.pGfxCtx = pGfxCxt.get();
+    forwardPassDrawArgs.pCbPrePass = &_cbPrePass;
+    forwardPassDrawArgs.pCbLighting = &_cbLighting;
+    forwardPassDrawArgs.cbPrePassCBuffer = pGfxCxt->AllocConstantBuffer(_cbPrePass);
+    forwardPassDrawArgs.cbLightBuffer = pGfxCxt->AllocConstantBuffer(_cbLighting);
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
-    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetOpaqueRenderObjects(), globalShaderParam);
-    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetAlphaTestRenderObjects(), globalShaderParam);
+    _pForwardPass->DrawBatch(pRenderObjectMgr->GetOpaqueRenderObjects(), forwardPassDrawArgs);
+    _pForwardPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), forwardPassDrawArgs);
 
     // todo SkyBox pass
 
-    _pForwardPass->DrawBatchList(pRenderObjectMgr->GetTransparentRenderObjects(), globalShaderParam);
+    _pForwardPass->DrawBatch(pRenderObjectMgr->GetTransparentRenderObjects(), forwardPassDrawArgs);
 
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);

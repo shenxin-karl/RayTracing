@@ -1,33 +1,44 @@
 #pragma once
+#include <d3d12.h>
 #include "Foundation/GlmStd.hpp"
 #include "Foundation/NonCopyable.h"
 
 enum class ToneMapperType {
-	eAMDToneMapper,
-	eDX11SDK,
-	eReinhard,
-	eUncharted2ToneMap,
-	eACESFilm
+    eAMDToneMapper,
+    eDX11SDK,
+    eReinhard,
+    eUncharted2ToneMap,
+    eACESFilm,
 };
 
 class RenderSetting final : NonCopyable {
 public:
-	static auto Get() -> RenderSetting &;
-	RenderSetting();
+    static auto Get() -> RenderSetting &;
+    RenderSetting();
 public:
-	void SetAmbientColor(glm::vec3 ambientColor);
-	auto GetAmbientColor() const -> glm::vec3;
-	void SetAmbientIntensity(float ambientIntensity);
-	auto GetAmbientIntensity() const -> float;
-	void SetToneMapperType(ToneMapperType toneMapperType);
-	auto GetToneMapperType() const -> ToneMapperType;
-	void SetExposure(float exposure);
-	auto GetExposure() const -> float;
+    void SetAmbientColor(glm::vec3 ambientColor);
+    auto GetAmbientColor() const -> glm::vec3;
+    void SetAmbientIntensity(float ambientIntensity);
+    auto GetAmbientIntensity() const -> float;
+    void SetToneMapperType(ToneMapperType toneMapperType);
+    auto GetToneMapperType() const -> ToneMapperType;
+    void SetExposure(float exposure);
+    auto GetExposure() const -> float;
+    void SetReversedZ(bool enable);
+    bool GetReversedZ() const;
+public:
+    auto GetDepthClearValue() const -> float {
+        return _reversedZ ? 0.f : 1.f;
+    }
+    auto GetDepthFunc() const -> D3D12_COMPARISON_FUNC {
+        return _reversedZ ? D3D12_COMPARISON_FUNC_GREATER : D3D12_COMPARISON_FUNC_LESS;
+    }
 private:
-	// clang-format off
+    // clang-format off
 	glm::vec3			_ambientColor;
 	float				_ambientIntensity;
 	ToneMapperType		_toneMapperType;
 	float				_exposure;
-	// clang-format on
+	bool				_reversedZ;
+    // clang-format on
 };

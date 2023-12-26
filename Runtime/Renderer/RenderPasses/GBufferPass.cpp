@@ -1,9 +1,10 @@
 #include "GBufferPass.h"
-
 #include "D3d12/Context.h"
 #include "D3d12/D3dUtils.h"
 #include "D3d12/Device.h"
+#include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
+#include "Renderer/RenderSetting.h"
 
 GBufferPass::GBufferPass() : _width(0), _height(0) {
 }
@@ -83,17 +84,20 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
     args.pGfxCtx->SetViewport(viewport);
     args.pGfxCtx->SetScissor(scissor);
 
-    auto TranslationAndClearRT =
-        [&](ID3D12Resource *pResource, D3D12_CLEAR_VALUE clearValue) {
-            args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            //args.pGfxCtx->ClearRenderTargetView(pResource, clearValue.Color);
-        };
+    auto TranslationAndClearRT = [&](ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE rtv, glm::vec4 color) {
+        args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        args.pGfxCtx->ClearRenderTargetView(rtv, color);
+    };
 
-    args.pGfxCtx->Transition(_gBuffer0.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    args.pGfxCtx->Transition(_gBuffer1.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    args.pGfxCtx->Transition(_gBuffer2.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    TranslationAndClearRT(_gBuffer0.GetResource(), _gBufferRTV[0], Colors::White);
+    TranslationAndClearRT(_gBuffer1.GetResource(), _gBufferRTV[1], Colors::White);
+    TranslationAndClearRT(_gBuffer2.GetResource(), _gBufferRTV[2], Colors::White);
+
     args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-    //args.pGfxCtx->ClearRenderTargetView()
+    args.pGfxCtx->ClearDepthStencilView(args.depthBufferDSV,
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_DEPTH,
+        RenderSetting::Get().GetDepthClearValue(),
+        0);
 }
 
 void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args) {

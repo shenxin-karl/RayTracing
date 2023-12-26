@@ -8,6 +8,7 @@
 #include "Foundation/Memory/SharedPtr.hpp"
 #include "Foundation/ColorUtil.hpp"
 #include "RenderObject/RenderGroup.hpp"
+#include "TextureObject/TextureLoader.h"
 
 namespace dx {
 class Texture;
@@ -33,6 +34,7 @@ private:
     std::string                 _errorMessage;
     std::vector<Material>       _materials;
     SharedPtr<GameObject>       _pRootGameObject;
+    TextureLoader               _textureLoader;
     // clang-format on
 };
 
@@ -51,7 +53,7 @@ struct GLTFLoader::Material {
         // clang-format on
     };
 public:
-    void Create(stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial);
+    void Create(TextureLoader *pTextureLoader, stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial);
     auto LoadTexture(Texture &texture, bool makeSRGB) -> std::shared_ptr<dx::Texture>;
 private:
     bool ProcessTexture(Texture &texture,
@@ -68,6 +70,7 @@ public:
     Texture emissionMap;
     Texture metalnessRoughnessMap;
     Texture ambientOcclusionMap;
+    TextureLoader *pTextureLoader = nullptr;
     std::shared_ptr<StandardMaterial> pStdMaterial;
     std::unordered_map<Texture *, std::shared_ptr<dx::Texture>> textureMap;
 };

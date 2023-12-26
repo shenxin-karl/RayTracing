@@ -1,31 +1,34 @@
 #pragma once
-#include "Foundation/NonCopyable.h"
-#include "GlobalShaderParam.hpp"
+#include "RenderObject/ConstantBufferHelper.h"
+#include "RenderPass.h"
 
-struct RenderObject;
-struct IMaterialBatchDraw : private NonCopyable {
-    virtual void Draw(std::span<RenderObject *const> batch, const GlobalShaderParam &globalShaderParam) = 0;
-    virtual ~IMaterialBatchDraw() = default;
-};
-
-class ForwardPass : private NonCopyable {
+class ForwardPass : public RenderPass {
 public:
-    void OnCreate();
-    void OnDestroy();
-    void DrawBatchList(const std::vector<RenderObject *> &batchList, const GlobalShaderParam &globalShaderParam);
-public:
-    /**
-     * \brief 
-     * \param materialTypeName material type name
-     * \param pMaterialBatchDraw This material corresponds to the object on which the draw is performed
-     * \return material ID
-     */
-    static auto RegisterMaterialBatchDraw(std::string_view materialTypeName,
-        std::unique_ptr<IMaterialBatchDraw> pMaterialBatchDraw) -> uint16_t;
-
-    struct MaterialBatchDrawItem {
-        std::string_view materialTypeName;
-        std::unique_ptr<IMaterialBatchDraw> pMaterialBatchDraw;
+    struct DrawArgs {
+	    dx::GraphicsContext             *pGfxCtx            = nullptr;
+	    const cbuffer::CbPrePass        *pCbPrePass         = nullptr;
+	    const cbuffer::CbLighting       *pCbLighting        = nullptr;
+	    D3D12_GPU_VIRTUAL_ADDRESS        cbPrePassCBuffer   = 0;
+	    D3D12_GPU_VIRTUAL_ADDRESS        cbLightBuffer      = 0;
     };
-    static std::vector<MaterialBatchDrawItem> sMaterialBatchDrawItems;
+public:
+    void OnCreate() override;
+    void OnDestroy() override;
+    void DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &globalShaderParam);
+private:
+    enum RootParam {
+        ePrePass = 0,
+        ePreObject = 1,
+        eLighting = 2,
+        eMaterial = 3,
+        eTextureList = 4,
+    };
+    void DrawBatchInternal(std::span<RenderObject *const> batch, const DrawArgs &globalShaderParam);
+    auto GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState *;
+    using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
+private:
+    // clang-format off
+    PipelineStateMap                    _pipelineStateMap;
+    std::unique_ptr<dx::RootSignature>  _pRootSignature;
+    // clang-format on
 };

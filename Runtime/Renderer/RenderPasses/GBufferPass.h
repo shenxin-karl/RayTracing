@@ -15,7 +15,7 @@ public:
     void OnCreate();
     void OnDestroy();
     void OnResize(size_t width, size_t height);
-    void GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
+    auto GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
 
     struct DrawArgs {
         dx::GraphicsContext *pGfxCtx = nullptr;

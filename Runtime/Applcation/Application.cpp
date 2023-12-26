@@ -6,7 +6,6 @@
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "SceneObject/SceneManager.h"
-#include "TextureObject/TextureManager.h"
 #include "Utils/GlobalCallbacks.h"
 #include "Foundation/Memory/GarbageCollection.h"
 //#include "Render/TriangleRenderer.h"
@@ -28,7 +27,6 @@ void Application::OnCreate() {
     InputSystem::OnInstanceCreate();
     GfxDevice::OnInstanceCreate();
     ShaderManager::OnInstanceCreate();
-    TextureManager::OnInstanceCreate();
     GarbageCollection::OnInstanceCreate();
     SceneManager::OnInstanceCreate();
 
@@ -43,7 +41,6 @@ void Application::OnCreate() {
         DXGI_FORMAT_D24_UNORM_S8_UINT);
 
     ShaderManager::GetInstance()->OnCreate();
-    TextureManager::GetInstance()->OnCreate();
     GarbageCollection::GetInstance()->OnCreate();
     SceneManager::GetInstance()->OnCreate();
     GlobalCallbacks::Get().onCreate.Invoke();
@@ -69,7 +66,6 @@ void Application::OnDestroy() {
 
     SceneManager::GetInstance()->OnDestroy();
     SceneManager::GetInstance()->OnDestroy();
-    TextureManager::GetInstance()->OnDestroy();
     ShaderManager::GetInstance()->OnDestroy();
     GarbageCollection::GetInstance()->OnDestroy();
     GfxDevice::GetInstance()->OnDestroy();
@@ -78,7 +74,6 @@ void Application::OnDestroy() {
     AssetProjectSetting::GetInstance()->OnDestroy();
     Logger::GetInstance()->OnDestroy();
 
-    TextureManager::OnInstanceDestroy();
     SceneManager::OnInstanceDestroy();
     GarbageCollection::OnInstanceDestroy();
     GfxDevice::OnInstanceDestroy();
