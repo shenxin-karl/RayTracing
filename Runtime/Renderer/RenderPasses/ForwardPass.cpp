@@ -16,10 +16,10 @@
 void ForwardPass::OnCreate() {
     _pRootSignature = std::make_unique<dx::RootSignature>();
     _pRootSignature->OnCreate(5, 6);
-    _pRootSignature->At(0).InitAsBufferCBV(0);    // gCbPrePass;
-    _pRootSignature->At(1).InitAsBufferCBV(1);    // gCbPreObject;
-    _pRootSignature->At(2).InitAsBufferCBV(3);    // gCbLighting;
-    _pRootSignature->At(3).InitAsBufferCBV(2);    // gCbMaterial;
+    _pRootSignature->At(ePrePass).InitAsBufferCBV(0);    // gCbPrePass;
+    _pRootSignature->At(ePreObject).InitAsBufferCBV(1);    // gCbPreObject;
+    _pRootSignature->At(eLighting).InitAsBufferCBV(3);    // gCbLighting;
+    _pRootSignature->At(eMaterial).InitAsBufferCBV(2);    // gCbMaterial;
 
     CD3DX12_DESCRIPTOR_RANGE1 range = {
         D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -28,7 +28,7 @@ void ForwardPass::OnCreate() {
         0,
         D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
     };
-    _pRootSignature->At(4).InitAsDescriptorTable({range});    // gTextureList
+    _pRootSignature->At(eTextureList).InitAsDescriptorTable({range});    // gTextureList
 
     D3D12_STATIC_SAMPLER_DESC samplers[6] = {
         dx::GetPointWrapStaticSampler(0),
@@ -129,14 +129,14 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
     }
 
     ShaderLoadInfo shaderLoadInfo;
-    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/StandardMaterial.hlsl");
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Material.hlsl");
     shaderLoadInfo.entryPoint = "VSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::eVS;
     shaderLoadInfo.pDefineList = &pMaterial->_defineList;
     D3D12_SHADER_BYTECODE vsByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
     Assert(vsByteCode.pShaderBytecode != nullptr);
 
-    shaderLoadInfo.entryPoint = "PSMain";
+    shaderLoadInfo.entryPoint = "ForwardPSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::ePS;
     D3D12_SHADER_BYTECODE psByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
 

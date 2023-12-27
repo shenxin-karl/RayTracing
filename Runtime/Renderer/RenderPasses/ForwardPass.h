@@ -17,11 +17,11 @@ public:
     void DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &globalShaderParam);
 private:
     enum RootParam {
-        ePrePass = 0,
-        ePreObject = 1,
-        eLighting = 2,
-        eMaterial = 3,
-        eTextureList = 4,
+        ePreObject,
+        eMaterial,
+        eTextureList,
+        eLighting,
+        ePrePass,
     };
     void DrawBatchInternal(std::span<RenderObject *const> batch, const DrawArgs &globalShaderParam);
     auto GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState *;

@@ -2,8 +2,9 @@
 #include "CbPrePass.hlsli"
 #include "CbPreObject.hlsli"
 #include "CookTorrance.hlsli"
+#include "NormalUtil.hlsli"
 
-struct CbPreMaterial {
+struct CbMaterial {
     float4      albedo;
     float4      emission;
     float4      tilingAndOffset;
@@ -70,7 +71,7 @@ ConstantBuffer<CBPreObject>     gCbPreObject            : register(b1);
 ConstantBuffer<CbLighting>      gCbLighting             : register(b3);
 SamplerState                    gStaticSamplerState[]   : register(s0);
 
-ConstantBuffer<CbPreMaterial>   gCbMaterial             : register(b2);
+ConstantBuffer<CbMaterial>      gCbMaterial             : register(b2);
 Texture2D<float4>               gTextureList[]          : register(t0);
 
 VertexOut VSMain(VertexIn vin) {
@@ -100,7 +101,6 @@ float4 GetAlbedo(VertexOut pin) {
 	#endif
 
 	float4 sampleColor = (float4)1.0;
-
 	#if ENABLE_ALBEDO_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
         sampleColor = gTextureList[gCbMaterial.albedoTexIndex].Sample(samplerState, pin.uv0);
@@ -157,10 +157,10 @@ float3 GetEmission(VertexOut pin) {
     return emission;
 }
 
-float4 PSMain(VertexOut pin) : SV_TARGET {
+float4 ForwardPSMain(VertexOut pin) : SV_TARGET {
     float2 metallicAndRoughness = GetMetallicAndRoughness(pin);
     float metallic = metallicAndRoughness.r;
-    float roughness = metallicAndRoughness.y;
+    float roughness = metallicAndRoughness.g;
     float4 albedo = GetAlbedo(pin);
     float ao = GetAmbientOcclusion(pin);
     float3 N = GetNormal(pin);
@@ -171,4 +171,25 @@ float4 PSMain(VertexOut pin) : SV_TARGET {
     finalColor += ComputeAmbientLight(gCbLighting.ambientLight, materialData, ao);
     finalColor += GetEmission(pin);
     return float4(finalColor, albedo.a);
+}
+
+struct GBufferOut {
+	float4 gBuffer0 : SV_TARGET0;
+    float4 gBuffer1 : SV_TARGET1;
+    float3 gBuffer2 : SV_TARGET2;
+};
+GBufferOut GBufferPSMain(VertexOut pin) {
+	GBufferOut pout = (GBufferOut)0;
+    float2 metallicAndRoughness = GetMetallicAndRoughness(pin);
+    float4 albedo = GetAlbedo(pin);
+    float ao = GetAmbientOcclusion(pin);
+    float3 N = GetNormal(pin);
+    float3 emission = GetEmission(pin);
+
+    pout.gBuffer0.xyz = albedo.rgb;
+    pout.gBuffer0.w = ao;
+    pout.gBuffer1.xy = NormalEncode(N);
+	pout.gBuffer1.zw = metallicAndRoughness;
+    pout.gBuffer2.rgb = emission;
+    return pout;
 }

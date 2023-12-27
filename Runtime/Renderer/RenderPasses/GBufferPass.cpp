@@ -5,6 +5,12 @@
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "RenderObject/Material.h"
+#include "RenderObject/Mesh.h"
+#include "RenderObject/RenderObject.h"
+#include "RenderObject/VertexSemantic.hpp"
+#include "ShaderLoader/ShaderManager.h"
+#include "Utils/AssetProjectSetting.h"
 
 GBufferPass::GBufferPass() : _width(0), _height(0) {
 }
@@ -13,6 +19,37 @@ void GBufferPass::OnCreate() {
     GfxDevice *pDevice = GfxDevice::GetInstance();
     _gBufferSRV = pDevice->GetDevice()->AllocDescriptor<dx::SRV>(3);
     _gBufferRTV = pDevice->GetDevice()->AllocDescriptor<dx::RTV>(3);
+
+    _pRootSignature = std::make_unique<dx::RootSignature>();
+    _pRootSignature->OnCreate(eMaxNumRootParam, 6);
+    _pRootSignature->At(eCbPrePass).InitAsBufferCBV(0);
+    _pRootSignature->At(eCbPreObject).InitAsBufferCBV(1);
+    _pRootSignature->At(eCbMaterial).InitAsBufferCBV(2);
+
+    // eTextureList enable bindless
+    CD3DX12_DESCRIPTOR_RANGE1 range = {
+        D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+        static_cast<UINT>(-1),
+        0,
+        0,
+        D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
+    };
+    _pRootSignature->At(eTextureList).InitAsDescriptorTable({range});
+
+    D3D12_STATIC_SAMPLER_DESC samplers[6] = {
+        dx::GetPointWrapStaticSampler(0),
+        dx::GetPointClampStaticSampler(1),
+        dx::GetLinearWrapStaticSampler(2),
+        dx::GetLinearClampStaticSampler(3),
+        dx::GetAnisotropicWrapStaticSampler(4),
+        dx::GetAnisotropicClampStaticSampler(5),
+    };
+    _pRootSignature->SetStaticSamplers(samplers);
+    _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
+
+    _recreatePipelineStateCallbackHandle = GlobalCallbacks::Get().onRecreatePipelineState.Register([&]() {
+	    _pipelineStateMap.clear();
+    });
 }
 
 void GBufferPass::OnDestroy() {
@@ -21,6 +58,9 @@ void GBufferPass::OnDestroy() {
     _gBuffer2.OnDestroy();
     _gBufferRTV.Release();
     _gBufferSRV.Release();
+    _pRootSignature->OnDestroy();
+    _pipelineStateMap.clear();
+    _recreatePipelineStateCallbackHandle.Release();
 }
 
 void GBufferPass::OnResize(size_t width, size_t height) {
@@ -110,13 +150,83 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
 }
 
 void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args) {
-    if (batchList.empty()) {
-        return;
-    }
-
-    
+    DrawBatchList(batchList, [&](std::span<RenderObject *const> batch) { DrawBatchInternal(batch, args); });
 }
 
 void GBufferPass::PostDraw(const DrawArgs &args) {
+}
 
+void GBufferPass::DrawBatchInternal(std::span<RenderObject *const> batch, const DrawArgs &args) {
+
+}
+
+auto GBufferPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState * {
+    Material *pMaterial = pRenderObject->pMaterial;
+    auto iter = _pipelineStateMap.find(pMaterial->GetPipelineID());
+    if (iter != _pipelineStateMap.end()) {
+        return iter->second.Get();
+    }
+
+    ShaderLoadInfo shaderLoadInfo;
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Material.hlsl");
+    shaderLoadInfo.entryPoint = "VSMain";
+    shaderLoadInfo.shaderType = dx::ShaderType::eVS;
+    shaderLoadInfo.pDefineList = &pMaterial->_defineList;
+    D3D12_SHADER_BYTECODE vsByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
+    Assert(vsByteCode.pShaderBytecode != nullptr);
+
+    shaderLoadInfo.entryPoint = "GBufferPSMain";
+    shaderLoadInfo.shaderType = dx::ShaderType::ePS;
+    D3D12_SHADER_BYTECODE psByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
+
+    struct PipelineStateStream {
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+    };
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+
+    PipelineStateStream pipelineDesc = {};
+    pipelineDesc.pRootSignature = _pRootSignature->GetRootSignature();
+    pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipelineDesc.VS = vsByteCode;
+    pipelineDesc.PS = psByteCode;
+    pipelineDesc.DSVFormat = pGfxDevice->GetDepthStencilFormat();
+
+    CD3DX12_DEPTH_STENCIL_DESC depthStencil(D3D12_DEFAULT);
+    depthStencil.DepthFunc = RenderSetting::Get().GetDepthFunc();
+    pipelineDesc.DepthStencil = depthStencil;
+
+    SemanticMask meshSemanticMask = pRenderObject->pMesh->GetSemanticMask();
+    SemanticMask pipelineSemanticMask = pMaterial->_pipelineSemanticMask;
+    auto inputLayouts = SemanticMaskToVertexInputElements(meshSemanticMask, pipelineSemanticMask);
+    pipelineDesc.InputLayout = D3D12_INPUT_LAYOUT_DESC{
+        inputLayouts.data(),
+        static_cast<UINT>(inputLayouts.size()),
+    };
+
+    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+    rtvFormats.NumRenderTargets = 3;
+    rtvFormats.RTFormats[0] = _gBuffer0.GetFormat();
+    rtvFormats.RTFormats[1] = _gBuffer1.GetFormat();
+    rtvFormats.RTFormats[2] = _gBuffer2.GetFormat();
+    pipelineDesc.RTVFormats = rtvFormats;
+
+    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+        sizeof(PipelineStateStream),
+        &pipelineDesc,
+    };
+
+    dx::WRL::ComPtr<ID3D12PipelineState> pPipelineState;
+    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
+    dx::ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&pPipelineState)));
+
+    _pipelineStateMap[pMaterial->GetPipelineID()] = pPipelineState;
+    return pPipelineState.Get();
 }

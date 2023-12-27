@@ -52,6 +52,7 @@ private:
     };
 private:
     friend class ForwardPass;
+    friend class GBufferPass;
     // clang-format off
     uint32_t                     _renderGroup;
     dx::DefineList               _defineList;

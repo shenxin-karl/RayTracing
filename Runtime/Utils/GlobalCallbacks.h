@@ -81,6 +81,8 @@ struct GlobalCallbacks {
     // void(size_t width, size_t height)
     CallbackList<size_t, size_t> onResize;
 
+    CallbackList<> onRecreatePipelineState;      
+
     static GlobalCallbacks &Get() {
         static GlobalCallbacks instance;
         return instance;

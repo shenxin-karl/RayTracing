@@ -3,6 +3,10 @@
 #include "RenderObject/Material.h"
 
 void RenderPass::DrawBatchList(const std::vector<RenderObject *> &batchList, const DrawBatchListCallback &callback) {
+    if (batchList.empty()) {
+	    return;
+    }
+
     size_t index = 0;
     while (index < batchList.size()) {
         size_t pipelineID = batchList[index]->pMaterial->GetPipelineID();
