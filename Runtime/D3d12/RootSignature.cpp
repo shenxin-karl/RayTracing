@@ -2,6 +2,8 @@
 #include "Device.h"
 #include <algorithm>
 
+#include "Foundation/StringUtil.h"
+
 namespace dx {
 
 #pragma region RootParameter
@@ -211,6 +213,11 @@ void RootSignature::Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags) 
             }
         }
     }
+
+    if (!_name.empty()) {
+	    std::wstring wstring = nstd::to_wstring(_name);
+		_pRootSignature->SetName(wstring.c_str());	
+    }
 }
 
 auto RootSignature::GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const
@@ -236,6 +243,14 @@ auto RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapTyp
     default:
         Assert(false);
         return {};
+    }
+}
+
+void RootSignature::SetName(std::string_view name) {
+    _name = name;
+    if (_pRootSignature != nullptr) {
+        std::wstring wstring = nstd::to_wstring(name);
+		_pRootSignature->SetName(wstring.c_str());	    
     }
 }
 

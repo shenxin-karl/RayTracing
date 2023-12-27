@@ -8,12 +8,15 @@
 #include "SceneObject/SceneManager.h"
 #include "Utils/GlobalCallbacks.h"
 #include "Foundation/Memory/GarbageCollection.h"
-//#include "Render/TriangleRenderer.h"
 #include "D3d12/Device.h"
 #include "Renderer/FrameCaptrue.h"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/GLTFSample.h"
-#include "Renderer/SimpleLighting.h"
+
+//#include "Render/TriangleRenderer.h"
+//#include "Renderer/SimpleLighting.h"
+//#include "Renderer/GLTFSample.h"
+#include "Renderer/SoftShadow.h"
+
 
 Application::Application() {
 }
@@ -47,7 +50,7 @@ void Application::OnCreate() {
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
     //_pRenderer = std::make_unique<SimpleLighting>();
-    _pRenderer = std::make_unique<GLTFSample>();
+    _pRenderer = std::make_unique<SoftShadow>();
 
     _pRenderer->OnCreate();
     // register resize call back

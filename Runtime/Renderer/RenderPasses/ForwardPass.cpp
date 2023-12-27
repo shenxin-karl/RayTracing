@@ -40,6 +40,7 @@ void ForwardPass::OnCreate() {
     };
     _pRootSignature->SetStaticSamplers(samplers);
     _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
+    _pRootSignature->SetName("ForwardPass:RootSignature");
 }
 
 void ForwardPass::OnDestroy() {
@@ -129,7 +130,7 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
     }
 
     ShaderLoadInfo shaderLoadInfo;
-    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Material.hlsl");
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/Material.hlsl");
     shaderLoadInfo.entryPoint = "VSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::eVS;
     shaderLoadInfo.pDefineList = &pMaterial->_defineList;

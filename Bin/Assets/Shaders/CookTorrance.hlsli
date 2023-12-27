@@ -31,11 +31,11 @@ float3 ComputeSpotLight(SpotLight light, MaterialData mat, float3 N, float3 V, f
     #define SPEC_SHADING_FACTOR(NdotH) CarToonSpecShadingFactor(NdotH)
 #endif
 
-MaterialData CalcMaterialData(float4 diffuseAlbedo, float roughness, float metallic) {
+MaterialData CalcMaterialData(float3 diffuseAlbedo, float roughness, float metallic) {
     MaterialData mat;
-    mat.diffuseAlbedo = diffuseAlbedo.xyz;
+    mat.diffuseAlbedo = diffuseAlbedo;
     mat.roughness = max(roughness, 0.00001);
-    mat.fresnelFactor = lerp(float3(0.04, 0.04, 0.04), diffuseAlbedo.rgb, metallic);
+    mat.fresnelFactor = lerp(float3(0.04, 0.04, 0.04), diffuseAlbedo, metallic);
     mat.metallic = metallic;
     return mat;
 }

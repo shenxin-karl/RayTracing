@@ -1,6 +1,7 @@
 #pragma once
 #include "Object.h"
 #include "Components/Component.h"
+#include "Foundation/DebugBreak.h"
 #include "SceneObject/SceneID.hpp"
 #include "Foundation/Exception.h"
 #include "Foundation/Memory/SharedPtr.hpp"
@@ -59,9 +60,11 @@ public:
     bool AddComponent(SharedPtr<T> &&pComponent) {
         Assert(pComponent != nullptr);
 	    if (GetComponent<T>() != nullptr) {
+            DEBUG_BREAK;
 		    return false;
 	    }
         if (pComponent->GetGameObject() != nullptr) {
+            DEBUG_BREAK;
 	        return false;
         }
         _components.emplace_back(std::move(pComponent));

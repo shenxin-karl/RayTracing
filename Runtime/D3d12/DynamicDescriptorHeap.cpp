@@ -87,6 +87,7 @@ void DynamicDescriptorHeap::CommitStagedDescriptorForDispatch(NativeCommandList 
 void DynamicDescriptorHeap::DescriptorTableCache::Reset(bool enableBindless, size_t capacity) {
     this->enableBindless = enableBindless;
     this->capacity = capacity;
+    this->count = 0;
     std::ranges::fill(cachedHandles, D3D12_CPU_DESCRIPTOR_HANDLE(0));
 }
 

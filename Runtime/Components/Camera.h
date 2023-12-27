@@ -39,6 +39,12 @@ public:
 	auto GetScreenHeight() const -> float {
 		return _screenHeight;
 	}
+	void SetNearClip(float nearClip) {
+		_zNear = nearClip;
+	}
+	void SetFarClip(float farClip) {
+		_zFar = farClip;
+	}
 private:
     void OnAddToScene() override;
     void OnRemoveFormScene() override;

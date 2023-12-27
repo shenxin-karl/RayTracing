@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <d3d12.h>
+#include <string_view>
+
 #include "Foundation/NonCopyable.h"
 
 namespace dx {
@@ -14,6 +16,7 @@ public:
 	GPUMeshData();
 	~GPUMeshData();
 public:
+	void SetName(std::string_view name);
 	auto GetVertexBufferView() const -> D3D12_VERTEX_BUFFER_VIEW;
 	auto GetIndexBufferView() const -> D3D12_INDEX_BUFFER_VIEW;
 private:

@@ -110,10 +110,12 @@ void CameraController::OnPostUpdate() {
     }
     // todo: apply roll
 
+    // In the left-handed coordinate system, Euler angles rotate counterclockwise, so x and z need a minus sign
     glm::vec3 front;
     front.y = std::sin(glm::radians(_pitch));
-    front.x = std::cos(glm::radians(_pitch)) * std::sin(glm::radians(_yaw));
-    front.z = std::cos(glm::radians(_pitch)) * std::cos(glm::radians(_yaw));
+    front.x = -1.f * std::cos(glm::radians(_pitch)) * std::sin(glm::radians(_yaw));
+    front.z = -1.f * std::cos(glm::radians(_pitch)) * std::cos(glm::radians(_yaw));
+
     rotation = glm::Direction2Quaternion(front);
     pTransform->SetLocalTRS(lookFrom, rotation, scale);
     std::ranges::fill(_moveState, false);

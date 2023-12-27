@@ -1,10 +1,14 @@
 #include "GBufferPass.h"
+
+#include "D3d12/BindlessCollection.hpp"
 #include "D3d12/Context.h"
 #include "D3d12/D3dUtils.h"
 #include "D3d12/Device.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "RenderObject/ConstantBufferHelper.h"
+#include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Material.h"
 #include "RenderObject/Mesh.h"
 #include "RenderObject/RenderObject.h"
@@ -32,7 +36,7 @@ void GBufferPass::OnCreate() {
         static_cast<UINT>(-1),
         0,
         0,
-        D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
+        D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
     };
     _pRootSignature->At(eTextureList).InitAsDescriptorTable({range});
 
@@ -46,6 +50,7 @@ void GBufferPass::OnCreate() {
     };
     _pRootSignature->SetStaticSamplers(samplers);
     _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
+    _pRootSignature->SetName("GBufferPass::RootSignature");
 
     _recreatePipelineStateCallbackHandle = GlobalCallbacks::Get().onRecreatePipelineState.Register([&]() {
 	    _pipelineStateMap.clear();
@@ -64,6 +69,9 @@ void GBufferPass::OnDestroy() {
 }
 
 void GBufferPass::OnResize(size_t width, size_t height) {
+    _width = width;
+    _height = height;
+
     GfxDevice *pDevice = GfxDevice::GetInstance();
 
     D3D12_CLEAR_VALUE clearValue;
@@ -74,19 +82,19 @@ void GBufferPass::OnResize(size_t width, size_t height) {
 
     _gBuffer0.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer0Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height);
-    gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     _gBuffer0.OnCreate(pDevice->GetDevice(), gBuffer0Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
     _gBuffer1.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer1Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, width, height);
-    gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    gBuffer1Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     _gBuffer1.OnCreate(pDevice->GetDevice(), gBuffer1Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
     _gBuffer2.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer2Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R11G11B10_FLOAT, width, height);
-    gBuffer2Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    gBuffer2Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R11G11B10_FLOAT;
     _gBuffer2.OnCreate(pDevice->GetDevice(), gBuffer2Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 
@@ -121,6 +129,28 @@ auto GBufferPass::GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HAND
 }
 
 void GBufferPass::PreDraw(const DrawArgs &args) {
+    auto TranslationAndClearRT = [&](ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE rtv, glm::vec4 color) {
+        args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        args.pGfxCtx->ClearRenderTargetView(rtv, color);
+    };
+
+    TranslationAndClearRT(_gBuffer0.GetResource(), _gBufferRTV[0], Colors::Black);
+    TranslationAndClearRT(_gBuffer1.GetResource(), _gBufferRTV[1], Colors::Black);
+    TranslationAndClearRT(_gBuffer2.GetResource(), _gBufferRTV[2], Colors::Black);
+
+    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    args.pGfxCtx->ClearDepthStencilView(args.depthBufferDSV,
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+        RenderSetting::Get().GetDepthClearValue(),
+        0);
+
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargets;
+    for (size_t i = 0; i < 3; ++i) {
+		renderTargets.push_back(_gBufferRTV[i]);
+    }
+    args.pGfxCtx->SetRenderTargets(renderTargets, args.depthBufferDSV);
+
+
     D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
     D3D12_VIEWPORT viewport = {
         0.f,
@@ -132,21 +162,6 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
     };
     args.pGfxCtx->SetViewport(viewport);
     args.pGfxCtx->SetScissor(scissor);
-
-    auto TranslationAndClearRT = [&](ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE rtv, glm::vec4 color) {
-        args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        args.pGfxCtx->ClearRenderTargetView(rtv, color);
-    };
-
-    TranslationAndClearRT(_gBuffer0.GetResource(), _gBufferRTV[0], Colors::White);
-    TranslationAndClearRT(_gBuffer1.GetResource(), _gBufferRTV[1], Colors::White);
-    TranslationAndClearRT(_gBuffer2.GetResource(), _gBufferRTV[2], Colors::White);
-
-    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-    args.pGfxCtx->ClearDepthStencilView(args.depthBufferDSV,
-        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-        RenderSetting::Get().GetDepthClearValue(),
-        0);
 }
 
 void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args) {
@@ -154,10 +169,80 @@ void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const 
 }
 
 void GBufferPass::PostDraw(const DrawArgs &args) {
+    args.pGfxCtx->Transition(_gBuffer0.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(_gBuffer1.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(_gBuffer2.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_READ);
+    
 }
 
 void GBufferPass::DrawBatchInternal(std::span<RenderObject *const> batch, const DrawArgs &args) {
+   dx::GraphicsContext *pGfxCtx = args.pGfxCtx;
 
+    // bind pipeline state object
+    ID3D12PipelineState *pPipelineState = GetPipelineState(batch.front());
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetPipelineState(pPipelineState);
+    pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    pGfxCtx->SetGraphicsRootConstantBufferView(eCbPrePass, args.cbPrePassCBuffer);
+
+    using TextureType = Material::TextureType;
+
+    size_t index = 0;
+    while (index < batch.size()) {
+        dx::BindlessCollection bindlessCollection;
+        size_t batchIdx = index;
+        while (batchIdx < batch.size() && bindlessCollection.EnsureCapacity(TextureType::eMaxNum)) {
+            Material *pMaterial = batch[batchIdx]->pMaterial;
+            for (dx::SRV &srv : pMaterial->_textureHandles) {
+                bindlessCollection.AddHandle(srv.GetCpuHandle());
+            }
+            ++batchIdx;
+        }
+
+        // texture list bindless
+        pGfxCtx->SetDynamicViews(eTextureList, bindlessCollection.GetHandles());
+        for (size_t i = index; i != batchIdx; ++i) {
+            Transform *pTransform = batch[i]->pTransform;
+            cbuffer::CbPreObject cbPreObject = cbuffer::MakeCbPreObject(pTransform);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbPreObject, cbPreObject);
+
+            Material *pMaterial = batch[i]->pMaterial;
+            Material::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;
+            cbMaterial.albedoTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eAlbedoTex].GetCpuHandle());
+            cbMaterial.ambientOcclusionTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eAmbientOcclusionTex].GetCpuHandle());
+            cbMaterial.emissionTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eEmissionTex].GetCpuHandle());
+            cbMaterial.metalRoughnessTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eMetalRoughnessTex].GetCpuHandle());
+            cbMaterial.normalTexIndex = bindlessCollection.GetHandleIndex(
+                pMaterial->_textureHandles[TextureType::eNormalTex].GetCpuHandle());
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbMaterial, cbMaterial);
+
+            Mesh *pMesh = batch[i]->pMesh;
+            const GPUMeshData *pGpuMeshData = pMesh->GetGPUMeshData();
+            pGfxCtx->SetVertexBuffers(0, pGpuMeshData->GetVertexBufferView());
+            if (pMesh->GetIndexCount() > 0) {
+                pGfxCtx->SetIndexBuffer(pGpuMeshData->GetIndexBufferView());
+            }
+
+            for (const SubMesh &subMesh : pMesh->GetSubMeshes()) {
+                if (subMesh.indexCount > 0) {
+                    pGfxCtx->DrawIndexedInstanced(subMesh.indexCount,
+                        1,
+                        subMesh.baseIndexLocation,
+                        subMesh.baseVertexLocation,
+                        0);
+                } else {
+                    pGfxCtx->DrawInstanced(subMesh.vertexCount, 1, subMesh.baseVertexLocation, 0);
+                }
+            }
+        }
+        index = batchIdx;
+    }
 }
 
 auto GBufferPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState * {
@@ -168,7 +253,7 @@ auto GBufferPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
     }
 
     ShaderLoadInfo shaderLoadInfo;
-    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Material.hlsl");
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/Material.hlsl");
     shaderLoadInfo.entryPoint = "VSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::eVS;
     shaderLoadInfo.pDefineList = &pMaterial->_defineList;

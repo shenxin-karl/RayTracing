@@ -10,6 +10,10 @@ Mesh::Mesh() : _vertexAttributeDirty(false), _bottomLevelASDirty(false) {
 Mesh::~Mesh() {
 }
 
+auto Mesh::GetName() const -> std::string_view {
+    return _name;
+}
+
 auto Mesh::GetVertexCount() const -> size_t {
     return _pCpuMeshData->GetVertexCount();
 }
@@ -37,6 +41,11 @@ auto Mesh::GetSubMeshes() const -> const std::vector<SubMesh> & {
 
 auto Mesh::GetGPUMeshData() const -> const GPUMeshData * {
     return _pGpuMeshData.get();
+}
+
+void Mesh::SetName(std::string_view name) {
+    _name = name;
+    _pGpuMeshData->SetName(name);
 }
 
 void Mesh::SetIndices(ReadonlyArraySpan<uint16_t> indices) {
@@ -128,6 +137,7 @@ void Mesh::UploadMeshData(bool generateBottomLevelAS, bool isOpaque) {
         subMesh.baseVertexLocation = 0;
         _subMeshes.push_back(subMesh);
     }
+    _pGpuMeshData->SetName(_name);
 }
 
 void Mesh::SetDataCheck(size_t vertexCount, SemanticIndex index) const {

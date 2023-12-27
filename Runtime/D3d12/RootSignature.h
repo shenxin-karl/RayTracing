@@ -44,8 +44,10 @@ public:
     void Generate(Device *pDevice, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
     auto GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const  RootParamDescriptorTableInfo &;
     auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask;
+    void SetName(std::string_view name);
 private:
     // clang-format off
+    std::string                             _name;
     size_t                                  _numParameters;
     size_t                                  _numStaticSamplers;
 	RootParamDescriptorTableInfo            _descriptorTableInfo[2];

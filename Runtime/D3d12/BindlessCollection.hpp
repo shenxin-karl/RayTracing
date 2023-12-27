@@ -12,6 +12,9 @@ public:
         _handles.reserve(maxHandleCount);
     }
     void AddHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) {
+        if (handle.ptr == 0) {
+	        return;
+        }
         Assert(GetCount() <= _maxHandleCount);
         if (_handleMap.contains(handle)) {
             return;

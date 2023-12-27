@@ -57,9 +57,9 @@ auto GLTFLoader::RecursiveBuildGameObject(aiNode *pAiNode) -> SharedPtr<GameObje
             SharedPtr<GameObject> pChild = GameObject::Create();
             pChild->SetName(pGameObject->GetName() + fmt::format("_MeshRenderer_{}", i));
             pGameObject->AddChild(pChild);
-            unsigned int meshIdx = pAiNode->mMeshes[0];
+            unsigned int meshIdx = pAiNode->mMeshes[i];
             aiMesh *pAiMesh = _pAiScene->mMeshes[meshIdx];
-            pGameObject->AddComponent(BuildMeshRenderer(meshIdx, pAiMesh));
+            pChild->AddComponent(BuildMeshRenderer(meshIdx, pAiMesh));
         }
     }
 
@@ -90,6 +90,7 @@ auto GLTFLoader::BuildMeshRenderer(size_t meshIndex, aiMesh *pAiMesh) -> SharedP
 
 auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh> {
     std::shared_ptr<Mesh> pMesh = std::make_shared<Mesh>();
+    pMesh->SetName(pAiMesh->mName.C_Str());
     SemanticMask mask = SemanticMask::eVertex;
     mask = SetOrClearFlags(mask, SemanticMask::eNormal, pAiMesh->HasNormals());
     mask = SetOrClearFlags(mask, SemanticMask::eTangent, pAiMesh->HasTangentsAndBitangents());

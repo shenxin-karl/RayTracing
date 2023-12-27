@@ -2,6 +2,7 @@
 #include "SceneRenderObjectManager.h"
 #include "RenderObject/RenderGroup.hpp"
 #include "Components/Transform.h"
+#include "Foundation/Logger.h"
 #include "RenderObject/RenderObject.h"
 #include "RenderObject/Material.h"
 
@@ -40,6 +41,14 @@ void RenderObjectKey::SetDepthSquare(double depthSqr) {
     key2 = integerDepthSqr;
 }
 
+auto RenderObjectKey::GetDepthSquare() const -> double {
+    uint64_t integerDepthSqr = key2;
+    if (RenderGroup::IsTransparent(GetRenderGroup())) {
+	    integerDepthSqr = ~integerDepthSqr;
+    }
+    return std::bit_cast<double>(integerDepthSqr);
+}
+
 
 void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCameraPos) {
     struct Item {
@@ -65,6 +74,18 @@ void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCamer
     }
 
     std::ranges::stable_sort(items, [](const Item &lhs, const Item &rhs) { return lhs.key < rhs.key; });
+
+    static bool debugPrint = false;
+    if (debugPrint) {
+        for (auto item : items) {
+	        Logger::Debug("RenderGroup: {}, Priority: {}, PipelineID: {}, DepthSqr: {}", 
+                item.key.GetRenderGroup(),
+                item.key.GetPriority(),
+                item.key.GetPipelineID(),
+                item.key.GetDepthSquare()
+            );
+        }
+    }
 
     _opaqueRenderObjects.clear();
     _alphaTestRenderObjects.clear();

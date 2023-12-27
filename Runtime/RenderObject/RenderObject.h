@@ -7,10 +7,10 @@ class Material;
 
 // clang-format off
 struct RenderObject {
-	Mesh				*pMesh		= nullptr;
+	Mesh		*pMesh		= nullptr;
 	Material	*pMaterial	= nullptr;
-	Transform			*pTransform	= nullptr;
-	uint16_t			 priority	= 0;
+	Transform	*pTransform	= nullptr;
+	uint16_t	 priority	= 0;
 };
 
 

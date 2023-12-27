@@ -15,6 +15,7 @@ public:
 	void SetPipelineID(uint32_t variantID);
 	auto GetPipelineID() const -> uint32_t;
 	void SetDepthSquare(double depthSqr);
+	auto GetDepthSquare() const -> double;
 	friend std::strong_ordering operator<=>(const RenderObjectKey &, const RenderObjectKey &);
 };
 

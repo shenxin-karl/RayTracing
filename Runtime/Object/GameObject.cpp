@@ -59,7 +59,8 @@ auto GameObject::Create() -> SharedPtr<GameObject> {
 }
 
 void GameObject::AddChild(SharedPtr<GameObject> pChild) {
-    if (pChild->GetTransform()->GetParent()->GetGameObject() != this) {
+    Transform *pParent = pChild->GetTransform()->GetParent();
+    if (pParent == nullptr || pParent->GetGameObject() != this) {
         _children.push_back(pChild);
         GetTransform()->AddChild(pChild->GetTransform());
     }

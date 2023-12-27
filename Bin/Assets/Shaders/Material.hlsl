@@ -166,7 +166,7 @@ float4 ForwardPSMain(VertexOut pin) : SV_TARGET {
     float3 N = GetNormal(pin);
     float3 V = normalize(gCbPrePass.gCameraPos - pin.position);
 
-    MaterialData materialData = CalcMaterialData(albedo, roughness, metallic);
+    MaterialData materialData = CalcMaterialData(albedo.rgb, roughness, metallic);
     float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
     finalColor += ComputeAmbientLight(gCbLighting.ambientLight, materialData, ao);
     finalColor += GetEmission(pin);

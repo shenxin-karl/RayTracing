@@ -11,6 +11,15 @@ GPUMeshData::GPUMeshData() : _vertexBufferView{}, _indexBufferView{} {
 GPUMeshData::~GPUMeshData() {
 }
 
+void GPUMeshData::SetName(std::string_view name) {
+    if (_pBottomLevelAS != nullptr) {
+	    _pBottomLevelAS->SetName(name);
+    }
+    if (_pStaticBuffer != nullptr) {
+	    _pStaticBuffer->SetName(name);
+    }
+}
+
 auto GPUMeshData::GetVertexBufferView() const -> D3D12_VERTEX_BUFFER_VIEW {
     return _vertexBufferView;
 }

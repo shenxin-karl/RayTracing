@@ -1,17 +1,15 @@
 ﻿#pragma once
 
-float2 NormalEncode(float3 n) {
-    float2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-    enc = enc*0.5+0.5;
-    return enc;
+float2 NormalEncode(float3 N) {
+	float2 encode = normalize(N.xy) * sqrt(N.z * 0.5f + 0.5f);
+	return encode;
 }
 
-float3 NormalDecode(float4 enc) {
-    float4 nn = enc*float4(2,2,0,0) + float4(-1,-1,1,-1);
-    half l = dot(nn.xyz,-nn.xyw);
-    nn.z = l;
-    nn.xy *= sqrt(l);
-    return nn.xyz * 2 + float3(0,0,-1);
+float3 NormalDecode(float2 encode) {
+	float3 N;
+	N.z = length(encode.xy) * 2.f - 1.f;
+	N.xy = normalize(encode.xy) * sqrt(1.f - N.z * N.z);
+	return N;
 }
 
 float3 NormalBlendUDK(float3 n1, float3 n2) {

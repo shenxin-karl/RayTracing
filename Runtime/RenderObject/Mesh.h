@@ -23,6 +23,7 @@ public:
     Mesh();
     ~Mesh();
 public:
+	auto GetName() const -> std::string_view;
 	auto GetVertexCount() const -> size_t;
 	auto GetIndexCount() const -> size_t;
 	auto GetSemanticMask() const -> SemanticMask;
@@ -30,6 +31,7 @@ public:
 	auto GetSubMeshes() const -> const std::vector<SubMesh> &;
 	auto GetGPUMeshData() const -> const GPUMeshData *;
 public:
+	void SetName(std::string_view name);
 	void SetIndices(ReadonlyArraySpan<uint16_t> indices);
 	void SetIndices(ReadonlyArraySpan<int16_t> indices);
 	void SetVertices(ReadonlyArraySpan<glm::vec3> vertices);
@@ -44,6 +46,7 @@ private:
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
 private:
 	// clang-format off
+	std::string						_name;
 	std::vector<SubMesh>			_subMeshes;
 	std::unique_ptr<CPUMeshData>	_pCpuMeshData;
 	std::unique_ptr<GPUMeshData>	_pGpuMeshData;
