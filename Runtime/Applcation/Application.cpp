@@ -9,12 +9,13 @@
 #include "Utils/GlobalCallbacks.h"
 #include "Foundation/Memory/GarbageCollection.h"
 #include "D3d12/Device.h"
+#include "D3d12/UploadHeap.h"
 #include "Renderer/FrameCaptrue.h"
 #include "Renderer/GfxDevice.h"
 
-//#include "Render/TriangleRenderer.h"
-//#include "Renderer/SimpleLighting.h"
-//#include "Renderer/GLTFSample.h"
+#include "Renderer/TriangleRenderer.h"
+#include "Renderer/SimpleLighting.h"
+#include "Renderer/GLTFSample.h"
 #include "Renderer/SoftShadow.h"
 
 
@@ -53,6 +54,11 @@ void Application::OnCreate() {
     _pRenderer = std::make_unique<SoftShadow>();
 
     _pRenderer->OnCreate();
+
+    // first flush upload heap
+    GfxDevice::GetInstance()->GetUploadHeap()->FlushAndFinish();
+    GfxDevice::GetInstance()->GetASBuilder()->FlushAndFinish();
+
     // register resize call back
     pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
 

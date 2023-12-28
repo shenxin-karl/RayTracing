@@ -9,6 +9,7 @@ enum class ToneMapperType {
     eReinhard,
     eUncharted2ToneMap,
     eACESFilm,
+    eNone,
 };
 
 class RenderSetting final : NonCopyable {

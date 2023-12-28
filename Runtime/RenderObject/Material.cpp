@@ -31,8 +31,8 @@ Material::Material()
     _cbPreMaterial.emission = Colors::Black;
     _cbPreMaterial.tilingAndOffset = glm::vec4(1.f, 1.f, 0.f, 0.f);
     _cbPreMaterial.cutoff = 0.f;
-    _cbPreMaterial.roughness = 0.5f;
-    _cbPreMaterial.metallic = 0.5f;
+    _cbPreMaterial.roughness = 1.f;
+    _cbPreMaterial.metallic = 0.f;
     _cbPreMaterial.normalScale = 1.f;
     _cbPreMaterial.samplerStateIndex = eLinearWrap;
     _cbPreMaterial.albedoTexIndex = 0;

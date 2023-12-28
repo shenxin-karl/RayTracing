@@ -30,10 +30,16 @@ void CameraController::OnAddToScene() {
     glm::vec3 scale;
     pTransform->GetWorldTRS(translation, rotation, scale);
 
-    glm::vec3 euler = glm::degrees(glm::eulerAngles(rotation));
-    _pitch = euler.x;
-    _yaw = euler.y;
-    _roll = euler.z;
+	glm::vec3 direction = glm::LookAtQuaternion2Direction(rotation);
+
+    _pitch = std::clamp(glm::degrees(std::asin(direction.y)), -89.9f, +89.9f);
+	_yaw = glm::degrees(std::atan2(direction.z, direction.x));
+	_roll = 0.f;// glm::degrees(std::asin(upDir.y));
+
+    //glm::vec3 euler = glm::degrees(glm::eulerAngles(rotation));
+    //_pitch = euler.x;
+    //_yaw = euler.y;
+    //_roll = euler.z;
 }
 
 void CameraController::OnRemoveFormScene() {
@@ -66,7 +72,7 @@ void CameraController::OnPostUpdate() {
             float dx = static_cast<float>(event.x - _lastMousePosition.x) * mouseMoveSensitivity;
             float dy = static_cast<float>(event.y - _lastMousePosition.y) * mouseMoveSensitivity;
             SetPitch(_pitch - dy);
-            SetYaw(_yaw + dx);
+            SetYaw(_yaw - dx);
             _lastMousePosition = POINT{event.x, event.y};
         } /*else if (event._state == MouseState::Wheel) {
             float fovDeviation = event._offset * mouseWheelSensitivity;
@@ -113,10 +119,10 @@ void CameraController::OnPostUpdate() {
     // In the left-handed coordinate system, Euler angles rotate counterclockwise, so x and z need a minus sign
     glm::vec3 front;
     front.y = std::sin(glm::radians(_pitch));
-    front.x = -1.f * std::cos(glm::radians(_pitch)) * std::sin(glm::radians(_yaw));
-    front.z = -1.f * std::cos(glm::radians(_pitch)) * std::cos(glm::radians(_yaw));
+    front.x = std::cos(glm::radians(_pitch)) * std::cos(glm::radians(_yaw));
+    front.z = std::cos(glm::radians(_pitch)) * std::sin(glm::radians(_yaw));
 
-    rotation = glm::Direction2Quaternion(front);
+    rotation = glm::Direction2LookAtQuaternion(front);
     pTransform->SetLocalTRS(lookFrom, rotation, scale);
     std::ranges::fill(_moveState, false);
 }

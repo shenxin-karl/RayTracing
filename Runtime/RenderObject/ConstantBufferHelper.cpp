@@ -38,6 +38,16 @@ auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
     cbuffer.nearClip = pCamera->GetNearClip();
     cbuffer.farClip = pCamera->GetFarClip();
 
+    if (RenderSetting::Get().GetReversedZ()) {
+        cbuffer.zBufferParams.x = -1.0 + cbuffer.farClip / cbuffer.nearClip;
+        cbuffer.zBufferParams.y = 1.f;
+    } else {
+	    cbuffer.zBufferParams.x = 1.0 - cbuffer.farClip / cbuffer.nearClip;
+        cbuffer.zBufferParams.y = cbuffer.farClip / cbuffer.nearClip;
+    }
+    cbuffer.zBufferParams.z = cbuffer.zBufferParams.x / cbuffer.farClip;
+    cbuffer.zBufferParams.w = cbuffer.zBufferParams.y / cbuffer.farClip;
+
     glm::vec3 right;
     glm::vec3 up;
     glm::vec3 forward;

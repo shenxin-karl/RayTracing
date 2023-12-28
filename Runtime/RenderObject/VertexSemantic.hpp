@@ -152,4 +152,9 @@ inline std::vector<D3D12_INPUT_ELEMENT_DESC> SemanticMaskToVertexInputElements(S
 	return descList;
 }
 
+inline std::vector<D3D12_INPUT_ELEMENT_DESC> SemanticMaskToVertexInputElements(SemanticMask expectMask) {
+	return SemanticMaskToVertexInputElements(expectMask, expectMask);
+}
+
+
 // clang-format on

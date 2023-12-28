@@ -39,6 +39,8 @@ struct alignas(kAlignment) CbPrePass {
 	float		totalTime;
 	float		deltaTime;
 	glm::vec2	padding1;
+
+	glm::vec4   zBufferParams;
 };
 
 

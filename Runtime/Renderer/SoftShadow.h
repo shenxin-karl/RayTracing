@@ -4,6 +4,7 @@
 #include "D3d12/Texture.h"
 #include "RenderObject/ConstantBufferHelper.h"
 
+class SkyBoxPass;
 class DeferredLightingPass;
 class PostProcessPass;
 class GameObject;
@@ -25,6 +26,7 @@ private:
 	void SetupCamera();
 	void SetupLight();
 	void LoadGLTF();
+	void LoadCubeMap();
 	void RecreateWindowSizeDependentResources();
 private:
 	dx::Texture						_renderTargetTex;
@@ -42,8 +44,12 @@ private:
 	Scene							*_pScene;
 	GameObject						*_pCameraGO;
 
+	std::shared_ptr<dx::Texture>	_pSkyBoxCubeMap;
+	dx::SRV							_skyBoxCubeSRV;
+
 	std::unique_ptr<GBufferPass>			_pGBufferPass;
 	std::unique_ptr<PostProcessPass>		_pPostProcessPass;
 	std::unique_ptr<DeferredLightingPass>	_pDeferredLightingPass;
+	std::unique_ptr<SkyBoxPass>				_pSkyBoxPass;
 
 };

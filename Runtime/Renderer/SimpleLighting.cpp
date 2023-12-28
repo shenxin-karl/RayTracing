@@ -72,9 +72,6 @@ void SimpleLighting::OnCreate() {
     BuildAccelerationStructure();
     LoadCubeMap();
     InitScene();
-
-    _pUploadHeap->FlushAndFinish();
-    _pASBuilder->FlushAndFinish();
 }
 
 void SimpleLighting::OnDestroy() {
@@ -369,14 +366,7 @@ void SimpleLighting::InitScene() {
     _pGameObject = GameObject::Create();
     _pGameObject->AddComponent<Camera>();
     _pGameObject->AddComponent<CameraController>();
-
-    glm::vec3 lookFrom(5.f, 0, 0);
-    glm::vec3 lookAt(0.f);
-
-    glm::vec3 direction = glm::normalize(lookAt - lookFrom);
-    float angle = acos(glm::dot(direction, glm::vec3(0, 0, 1)));
-    glm::quat quaternion = glm::angleAxis(angle, glm::cross(glm::vec3(0, 0, 1), direction));
-    _pGameObject->GetComponent<Transform>()->SetWorldTRS(lookFrom, quaternion, glm::vec3(1.f));
-
+    _pGameObject->GetTransform()->SetLocalPosition(glm::vec3(0, 5, 5));
+    _pGameObject->GetTransform()->LookAt(glm::vec3(0, 0, -1));
     _pScene->AddGameObject(_pGameObject);
 }

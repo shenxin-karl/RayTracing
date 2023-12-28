@@ -77,7 +77,7 @@ Texture2D<float4>               gTextureList[]          : register(t0);
 VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
     float4 worldPosition = mul(gCbPreObject.gMatWorld, float4(vin.position, 1.0));
-    vout.SVPosition = mul(gCbPrePass.gMatViewProj, worldPosition);
+    vout.SVPosition = mul(gCbPrePass.matViewProj, worldPosition);
     vout.position = worldPosition.xyz;
     vout.normal = mul((float3x3)gCbPreObject.gMatNormal, vin.normal);
     #if ENABLE_NORMAL_TEX
@@ -164,7 +164,7 @@ float4 ForwardPSMain(VertexOut pin) : SV_TARGET {
     float4 albedo = GetAlbedo(pin);
     float ao = GetAmbientOcclusion(pin);
     float3 N = GetNormal(pin);
-    float3 V = normalize(gCbPrePass.gCameraPos - pin.position);
+    float3 V = normalize(gCbPrePass.cameraPos - pin.position);
 
     MaterialData materialData = CalcMaterialData(albedo.rgb, roughness, metallic);
     float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);

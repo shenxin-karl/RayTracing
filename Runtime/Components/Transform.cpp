@@ -166,7 +166,7 @@ void Transform::GetWorldTRS(glm::vec3 &translation, glm::quat &rotation, glm::ve
 
 void Transform::LookAt(const glm::vec3 &target, const glm::vec3 &up) {
     glm::vec3 direction = target - GetWorldPosition();
-    glm::quat lookAtQuaternion = glm::Direction2Quaternion(direction, up);
+    glm::quat lookAtQuaternion = glm::Direction2LookAtQuaternion(direction, up);
     glm::quat parentRotation = glm::identity<glm::quat>();
     if (_pParent != nullptr) {
         parentRotation = _pParent->GetWorldRotation();

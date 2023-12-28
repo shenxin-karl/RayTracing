@@ -8,12 +8,19 @@
 
 namespace glm {
 
-inline quat Direction2Quaternion(vec3 direction, glm::vec3 up = glm::vec3(0.f, 1.f, 0.f)) {
+inline quat Direction2LookAtQuaternion(vec3 direction, glm::vec3 up = glm::vec3(0.f, 1.f, 0.f)) {
     direction = normalize(direction);
     up = normalize(up);
 	mat4x4 view = lookAt(glm::vec3(0.f), direction, up);
     return quat_cast(view);
 }
+
+inline vec3 LookAtQuaternion2Direction(quat rotation) {
+	rotation = normalize(rotation);
+    mat3 matrix = mat3_cast(rotation);
+    return vec3(matrix[0][2], matrix[1][2], matrix[2][2]);
+}
+
 
 inline mat4x4 MakeAffineMatrix(const vec3 &translation, const quat &rotation, const vec3 &scale) {
 	glm::mat4x4 matrix = glm::scale(glm::mat4_cast(rotation), scale);

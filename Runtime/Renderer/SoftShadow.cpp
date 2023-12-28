@@ -20,6 +20,7 @@
 #include "RenderPasses/DeferredLightingPass.h"
 #include "RenderPasses/GBufferPass.h"
 #include "RenderPasses/PostProcessPass.h"
+#include "RenderPasses/SkyBoxPass.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
@@ -102,6 +103,17 @@ void SoftShadow::OnRender(GameTimer &timer) {
     deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
     _pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
 
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
+
+    SkyBoxPass::DrawArgs skyBoxDrawArgs = {};
+    skyBoxDrawArgs.cubeMapSRV = _skyBoxCubeSRV.GetCpuHandle();
+    skyBoxDrawArgs.matView = _cbPrePass.matView;
+    skyBoxDrawArgs.matProj = _cbPrePass.matProj;
+    skyBoxDrawArgs.pGfxCtx = pGfxCxt.get();
+    _pSkyBoxPass->Draw(skyBoxDrawArgs);
+
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
@@ -135,22 +147,28 @@ void SoftShadow::CreateRenderPass() {
     _pGBufferPass = std::make_unique<GBufferPass>();
     _pPostProcessPass = std::make_unique<PostProcessPass>();
     _pDeferredLightingPass = std::make_unique<DeferredLightingPass>();
+    _pSkyBoxPass = std::make_unique<SkyBoxPass>();
     _pGBufferPass->OnCreate();
     _pPostProcessPass->OnCreate();
     _pDeferredLightingPass->OnCreate();
+    _pSkyBoxPass->OnCreate();
 }
 
 void SoftShadow::CreateScene() {
     _pScene = SceneManager::GetInstance()->CreateScene("Scene");
+    RenderSetting::Get().SetToneMapperType(ToneMapperType::eACESFilm);
+    RenderSetting::Get().SetAmbientIntensity(1.f);
+    RenderSetting::Get().SetExposure(1.f);
     SetupCamera();
     SetupLight();
     LoadGLTF();
+    LoadCubeMap();
 }
 
 void SoftShadow::SetupCamera() {
     SharedPtr<GameObject> pGameObject = GameObject::Create();
     pGameObject->AddComponent<Camera>();
-    pGameObject->AddComponent<CameraController>()->cameraMoveSpeed = 200;
+    pGameObject->AddComponent<CameraController>()->cameraMoveSpeed = 300;
 
     Camera *pCamera = pGameObject->GetComponent<Camera>();
     pCamera->SetNearClip(1.f);
@@ -166,7 +184,7 @@ void SoftShadow::SetupCamera() {
 void SoftShadow::SetupLight() {
     SharedPtr<GameObject> pGameObject = GameObject::Create();
     DirectionalLight *pDirectionalLight = pGameObject->AddComponent<DirectionalLight>();
-    pDirectionalLight->SetColor(glm::vec3(1.f));
+    pDirectionalLight->SetColor(glm::vec3(3.f));
 
     Transform *pTransform = pGameObject->GetTransform();
     pTransform->SetLocalPosition(glm::vec3(-10, 10, 0));
@@ -180,6 +198,13 @@ void SoftShadow::LoadGLTF() {
     SharedPtr<GameObject> pRootGameObject = loader.GetRootGameObject();
     pRootGameObject->GetTransform()->SetLocalScale(glm::vec3(10.f));
     _pScene->AddGameObject(pRootGameObject);
+}
+
+void SoftShadow::LoadCubeMap() {
+    TextureLoader textureLoader;
+    stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
+    _pSkyBoxCubeMap = textureLoader.LoadFromFile(path, true);
+    _skyBoxCubeSRV = textureLoader.GetSRVCube(_pSkyBoxCubeMap.get());
 }
 
 void SoftShadow::RecreateWindowSizeDependentResources() {

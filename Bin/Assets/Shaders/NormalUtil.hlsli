@@ -1,15 +1,24 @@
 ﻿#pragma once
 
-float2 NormalEncode(float3 N) {
-	float2 encode = normalize(N.xy) * sqrt(N.z * 0.5f + 0.5f);
-	return encode;
+float2 _OctWrap(float2 v) {
+	return (1.0 - abs(v.yx)) * (v.xy >= 0.0 ? 1.0 : -1.0);
 }
-
-float3 NormalDecode(float2 encode) {
-	float3 N;
-	N.z = length(encode.xy) * 2.f - 1.f;
-	N.xy = normalize(encode.xy) * sqrt(1.f - N.z * N.z);
-	return N;
+ 
+float2 NormalEncode(float3 n) {
+	n /= (abs(n.x) + abs(n.y) + abs(n.z));
+	n.xy = n.z >= 0.0 ? n.xy : _OctWrap(n.xy);
+	n.xy = n.xy * 0.5 + 0.5;
+	return n.xy;
+}
+ 
+float3 NormalDecode(float2 f)
+{
+	f = f * 2.0 - 1.0;
+	// https://twitter.com/Stubbesaurus/status/937994790553227264
+	float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+	float t = saturate(-n.z);
+	n.xy += n.xy >= 0.0 ? -t : t;
+	return normalize(n);
 }
 
 float3 NormalBlendUDK(float3 n1, float3 n2) {
