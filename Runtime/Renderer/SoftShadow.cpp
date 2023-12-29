@@ -1,6 +1,5 @@
 #include "SoftShadow.h"
-
-#include "FrameCaptrue.h"
+#include "RenderUtils/FrameCaptrue.h"
 #include "GfxDevice.h"
 #include "RenderSetting.h"
 #include "Components/Camera.h"
@@ -114,7 +113,7 @@ void SoftShadow::OnRender(GameTimer &timer) {
     skyBoxDrawArgs.pGfxCtx = pGfxCxt.get();
     _pSkyBoxPass->Draw(skyBoxDrawArgs);
 
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 

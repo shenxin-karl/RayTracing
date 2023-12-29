@@ -5,6 +5,7 @@
 #include "D3d12/ShaderCompiler.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/UserMarker.h"
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Mesh.h"
 #include "RenderObject/VertexSemantic.hpp"
@@ -104,6 +105,8 @@ void SkyBoxPass::OnDestroy() {
 
 void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
     dx::GraphicsContext *pGfxCtx = drawArgs.pGfxCtx;
+    UserMarker userMarker(pGfxCtx, "SkyBoxPass");
+
     glm::mat4 matView = drawArgs.matView;
     matView[3][0] = 0.f;
     matView[3][1] = 0.f;

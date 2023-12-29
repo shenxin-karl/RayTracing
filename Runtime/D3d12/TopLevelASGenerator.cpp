@@ -24,6 +24,8 @@ void TopLevelASGenerator::AddInstance(ID3D12Resource *pBottomLevelAs,
 auto TopLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult, bool cleanUpInstances)
     -> TopLevelAS {
 
+    TopLevelAS result;
+#if ENABLE_RAY_TRACING
     if (pPreviousResult != nullptr && !_allowUpdate) {
         const char *pMsg = "Cannot be updated on the existing acceleration structure because the number of instances "
                            "has changed";
@@ -44,7 +46,6 @@ auto TopLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPre
     info.ResultDataMaxSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes,
         D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-    TopLevelAS result;
     result.OnCreate(pUploadHeap->GetDevice(), info.ResultDataMaxSizeInBytes);
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
@@ -71,6 +72,7 @@ auto TopLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPre
 
     buildItem.pResource = result.GetResource();
     pUploadHeap->AddBuildItem(std::move(buildItem));
+#endif
     return result;
 }
 

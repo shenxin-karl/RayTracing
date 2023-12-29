@@ -1,5 +1,5 @@
 #include "GLTFSample.h"
-#include "FrameCaptrue.h"
+#include "RenderUtils/FrameCaptrue.h"
 #include "GfxDevice.h"
 #include "RenderSetting.h"
 #include "Components/Camera.h"

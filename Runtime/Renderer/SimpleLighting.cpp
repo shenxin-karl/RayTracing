@@ -1,6 +1,5 @@
 #include "SimpleLighting.h"
-
-#include "FrameCaptrue.h"
+#include "RenderUtils/FrameCaptrue.h"
 #include "D3d12/ASBuilder.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
@@ -340,7 +339,9 @@ void SimpleLighting::CreateRayTracingPipeline() {
     pPipelineConfig->Config(1);
 
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
+#if ENABLE_RAY_TRACING
     dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+#endif
 }
 
 void SimpleLighting::BuildAccelerationStructure() {

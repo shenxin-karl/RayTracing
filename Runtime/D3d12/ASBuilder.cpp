@@ -1,7 +1,6 @@
 #include "ASBuilder.h"
 #include "Device.h"
 #include <glm/gtc/type_ptr.inl>
-
 #include "AccelerationStructure.h"
 
 namespace dx {
@@ -44,6 +43,7 @@ void ASBuilder::OnDestroy() {
 }
 
 void ASBuilder::FlushAndFinish() {
+#if ENABLE_RAY_TRACING
     if (_bottomAsBuildItems.empty() && _topAsBuildItems.empty()) {
 	    return;
     }
@@ -73,6 +73,7 @@ void ASBuilder::FlushAndFinish() {
 	    buildDesc.DestAccelerationStructureData = bottomBuildItem.pResource->GetGPUVirtualAddress();
 	    buildDesc.ScratchAccelerationStructureData = scratchBufferAddress;
 	    buildDesc.SourceAccelerationStructureData = 0;
+
         _pCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
         _pCommandList->ResourceBarrier(1, RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(bottomBuildItem.pResource)));
     }
@@ -112,6 +113,7 @@ void ASBuilder::FlushAndFinish() {
 
     ThrowIfFailed(_pCommandAllocator->Reset());
     ThrowIfFailed(_pCommandList->Reset(_pCommandAllocator.Get(), nullptr));
+#endif
 }
 
 void ASBuilder::ConditionalGrowInstanceBuffer(size_t instanceCount) {

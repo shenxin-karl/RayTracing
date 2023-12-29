@@ -43,12 +43,7 @@ float3 GetWorldPosition(ComputeIn cin) {
     return WorldPositionFromDepth(uv, zNdc, gCbPrePass.matInvViewProj);
 }
 
-float4 Test0(ComputeIn cin) {
-	float zNdc = gDepthTex[cin.DispatchThreadID.xy];
-    return Linear01Depth(zNdc, gCbPrePass.zBufferParams);
-}
-
-[numthreads(16, 32, 1)]
+[numthreads(THREAD_WRAP_SIZE, 16, 1)]
 void CSMain(ComputeIn cin) {
 	float3 albedo;
     float ao;

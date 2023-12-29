@@ -21,7 +21,7 @@
 #include <array>
 #include <glm/glm.hpp>
 
-// #define ENABLE_D3D_11 1
+//#define ENABLE_D3D_11 1
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
     #define ENABLE_D3D_COMPUTE_QUEUE 0
@@ -37,7 +37,7 @@ namespace dx {
 // global
 #if ENABLE_D3D_11
 constexpr inline D3D_FEATURE_LEVEL KD3D_FEATURE_LEVEL       = D3D_FEATURE_LEVEL_11_0;
-using NativeDevice                                          = ID3D12Device;
+using NativeDevice                                          = ID3D12Device2;
 using NativeCommandList                                     = ID3D12GraphicsCommandList;
 #define ENABLE_RAY_TRACING 0
 #else

@@ -98,10 +98,8 @@ public:
     template<typename T>
     void SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data);
 
-#if ENABLE_RAY_TRACING
     void SetRayTracingPipelineState(ID3D12StateObject *pStateObject);
     void DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc);
-#endif
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eCompute;
@@ -301,9 +299,9 @@ inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
 }
 
 inline void ComputeContext::Dispatch(UINT groupX, UINT groupY, UINT groupZ) {
+    FlushResourceBarriers();
     _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
     _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    FlushResourceBarriers();
     _pCommandList->Dispatch(groupX, groupY, groupZ);
 }
 
@@ -313,18 +311,20 @@ void ComputeContext::SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T
     _pCommandList->SetComputeRootConstantBufferView(rootIndex, bufferLoc);
 }
 
-#if ENABLE_RAY_TRACING
 inline void ComputeContext::SetRayTracingPipelineState(ID3D12StateObject *pStateObject) {
+#if ENABLE_RAY_TRACING
     _pCommandList->SetPipelineState1(pStateObject);
+#endif
 }
 
 inline void ComputeContext::DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc) {
+#if ENABLE_RAY_TRACING
+    FlushResourceBarriers();
     _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
     _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    FlushResourceBarriers();
     _pCommandList->DispatchRays(&dispatchRaysDesc);
-}
 #endif
+}
 
 #pragma endregion
 
@@ -385,9 +385,9 @@ inline void GraphicsContext::DrawInstanced(UINT vertexCountPreInstance,
     UINT instanceCount,
     UINT startVertexLocation,
     UINT startInstanceLocation) {
+    FlushResourceBarriers();
     _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
     _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
-    FlushResourceBarriers();
     _pCommandList->DrawInstanced(vertexCountPreInstance, instanceCount, startVertexLocation, startInstanceLocation);
 }
 
@@ -396,9 +396,9 @@ inline void GraphicsContext::DrawIndexedInstanced(UINT indexCountPreInstance,
     UINT startIndexLocation,
     UINT baseVertexLocation,
     UINT startInstanceLocation) {
+    FlushResourceBarriers();
     _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
     _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
-    FlushResourceBarriers();
     _pCommandList->DrawIndexedInstanced(indexCountPreInstance,
         instanceCount,
         startIndexLocation,

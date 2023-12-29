@@ -6,6 +6,7 @@
 #include "Renderer/GfxDevice.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
+#include "Renderer/RenderUtils/UserMarker.h"
 
 void DeferredLightingPass::OnCreate() {
 	RenderPass::OnCreate();
@@ -29,11 +30,14 @@ void DeferredLightingPass::OnCreate() {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE RootSignature;
 	};
 
+	dx::DefineList defineList;
+	defineList["THREAD_WRAP_SIZE"] = pGfxDevice->GetDevice()->GetWorkGroupWarpSize();
+
 	ShaderLoadInfo shaderLoadInfo;
     shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/DeferredLightingCS.hlsl");
     shaderLoadInfo.entryPoint = "CSMain";
     shaderLoadInfo.shaderType = dx::ShaderType::eCS;
-    shaderLoadInfo.pDefineList = nullptr;
+    shaderLoadInfo.pDefineList = &defineList;
 	D3D12_SHADER_BYTECODE csByteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
 	Assert(csByteCode.pShaderBytecode != nullptr);
 
@@ -59,6 +63,8 @@ void DeferredLightingPass::OnDestroy() {
 
 void DeferredLightingPass::Draw(const DrawArgs &args) {
 	dx::ComputeContext *pComputeCtx = args.pComputeCtx;
+	UserMarker marker(pComputeCtx, "DeferredLightingPass");
+
 	pComputeCtx->SetComputeRootSignature(_pRootSignature.get());
 	pComputeCtx->SetPipelineState(_pPipelineState.Get());
 	pComputeCtx->SetComputeRootConstantBufferView(eCbLighting, args.cbLightingAddress);
@@ -72,7 +78,8 @@ void DeferredLightingPass::Draw(const DrawArgs &args) {
 	table0Handles[eOutput] = args.outputUAV;
 	pComputeCtx->SetDynamicViews(eTable0, table0Handles);
 
-	UINT threadX = dx::DivideRoundingUp(args.width, 16);
-	UINT threadY = dx::DivideRoundingUp(args.height, 32);
+	dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
+	UINT threadX = dx::DivideRoundingUp(args.width,  pDevice->GetWorkGroupWarpSize());
+	UINT threadY = dx::DivideRoundingUp(args.height, 16);
 	pComputeCtx->Dispatch(threadX, threadY, 1);
 }

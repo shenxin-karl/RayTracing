@@ -7,6 +7,7 @@
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/UserMarker.h"
 #include "RenderObject/ConstantBufferHelper.h"
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Material.h"
@@ -85,18 +86,21 @@ void GBufferPass::OnResize(size_t width, size_t height) {
     gBuffer0Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     _gBuffer0.OnCreate(pDevice->GetDevice(), gBuffer0Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
+    _gBuffer0.SetName("GBufferPass:gBuffer0");
 
     _gBuffer1.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer1Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, width, height);
     gBuffer1Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     _gBuffer1.OnCreate(pDevice->GetDevice(), gBuffer1Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
+    _gBuffer0.SetName("GBufferPass:gBuffer1");
 
     _gBuffer2.OnDestroy();
     D3D12_RESOURCE_DESC gBuffer2Desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R11G11B10_FLOAT, width, height);
     gBuffer2Desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clearValue.Format = DXGI_FORMAT_R11G11B10_FLOAT;
     _gBuffer2.OnCreate(pDevice->GetDevice(), gBuffer2Desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
+    _gBuffer0.SetName("GBufferPass:gBuffer2");
 
     auto CreateView = [=](dx::Texture &texture, D3D12_CPU_DESCRIPTOR_HANDLE rtv, D3D12_CPU_DESCRIPTOR_HANDLE srv) {
         dx::NativeDevice *device = pDevice->GetDevice()->GetNativeDevice();
@@ -129,6 +133,8 @@ auto GBufferPass::GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HAND
 }
 
 void GBufferPass::PreDraw(const DrawArgs &args) {
+	UserMarker marker(args.pGfxCtx, "GBufferPreDrawPass");
+
     auto TranslationAndClearRT = [&](ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE rtv, glm::vec4 color) {
         args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
         args.pGfxCtx->ClearRenderTargetView(rtv, color);
@@ -165,14 +171,20 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
 }
 
 void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args) {
+    if (batchList.empty()) {
+	    return;
+    }
+
+	UserMarker marker(args.pGfxCtx, "GBufferDrawBatchPass");
     DrawBatchList(batchList, [&](std::span<RenderObject *const> batch) { DrawBatchInternal(batch, args); });
 }
 
 void GBufferPass::PostDraw(const DrawArgs &args) {
-    args.pGfxCtx->Transition(_gBuffer0.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    args.pGfxCtx->Transition(_gBuffer1.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    args.pGfxCtx->Transition(_gBuffer2.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_READ);
+	UserMarker marker(args.pGfxCtx, "GBufferPostDrawPass");
+    args.pGfxCtx->Transition(_gBuffer0.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(_gBuffer1.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(_gBuffer2.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     
 }
 

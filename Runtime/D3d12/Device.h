@@ -31,6 +31,11 @@ public:
     auto GetAllocator() const -> D3D12MA::Allocator * {
         return _pAllocator;
     }
+
+    auto GetWorkGroupWarpSize() const -> size_t {
+        return _workGroupWarpSize;
+    }
+
     void WaitForGPUFlush(D3D12_COMMAND_LIST_TYPE queueType);
     void WaitForGPUFlush();
 
@@ -66,6 +71,7 @@ private:
     WRL::ComPtr<ID3D12CommandQueue>     _pComputeQueue;
     std::unique_ptr<Fence>              _pComputeQueueFence;
 #endif
+    size_t                              _workGroupWarpSize;
     // clang-format on
 };
 

@@ -1,11 +1,11 @@
 #include "Device.h"
-
 #include "DescriptorManager.hpp"
 #include "Fence.h"
+#include "Foundation/StringUtil.h"
 
 namespace dx {
 
-Device::Device() {
+Device::Device(): _pAllocator(nullptr), _workGroupWarpSize(32) {
 }
 
 Device::~Device() {
@@ -34,6 +34,15 @@ void Device::OnCreate(bool validationEnabled) {
             pFactory6->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&_pAdapter)));
     } else {
         ThrowIfFailed(pFactory->EnumAdapters(0, &_pAdapter));
+    }
+
+    DXGI_ADAPTER_DESC adapterDesc = {};
+    ThrowIfFailed(_pAdapter->GetDesc(&adapterDesc));
+
+    std::wstring adapterDescription = adapterDesc.Description;
+    adapterDescription = nstd::tolower(adapterDescription);
+    if (adapterDescription.find(L"AMD") != std::wstring::npos) {
+	    _workGroupWarpSize = 64;
     }
 
     ThrowIfFailed(D3D12CreateDevice(_pAdapter.Get(), KD3D_FEATURE_LEVEL, IID_PPV_ARGS(&_pDevice)));

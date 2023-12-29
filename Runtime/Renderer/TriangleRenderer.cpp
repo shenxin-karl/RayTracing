@@ -1,6 +1,5 @@
 #include "TriangleRenderer.h"
-
-#include "FrameCaptrue.h"
+#include "RenderUtils/FrameCaptrue.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
@@ -207,7 +206,9 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
     pPipelineConfig->Config(1);
 
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
-    dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+#if ENABLE_RAY_TRACING
+	dx::IhrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+#endif
 }
 
 void TriangleRenderer::CreateRayTracingOutputResource() {

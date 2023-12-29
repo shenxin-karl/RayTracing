@@ -10,7 +10,7 @@
 #include "Foundation/Memory/GarbageCollection.h"
 #include "D3d12/Device.h"
 #include "D3d12/UploadHeap.h"
-#include "Renderer/FrameCaptrue.h"
+#include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "Renderer/GfxDevice.h"
 
 #include "Renderer/TriangleRenderer.h"
