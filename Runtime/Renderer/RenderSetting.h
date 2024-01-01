@@ -17,6 +17,7 @@ public:
     static auto Get() -> RenderSetting &;
     RenderSetting();
 public:
+    void OnPreRender();
     void SetAmbientColor(glm::vec3 ambientColor);
     auto GetAmbientColor() const -> glm::vec3;
     void SetAmbientIntensity(float ambientIntensity);
@@ -41,5 +42,7 @@ private:
 	ToneMapperType		_toneMapperType;
 	float				_exposure;
 	bool				_reversedZ;
+private:
+    bool                _needRecreatePipeline;
     // clang-format on
 };

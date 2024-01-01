@@ -1,5 +1,9 @@
 #include "RenderSetting.h"
 
+#include "GfxDevice.h"
+#include "D3d12/Device.h"
+#include "Utils/GlobalCallbacks.h"
+
 auto RenderSetting::Get() -> RenderSetting & {
 	static RenderSetting instance;
 	return instance;
@@ -11,6 +15,19 @@ RenderSetting::RenderSetting() {
 	_toneMapperType = ToneMapperType::eAMDToneMapper;
 	_exposure = 1.f;
 	_reversedZ = true;
+
+	_needRecreatePipeline = false;
+}
+
+void RenderSetting::OnPreRender() {
+	bool waitGpuFlush = (_needRecreatePipeline);
+	if (waitGpuFlush) {
+		GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
+	}
+	if (_needRecreatePipeline) {
+		GlobalCallbacks::Get().onRecreatePipelineState.Invoke();
+		_needRecreatePipeline = false;
+	}
 }
 
 void RenderSetting::SetAmbientColor(glm::vec3 ambientColor) {
@@ -46,6 +63,7 @@ auto RenderSetting::GetExposure() const -> float {
 }
 
 void RenderSetting::SetReversedZ(bool enable) {
+	_needRecreatePipeline |= (_reversedZ != enable);
 	_reversedZ = enable;
 }
 
