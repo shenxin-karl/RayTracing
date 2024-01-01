@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "AccelerationStructure.h"
 #include <glm/glm.hpp>
 
@@ -15,17 +15,17 @@ public:
         uint32_t hitGroupIndex,
         uint16_t instanceMask = 0xff);
     // If you're building from an old accelerated structure, you need to provide pPreviousResult
-    auto CommitCommand(ASBuilder *pUploadHeap, TopLevelAS *pPreviousResult = nullptr, bool cleanUpInstances = true) -> TopLevelAS;
+    auto CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS *pPreviousResult = nullptr)
+        -> std::shared_ptr<TopLevelAS>;
 
     auto GetInstanceCount() const -> size_t {
         return _instances.size();
     }
-public:
+    void SetInstances(std::vector<ASInstance> instances) {
+	    _instances = std::move(instances);
+    }
 private:
-    // clang-format off
-	bool				    _allowUpdate;
-	std::vector<ASInstance> _instances;
-    // clang-format on
+    std::vector<ASInstance> _instances;
 };
 
 }    // namespace dx

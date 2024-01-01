@@ -12,6 +12,7 @@
 #include "Utils/AssetProjectSetting.h"
 #include "D3d12/BindlessCollection.hpp"
 #include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/UserMarker.h"
 
 void ForwardPass::OnCreate() {
     _pRootSignature = std::make_unique<dx::RootSignature>();
@@ -48,6 +49,10 @@ void ForwardPass::OnDestroy() {
 }
 
 void ForwardPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &drawArgs) {
+    if (batchList.empty()) {
+	    return;
+    }
+    UserMarker userMarker(drawArgs.pGfxCtx, "ForwardPass::DrawBatch");
     DrawBatchList(batchList, [&](std::span<RenderObject *const> batch) { DrawBatchInternal(batch, drawArgs); });
 }
 

@@ -1,8 +1,10 @@
 #include "Mesh.h"
 #include "GPUMeshData.h"
 #include "CPUMeshData.h"
+#include "Foundation/DebugBreak.h"
+#include "Foundation/Logger.h"
 
-Mesh::Mesh() : _vertexAttributeDirty(false), _bottomLevelASDirty(false) {
+Mesh::Mesh() : _vertexAttributeDirty(false) {
 	_pCpuMeshData = std::make_unique<CPUMeshData>();
 	_pGpuMeshData = std::make_unique<GPUMeshData>();
 }
@@ -76,7 +78,6 @@ void Mesh::SetVertices(ReadonlyArraySpan<glm::vec3> vertices) {
     auto end = _pCpuMeshData->GetSemanticEnd(SemanticIndex::eVertex);
     fill(begin, end, vertices);
     _vertexAttributeDirty = true;
-    _bottomLevelASDirty = true;
 }
 
 void Mesh::SetNormals(ReadonlyArraySpan<glm::vec3> normals) {
@@ -118,16 +119,13 @@ void Mesh::SetSubMeshes(std::vector<SubMesh> subMeshes) {
 void Mesh::Resize(SemanticMask mask, size_t vertexCount, size_t indexCount) {
     _pCpuMeshData->Resize(mask, vertexCount, indexCount);
     _vertexAttributeDirty = true;
+    _subMeshes.clear();
 }
 
-void Mesh::UploadMeshData(bool generateBottomLevelAS, bool isOpaque) {
+void Mesh::UploadMeshData() {
     if (_vertexAttributeDirty) {
 		_pGpuMeshData->UploadGpuMemory(_pCpuMeshData.get());
 		_vertexAttributeDirty = false;
-    }
-    if (generateBottomLevelAS && _bottomLevelASDirty) {
-		_pGpuMeshData->GenerateBottomLevelAccelerationStructure(isOpaque);
-	    _bottomLevelASDirty = false;
     }
     if (_subMeshes.empty()) {
 	    SubMesh subMesh;
@@ -148,4 +146,13 @@ void Mesh::SetDataCheck(size_t vertexCount, SemanticIndex index) const {
         VertexSemantic semanticInfo = GetSemanticInfo(index);
         Exception::Throw("This semantic channel '{}' does not exist", semanticInfo.semantic);
     }
+}
+
+auto Mesh::RequireBottomLevelAS(dx::IASBuilder *pASBuilder, bool isOpaque) -> dx::BottomLevelAS * {
+    if (_vertexAttributeDirty) {
+        DEBUG_BREAK;
+        Logger::Error("Mesh::RequireBottomLevelAS, vertexAttribute Dirty!");
+	    return nullptr;
+    }
+    return _pGpuMeshData->RequireBottomLevelAS(pASBuilder, isOpaque);
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "Foundation/Singleton.hpp"
-#include "D3d12/D3dUtils.h"
+#include "D3d12//D3dStd.h"
 
 namespace dx {
 

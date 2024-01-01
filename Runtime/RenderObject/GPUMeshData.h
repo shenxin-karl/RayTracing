@@ -1,9 +1,7 @@
 #pragma once
 #include <memory>
-#include <d3d12.h>
-#include <string_view>
-
 #include "Foundation/NonCopyable.h"
+#include "D3d12/D3dStd.h"
 
 namespace dx {
 class StaticBuffer;
@@ -22,11 +20,13 @@ public:
 private:
 	friend class Mesh;
 	void UploadGpuMemory(const CPUMeshData *pMeshData);
-	void GenerateBottomLevelAccelerationStructure(bool isOpaque = true);
+	auto RequireBottomLevelAS(dx::IASBuilder *pIASBuilder, bool isOpaque) -> dx::BottomLevelAS *;
+	auto GenerateBottomLevelAccelerationStructure(dx::IASBuilder *pIASBuilder, bool isOpaque) const -> std::shared_ptr<dx::BottomLevelAS>;
 private:
 	// clang-format off
 	std::unique_ptr<dx::StaticBuffer>	_pStaticBuffer;
-	std::unique_ptr<dx::BottomLevelAS>	_pBottomLevelAS;
+	std::shared_ptr<dx::BottomLevelAS>	_pOpaqueBottomLevelAS;
+	std::shared_ptr<dx::BottomLevelAS>  _pTransparentBottomLevelAS;
 	D3D12_VERTEX_BUFFER_VIEW			_vertexBufferView;
 	D3D12_INDEX_BUFFER_VIEW				_indexBufferView;
 	// clang-format on

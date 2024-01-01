@@ -80,6 +80,7 @@ target("RayTracing")
     add_packages("stduuid")
     add_packages("dxc")
     add_packages("renderdoc")
+    add_defines("USE_PIX=1")
     add_packages("pix")
 
     set_targetdir(BINARY_DIR)

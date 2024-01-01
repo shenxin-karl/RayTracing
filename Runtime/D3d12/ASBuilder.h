@@ -1,52 +1,70 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "Fence.h"
+#include "TopLevelASGenerator.h"
 
 namespace dx {
 
-// todo: 需要修改为支持异步构建
-// acceleration structure builder
-class ASBuilder : private NonCopyable {
+class IASBuilder : private NonCopyable {
 public:
-    ~ASBuilder();
-    void OnCreate(Device *pDevice, size_t maxBuildItem = 20);
-    void OnDestroy();
-    void FlushAndFinish();
-    auto GetDevice() const -> Device * {
-        return _pDevice;
-    }
-private:
-    friend TopLevelASGenerator;
-    friend BottomLevelASGenerator;
+    struct BottomASBuildItem {
+        size_t scratchBufferSize;
+        ID3D12Resource *pOutputResource;
+        std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> vertexBuffers;
+        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags;
+    };
+    struct TopASBuildItem {
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc;
+        size_t scratchBufferSize;
+        std::vector<ASInstance> instances;
+        ID3D12Resource *pOutputResource;
+    };
 
-	struct BottomASBuildItem {
-	    size_t scratchBufferSize;
-	    ID3D12Resource *pResource;
-	    std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> vertexBuffers;
-		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags;
-	};
-	struct TopASBuildItem {
-	    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc;
-	    size_t scratchBufferSize;
-	    std::vector<ASInstance> instances;
-	    ID3D12Resource *pResource;
-	};
+    friend class TopLevelASGenerator;
+    friend class BottomLevelASGenerator;
+    virtual void AddBuildItem(BottomASBuildItem buildItem) = 0;
+    virtual void AddBuildItem(TopASBuildItem buildItem) = 0;
+    virtual auto GetDevice() const -> Device * = 0;
+    // When updating the top-level acceleration structure, 
+    // we need to keep track of old resources and release them when the build is complete
+    virtual void TraceResource(WRL::ComPtr<D3D12MA::Allocation> pResource) = 0;
+    virtual ~IASBuilder() = default;
+};
 
-    void AddBuildItem(BottomASBuildItem &&buildItem) {
-	    _bottomAsBuildItems.push_back(std::move(buildItem));
-        ConditionalFlushAndFinish();
+class AsyncASBuilder : public virtual IASBuilder {
+public:
+    AsyncASBuilder();
+    ~AsyncASBuilder() override;
+    virtual void OnCreate(Device *pDevice);
+    virtual void OnDestroy();
+public:
+    void Flush();
+    void Reset();
+    bool IsIdle() const;
+    auto GetUploadFinishedFence() const -> const Fence &;
+    auto GetBuildCommandCount() const -> size_t {
+	    return _topAsBuildItems.size() + _bottomAsBuildItems.size();
     }
-    void AddBuildItem(TopASBuildItem &&buildItem) {
-	    _topAsBuildItems.push_back(std::move(buildItem));
-        ConditionalFlushAndFinish();
+	auto GetDevice() const -> Device * override {
+		return _pDevice;
+	}
+protected:
+    void AddBuildItem(TopASBuildItem topAsBuildItem) override {
+        Assert(IsIdle());
+	    _topAsBuildItems.push_back(std::move(topAsBuildItem));
+    }
+    void AddBuildItem(BottomASBuildItem bottomAsBuildItem) override {
+        Assert(IsIdle());
+	    _bottomAsBuildItems.push_back(std::move(bottomAsBuildItem));
+    }
+    void TraceResource(WRL::ComPtr<D3D12MA::Allocation> pResource) override {
+	    _traceResourceList.push_back(pResource);
     }
 private:
     void ConditionalGrowInstanceBuffer(size_t instanceCount);
     void ConditionalGrowScratchBuffer(size_t scratchBufferSize);
-    void ConditionalFlushAndFinish();
-private:
-    // clang-format off
-    size_t                              _maxBuildItem       = {};
+    using TraceResourceList = std::vector<WRL::ComPtr<D3D12MA::Allocation>>;
+protected:
     Device                             *_pDevice            = nullptr;
     WRL::ComPtr<NativeCommandList>      _pCommandList       = nullptr;
     WRL::ComPtr<ID3D12CommandAllocator> _pCommandAllocator  = nullptr;
@@ -54,9 +72,45 @@ private:
     WRL::ComPtr<D3D12MA::Allocation>    _pInstanceBuffer    = nullptr;
     std::vector<BottomASBuildItem>      _bottomAsBuildItems;
     std::vector<TopASBuildItem>         _topAsBuildItems;
-    // clang-format on
+    TraceResourceList                   _traceResourceList;
+    bool                                _idle;
+    Fence                               _uploadFinishedFence;
 };
 
+class SyncASBuilder : private AsyncASBuilder, public virtual IASBuilder {
+public:
+    using AsyncASBuilder::OnCreate;
+    using AsyncASBuilder::OnDestroy;
+    using AsyncASBuilder::GetDevice;
+    using AsyncASBuilder::TraceResource;
 
+    void FlushAndFinish() {
+        if (GetBuildCommandCount() > 0) {
+		    Flush();
+	        _uploadFinishedFence.CpuWaitForFence();
+	        Reset();
+        }
+    }
+    void SetMaxBuildItem(size_t maxBuildItem) {
+	    _maxBuildItem = maxBuildItem;
+    }
+protected:
+    void AddBuildItem(BottomASBuildItem buildItem) override {
+	    AsyncASBuilder::AddBuildItem(std::move(buildItem));
+        ConditionalFlushAndFinish();
+    }
+    void AddBuildItem(TopASBuildItem buildItem) override {
+	    AsyncASBuilder::AddBuildItem(std::move(buildItem));
+        ConditionalFlushAndFinish();
+    }
+private:
+    void ConditionalFlushAndFinish() {
+	    if ((_bottomAsBuildItems.size() + _topAsBuildItems.size()) >= _maxBuildItem) {
+			FlushAndFinish();
+		}
+    }
+private:
+    size_t  _maxBuildItem = 20;
+};
 
 }    // namespace dx

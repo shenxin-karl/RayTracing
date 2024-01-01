@@ -28,7 +28,7 @@ void SkyBoxPass::OnCreate() {
     _pRootSignature->At(eCbSetting).InitAsBufferCBV(0);
     _pRootSignature->At(eCubeMap).InitAsDescriptorTable({
         CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0),
-    });
+    }, D3D12_SHADER_VISIBILITY_PIXEL);
     _pRootSignature->SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
     _pRootSignature->Generate(pDevice);
 

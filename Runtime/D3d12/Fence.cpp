@@ -19,8 +19,9 @@ void Fence::OnCreate(Device *pDevice, std::string_view name) {
 
 void Fence::OnDestroy() {
     if (_event != nullptr) {
-	    CloseHandle(_event);
-	    _event = nullptr;
+        CloseHandle(_event);
+        _event = nullptr;
+        _pFence = nullptr;
     }
 }
 
@@ -30,20 +31,24 @@ auto Fence::IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t {
     return _fenceCounter;
 }
 
-void Fence::CpuWaitForFence() {
+void Fence::CpuWaitForFence() const {
     CpuWaitForFence(_fenceCounter);
 }
 
-void Fence::CpuWaitForFence(uint64_t waitFenceValue) {
-	UINT64 completedValue = _pFence->GetCompletedValue();
+void Fence::CpuWaitForFence(uint64_t waitFenceValue) const {
+    UINT64 completedValue = _pFence->GetCompletedValue();
     if (completedValue < waitFenceValue) {
         ThrowIfFailed(_pFence->SetEventOnCompletion(waitFenceValue, _event));
         WaitForSingleObject(_event, INFINITE);
     }
 }
 
-void Fence::GpuWaitForFence(ID3D12CommandQueue *pCommandQueue) {
+void Fence::GpuWaitForFence(ID3D12CommandQueue *pCommandQueue) const {
     ThrowIfFailed(pCommandQueue->Wait(_pFence.Get(), _fenceCounter));
 }
 
+void Fence::SetName(std::string_view name) {
+    std::wstring wstring = nstd::to_wstring(name);
+    _pFence->SetName(wstring.c_str());
+}
 }    // namespace dx

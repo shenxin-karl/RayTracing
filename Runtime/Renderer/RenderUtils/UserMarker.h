@@ -9,7 +9,7 @@ class Context;
 
 class UserMarker : NonCopyable {
 public:
-	UserMarker(const dx::Context *pContext, std::string_view name, glm::vec4 color = Colors::Green);
+	UserMarker(const dx::Context *pContext, std::string_view name);
 	~UserMarker();
 private:
 	const dx::Context *_pContext = nullptr;

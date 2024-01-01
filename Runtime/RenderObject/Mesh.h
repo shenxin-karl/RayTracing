@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include "D3d12/D3dStd.h"
 #include "Foundation/GlmStd.hpp"
 #include "Foundation/NonCopyable.h"
 #include "Foundation/ReadonlyArraySpan.hpp"
@@ -9,7 +10,6 @@ enum class SemanticMask;
 enum class SemanticIndex;
 class CPUMeshData;
 class GPUMeshData;
-
 
 struct SubMesh {
 	size_t vertexCount;
@@ -41,9 +41,11 @@ public:
 	void SetUV0(ReadonlyArraySpan<glm::vec2> uvs);
 	void SetSubMeshes(std::vector<SubMesh> subMeshes);
 	void Resize(SemanticMask mask, size_t vertexCount, size_t indexCount);
-	void UploadMeshData(bool generateBottomLevelAS, bool isOpaque = true);
+	void UploadMeshData();
 private:
+	friend class MeshRenderer;
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
+	auto RequireBottomLevelAS(dx::IASBuilder *pASBuilder, bool isOpaque) -> dx::BottomLevelAS *;
 private:
 	// clang-format off
 	std::string						_name;
@@ -51,6 +53,5 @@ private:
 	std::unique_ptr<CPUMeshData>	_pCpuMeshData;
 	std::unique_ptr<GPUMeshData>	_pGpuMeshData;
 	bool							_vertexAttributeDirty;
-	bool							_bottomLevelASDirty;
 	// clang-format on
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "Foundation/MemoryStream.h"
 
 namespace dx {

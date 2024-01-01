@@ -31,7 +31,7 @@ void BottomLevelASGenerator::AddGeometry(D3D12_VERTEX_BUFFER_VIEW vbv,
     return AddGeometryInternal(&vbv, vertexFormat, &ibv, &transformBuffer, isOpaque);
 }
 
-auto BottomLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap) -> BottomLevelAS {
+auto BottomLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder) -> std::shared_ptr<BottomLevelAS> {
 #if ENABLE_RAY_TRACING
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc;
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
@@ -40,22 +40,22 @@ auto BottomLevelASGenerator::CommitCommand(ASBuilder *pUploadHeap) -> BottomLeve
     preBuildDesc.pGeometryDescs = _vertexBuffers.data();
     preBuildDesc.Flags = _flags;
 
-    NativeDevice *device = pUploadHeap->GetDevice()->GetNativeDevice();
+    NativeDevice *device = pASBuilder->GetDevice()->GetNativeDevice();
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
     device->GetRaytracingAccelerationStructurePrebuildInfo(&preBuildDesc, &info);
     Assert(info.ResultDataMaxSizeInBytes > 0);
     info.ResultDataMaxSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-    BottomLevelAS result;
-    result.OnCreate(pUploadHeap->GetDevice(), info.ResultDataMaxSizeInBytes);
+    std::shared_ptr<BottomLevelAS> pResult = std::make_shared<BottomLevelAS>();
+    pResult->OnCreate(pASBuilder->GetDevice(), info.ResultDataMaxSizeInBytes);
 
-    ASBuilder::BottomASBuildItem buildItem;
+    SyncASBuilder::BottomASBuildItem buildItem;
     buildItem.scratchBufferSize = info.ScratchDataSizeInBytes;
-    buildItem.pResource = result.GetResource();
+    buildItem.pOutputResource = pResult->GetResource();
     buildItem.vertexBuffers = std::move(_vertexBuffers);
     buildItem.flags = _flags;
-    pUploadHeap->AddBuildItem(std::move(buildItem));
-    return result;
+    pASBuilder->AddBuildItem(std::move(buildItem));
+    return pResult;
 #endif
 }
 

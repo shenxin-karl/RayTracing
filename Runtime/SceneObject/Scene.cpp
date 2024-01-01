@@ -2,11 +2,13 @@
 #include "Object/GameObject.h"
 #include "Foundation/Exception.h"
 #include "SceneLightManager.h"
+#include "SceneRayTracingASManager.h"
 #include "SceneRenderObjectManager.h"
 
 Scene::Scene() {
     _pLightManager = std::make_unique<SceneLightManager>();
     _pRenderObjectMgr = std::make_unique<SceneRenderObjectManager>();
+    _pRayTracingASMgr = std::make_unique<SceneRayTracingASManager>();
 
     // register scene callbacks
     _preUpdateCallbackHandle = GlobalCallbacks::Get().onPreUpdate.Register(this, &Scene::OnPreUpdate);
@@ -77,6 +79,7 @@ void Scene::OnPostUpdate(GameTimer &timer) {
 
 void Scene::OnPreRender(GameTimer &timer) {
     InvokeTickFunc(&GameObject::InnerOnPreRender);
+    _pRayTracingASMgr->OnPreRender();
 }
 
 void Scene::OnRender(GameTimer &timer) {

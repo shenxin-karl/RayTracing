@@ -78,8 +78,8 @@ void SimpleLighting::OnDestroy() {
     _rayTracingOutput.OnDestroy();
     _rayTracingOutputHandle.Release();
     _pMeshBuffer->OnDestroy();
-    _bottomLevelAs.OnDestroy();
-    _topLevelAs.OnDestroy();
+    _pBottomLevelAs->OnDestroy();
+    _pTopLevelAs->OnDestroy();
     _pASBuilder->OnDestroy();
     Renderer::OnDestroy();
 }
@@ -121,7 +121,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
-    pGraphicsCtx->SetComputeRootShaderResourceView(GlobalRootParams::Scene, _topLevelAs.GetGPUVirtualAddress());
+    pGraphicsCtx->SetComputeRootShaderResourceView(GlobalRootParams::Scene, _pTopLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetComputeRootDynamicConstantBuffer(GlobalRootParams::SceneCB, _sceneConstantBuffer);
     pGraphicsCtx->SetDynamicViews(GlobalRootParams::Table0,
         _rayTracingOutputHandle.GetCpuHandle(),
@@ -347,11 +347,11 @@ void SimpleLighting::CreateRayTracingPipeline() {
 void SimpleLighting::BuildAccelerationStructure() {
     dx::BottomLevelASGenerator bottomLevelAsGenerator;
     bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-    _bottomLevelAs = bottomLevelAsGenerator.CommitCommand(_pASBuilder);
+    _pBottomLevelAs = bottomLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 
     dx::TopLevelASGenerator topLevelAsGenerator;
-    topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat4x4(1.0), 0, 0);
-    _topLevelAs = topLevelAsGenerator.CommitCommand(_pASBuilder);
+    topLevelAsGenerator.AddInstance(_pBottomLevelAs->GetResource(), glm::mat4x4(1.0), 0, 0);
+    _pTopLevelAs = topLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 }
 
 void SimpleLighting::LoadCubeMap() {

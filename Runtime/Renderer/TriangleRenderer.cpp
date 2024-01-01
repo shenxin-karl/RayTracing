@@ -42,8 +42,8 @@ void TriangleRenderer::OnCreate() {
 void TriangleRenderer::OnDestroy() {
     _pTriangleStaticBuffer->OnDestroy();
     _pASBuilder->OnDestroy();
-    _bottomLevelAs.OnDestroy();
-    _topLevelAs.OnDestroy();
+    _bottomLevelAs->OnDestroy();
+    _topLevelAs->OnDestroy();
     Renderer::OnDestroy();
 }
 
@@ -72,7 +72,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
-    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs.GetGPUVirtualAddress());
+    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
@@ -207,7 +207,7 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
 
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
 #if ENABLE_RAY_TRACING
-	dx::IhrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+	dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
 #endif
 }
 
@@ -244,10 +244,10 @@ void TriangleRenderer::BuildAccelerationStructures() {
 
     dx::BottomLevelASGenerator bottomLevelAsGenerator;
     bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-    _bottomLevelAs = bottomLevelAsGenerator.CommitCommand(_pASBuilder);
+    _bottomLevelAs = bottomLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 
     dx::TopLevelASGenerator topLevelAsGenerator;
-    topLevelAsGenerator.AddInstance(_bottomLevelAs.GetResource(), glm::mat3x4(1.f), 0, 0);
+    topLevelAsGenerator.AddInstance(_bottomLevelAs->GetResource(), glm::mat3x4(1.f), 0, 0);
 
-    _topLevelAs = topLevelAsGenerator.CommitCommand(_pASBuilder);
+    _topLevelAs = topLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 }

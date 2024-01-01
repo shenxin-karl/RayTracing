@@ -10,7 +10,7 @@ class Device;
 class SwapChain;
 class FrameResourceRing;
 class UploadHeap;
-class ASBuilder;
+class SyncASBuilder;
 class DescriptorManager;
 }
 
@@ -30,7 +30,7 @@ public:
 	auto GetUploadHeap() const -> dx::UploadHeap * {
 		return _pUploadHeap.get();
 	}
-	auto GetASBuilder() const -> dx::ASBuilder * {
+	auto GetASBuilder() const -> dx::SyncASBuilder * {
 		return _pASBuilder.get();
 	}
 	auto GetRenderTargetFormat() const-> DXGI_FORMAT {
@@ -45,7 +45,7 @@ private:
 	std::unique_ptr<dx::Device>		_pDevice;
 	std::unique_ptr<dx::SwapChain>	_pSwapChain;
 	std::unique_ptr<dx::UploadHeap>	_pUploadHeap;
-	std::unique_ptr<dx::ASBuilder>	_pASBuilder;
+	std::unique_ptr<dx::SyncASBuilder>	_pASBuilder;
 	DXGI_FORMAT						_renderTargetFormat;
 	DXGI_FORMAT						_depthStencilFormat;
 	// clang-format on

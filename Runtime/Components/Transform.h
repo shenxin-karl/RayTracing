@@ -61,11 +61,17 @@ public:
     auto GetChildren() const -> const std::vector<Transform *> & {
         return _children;
     }
+    bool ThisFrameChanged() const {
+	    return _thisFrameChanged;
+    }
+private:
+    void OnPostRender() override;
 private:
     static void SetParentImpl(Transform *pParent, Transform *pChild);
     static void RemoveChildImpl(Transform *pParent, Transform *pChild);
     void ConditionUpdateWorldAttribute() const;
     void MakeChildrenDirty(TransformDirtyFlag flag);
+    void MakeThisFrameChanged();
     friend class GameObject;
     void SetParent(Transform *pTransform);
     void AddChild(Transform *pTransform);
@@ -86,5 +92,6 @@ private:
 	mutable glm::mat4x4			_matInvLocal;
 	mutable glm::mat4x4			_matInvWorld;
 	mutable TransformDirtyFlag	_dirtyFlag;
+    mutable bool                _thisFrameChanged;
     // clang-format on
 };

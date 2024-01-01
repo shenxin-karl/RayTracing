@@ -15,4 +15,6 @@ public:
 	virtual void OnPostRender(GameTimer &timer) {}
 
 	virtual ~ITick() = default;
+
+	
 };

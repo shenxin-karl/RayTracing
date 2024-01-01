@@ -3,7 +3,7 @@
 #include "Foundation/NonCopyable.h"
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/ShaderCompiler.h"
-#include "D3d12/D3dUtils.h"
+#include "D3d12/D3dStd.h"
 
 enum class SemanticMask;
 

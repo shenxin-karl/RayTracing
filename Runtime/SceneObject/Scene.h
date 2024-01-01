@@ -10,6 +10,7 @@
 class GameObject;
 class SceneLightManager;
 class SceneRenderObjectManager;
+class SceneRayTracingASManager;
 
 class Scene : private NonCopyable {
 	friend class SceneManager;
@@ -50,6 +51,9 @@ public:
 	auto GetRenderObjectManager() const -> SceneRenderObjectManager * {
 		return _pRenderObjectMgr.get();
 	}
+	auto GetRayTracingASManager() const -> SceneRayTracingASManager * {
+		return _pRayTracingASMgr.get();
+	}
 private:
 	void RemoveGameObjectInternal(InstanceID instanceId);
 	void OnCreate(std::string name, SceneID sceneID);
@@ -65,12 +69,14 @@ private:
 private:
 	using SceneRenderObjectManagerPtr = std::unique_ptr<SceneRenderObjectManager>;
 	using SceneLightManagerPtr = std::unique_ptr<SceneLightManager>;
+	using SceneRayTracingASManagerPtr = std::unique_ptr<SceneRayTracingASManager>;
 	// clang-format off
 	std::string					_name;
 	SceneID						_sceneID;
 	GameObjectList				_gameObjects;
 	SceneLightManagerPtr		_pLightManager;
-	SceneRenderObjectManagerPtr	_pRenderObjectMgr;	
+	SceneRenderObjectManagerPtr	_pRenderObjectMgr;
+	SceneRayTracingASManagerPtr	_pRayTracingASMgr;
 
 	CallbackHandle				_preUpdateCallbackHandle;
 	CallbackHandle				_updateCallbackHandle;

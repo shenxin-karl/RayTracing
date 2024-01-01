@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 
 namespace dx {
 
@@ -8,12 +8,13 @@ public:
     Fence();
     ~Fence();
 public:
-    void OnCreate(Device *pDevice, std::string_view name);
+    void OnCreate(Device *pDevice, std::string_view name = std::source_location::current().function_name());
     void OnDestroy();
     auto IssueFence(ID3D12CommandQueue *pCommandQueue) -> uint64_t;
-    void CpuWaitForFence();
-    void CpuWaitForFence(uint64_t waitFenceValue);
-    void GpuWaitForFence(ID3D12CommandQueue *pCommandQueue);
+    void CpuWaitForFence() const;
+    void CpuWaitForFence(uint64_t waitFenceValue) const;
+    void GpuWaitForFence(ID3D12CommandQueue *pCommandQueue) const;
+    void SetName(std::string_view name);
 private:
     // clang-format off
     HANDLE                   _event;

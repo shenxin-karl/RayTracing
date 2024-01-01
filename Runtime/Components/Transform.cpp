@@ -12,8 +12,10 @@ Transform::Transform()
       _matWorld(glm::identity<glm::mat4x4>()),
       _matInvLocal(glm::identity<glm::mat4x4>()),
       _matInvWorld(glm::identity<glm::mat4x4>()),
-      _dirtyFlag() {
+      _dirtyFlag(),
+      _thisFrameChanged(false) {
     _dirtyFlag = SetFlags(_dirtyFlag, eAllDirty);
+    SetTickType(ePostRender);
 }
 
 Transform::~Transform() {
@@ -33,6 +35,7 @@ void Transform::SetLocalPosition(const glm::vec3 &translate) {
     if (any(epsilonNotEqual(_translation, translate, kEpsilon))) {
         _translation = translate;
         _dirtyFlag = SetFlags(_dirtyFlag, eAllDirty);
+        MakeThisFrameChanged();
         MakeChildrenDirty(eWorldAttribute);
     }
 }
@@ -41,6 +44,7 @@ void Transform::SetLocalScale(const glm::vec3 &scale) {
     if (any(epsilonNotEqual(_scale, scale, kEpsilon))) {
         _scale = scale;
         _dirtyFlag = SetFlags(_dirtyFlag, eAllDirty);
+        MakeThisFrameChanged();
         MakeChildrenDirty(eWorldAttribute);
     }
 }
@@ -49,6 +53,7 @@ void Transform::SetLocalRotation(const glm::quat &rotate) {
     if (any(epsilonNotEqual(_rotation, rotate, kEpsilon))) {
         _rotation = rotate;
         _dirtyFlag = SetFlags(_dirtyFlag, eAllDirty);
+        MakeThisFrameChanged();
         MakeChildrenDirty(eWorldAttribute);
     }
 }
@@ -60,6 +65,7 @@ void Transform::SetLocalMatrix(const glm::mat4x4 &matrix) {
     glm::decompose(_matLocal, _scale, _rotation, _translation, skew, perspective);
     _dirtyFlag = ClearFlags(_dirtyFlag, eLocalMatrix);
     _dirtyFlag = SetFlags(_dirtyFlag, eInverseLocalMatrix | eWorldAttribute);
+    MakeThisFrameChanged();
     MakeChildrenDirty(eWorldAttribute);
 }
 
@@ -76,6 +82,7 @@ void Transform::SetWorldMatrix(const glm::mat4x4 &matrix) {
     glm::vec4 perspective;
     glm::decompose(_matLocal, _scale, _rotation, _translation, skew, perspective);
 
+    MakeThisFrameChanged();
     MakeChildrenDirty(eWorldAttribute);
     _dirtyFlag = SetFlags(_dirtyFlag, eInverseLocalMatrix | eWorldAttribute);
     _dirtyFlag = ClearFlags(_dirtyFlag, eWorldMatrix | eLocalMatrix);
@@ -86,6 +93,7 @@ void Transform::SetLocalTRS(const glm::vec3 &translation, const glm::quat &rotat
     _rotation = rotation;
     _scale = scale;
     _dirtyFlag = SetFlags(_dirtyFlag, eInverseLocalMatrix | eLocalMatrix | eWorldAttribute);
+    MakeThisFrameChanged();
     MakeChildrenDirty(eWorldAttribute);
 }
 
@@ -180,6 +188,11 @@ void Transform::LookAt(const glm::vec3 &target, const glm::vec3 &up) {
     SetLocalRotation(localQuaternion);
 }
 
+void Transform::OnPostRender() {
+	Component::OnPostRender();
+    _thisFrameChanged = false;
+}
+
 void Transform::SetParentImpl(Transform *pParent, Transform *pChild) {
     pParent->_children.push_back(pChild);
     pChild->_pParent = pParent;
@@ -206,7 +219,12 @@ void Transform::ConditionUpdateWorldAttribute() const {
 void Transform::MakeChildrenDirty(TransformDirtyFlag flag) {
     for (auto *pChild : _children) {
         pChild->_dirtyFlag = SetFlags(pChild->_dirtyFlag, flag);
+        pChild->MakeThisFrameChanged();
     }
+}
+
+void Transform::MakeThisFrameChanged() {
+    _thisFrameChanged = true;
 }
 
 void Transform::SetParent(Transform *pTransform) {

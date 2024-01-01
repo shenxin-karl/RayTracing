@@ -1,8 +1,7 @@
 #include "Pix.h"
-#define USE_PIX
 #include <Windows.h>
 #include <WinPixEventRuntime/pix3.h>
-#include "D3d12/D3dUtils.h"
+#include "D3d12/D3dStd.h"
 #include "D3d12/Device.h"
 #include "Utils/AssetProjectSetting.h"
 

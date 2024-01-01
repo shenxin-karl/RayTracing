@@ -1,7 +1,7 @@
 #pragma once
 #include <mutex>
 #include <unordered_map>
-#include "D3dUtils.h"
+#include "D3dStd.h"
 
 namespace dx {
 

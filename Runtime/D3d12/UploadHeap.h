@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "Fence.h"
 
 namespace dx {

@@ -165,7 +165,7 @@ auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh> {
 	    pMesh->SetIndices(indices);
     }
 
-    pMesh->UploadMeshData(false);
+    pMesh->UploadMeshData();
     return pMesh;
 }
 

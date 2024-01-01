@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "Foundation/StringUtil.h"
 
 namespace dx {
@@ -28,6 +28,9 @@ public:
     }
     Inline(2) auto GetDevice() const -> Device * {
         return _pDevice;
+    }
+    Inline(2) auto GetName() const -> std::string_view {
+        return _name;
     }
 private:
     // clang-format off

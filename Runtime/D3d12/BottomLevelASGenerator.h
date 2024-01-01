@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "AccelerationStructure.h"
 
 namespace dx {
@@ -15,7 +15,7 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS transformBuffer,
         bool isOpaque = true);
 
-    auto CommitCommand(ASBuilder *pUploadHeap) -> BottomLevelAS;
+    auto CommitBuildCommand(IASBuilder *pASBuilder) -> std::shared_ptr<BottomLevelAS>;
 private:
     void AddGeometryInternal(D3D12_VERTEX_BUFFER_VIEW *pVbv,
         DXGI_FORMAT vertexFormat, 

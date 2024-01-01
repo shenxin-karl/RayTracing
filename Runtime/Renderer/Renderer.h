@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "Foundation/ITick.hpp"
-#include "D3d12/D3dUtils.h"
+#include "D3d12/D3dStd.h"
 
 class Renderer : public ITick {
 public:
@@ -19,7 +19,7 @@ protected:
 	dx::Device							   *_pDevice;
 	dx::SwapChain						   *_pSwapChain;
 	dx::UploadHeap						   *_pUploadHeap;
-	dx::ASBuilder						   *_pASBuilder;
+	dx::SyncASBuilder						   *_pASBuilder;
 	std::unique_ptr<dx::FrameResourceRing>	_pFrameResourceRing;
 	// clang-format on
 };

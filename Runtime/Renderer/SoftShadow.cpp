@@ -26,7 +26,7 @@
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
 
-SoftShadow::SoftShadow() : _pScene(nullptr), _pCameraGO(nullptr) {
+SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
 }
 
 SoftShadow::~SoftShadow() {
@@ -113,7 +113,7 @@ void SoftShadow::OnRender(GameTimer &timer) {
     skyBoxDrawArgs.pGfxCtx = pGfxCxt.get();
     _pSkyBoxPass->Draw(skyBoxDrawArgs);
 
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 
@@ -156,8 +156,8 @@ void SoftShadow::CreateRenderPass() {
 void SoftShadow::CreateScene() {
     _pScene = SceneManager::GetInstance()->CreateScene("Scene");
     RenderSetting::Get().SetToneMapperType(ToneMapperType::eACESFilm);
-    RenderSetting::Get().SetAmbientIntensity(1.f);
-    RenderSetting::Get().SetExposure(1.f);
+    RenderSetting::Get().SetAmbientIntensity(1.2f);
+    RenderSetting::Get().SetExposure(1.1f);
     SetupCamera();
     SetupLight();
     LoadGLTF();

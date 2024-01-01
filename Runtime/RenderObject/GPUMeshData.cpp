@@ -4,6 +4,7 @@
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "Renderer/GfxDevice.h"
+#include "Foundation/Formatter.hpp"
 
 GPUMeshData::GPUMeshData() : _vertexBufferView{}, _indexBufferView{} {
 }
@@ -12,11 +13,16 @@ GPUMeshData::~GPUMeshData() {
 }
 
 void GPUMeshData::SetName(std::string_view name) {
-    if (_pBottomLevelAS != nullptr) {
-	    _pBottomLevelAS->SetName(name);
+    if (_pOpaqueBottomLevelAS != nullptr) {
+        std::string opaqueBottomLevelASName = fmt::format("{}_OpaqueBottomLevelAS", name);
+        _pOpaqueBottomLevelAS->SetName(opaqueBottomLevelASName);
+    }
+    if (_pTransparentBottomLevelAS != nullptr) {
+        std::string transparentBottomLevelASName = fmt::format("{}_TransparentBottomLevelAS", name);
+        _pTransparentBottomLevelAS->SetName(transparentBottomLevelASName);
     }
     if (_pStaticBuffer != nullptr) {
-	    _pStaticBuffer->SetName(name);
+        _pStaticBuffer->SetName(name);
     }
 }
 
@@ -52,9 +58,27 @@ void GPUMeshData::UploadGpuMemory(const CPUMeshData *pMeshData) {
     uploadHeap.CommitUploadCommand();
 }
 
-void GPUMeshData::GenerateBottomLevelAccelerationStructure(bool isOpaque) {
-    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    dx::ASBuilder *pASBuilder = pGfxDevice->GetASBuilder();
+auto GPUMeshData::RequireBottomLevelAS(dx::IASBuilder *pIASBuilder, bool isOpaque) -> dx::BottomLevelAS * {
+    std::string_view name = _pStaticBuffer->GetName();
+    if (isOpaque) {
+        if (_pOpaqueBottomLevelAS == nullptr) {
+            std::string opaqueBottomLevelASName = fmt::format("{}_OpaqueBottomLevelAS", name);
+            _pOpaqueBottomLevelAS = GenerateBottomLevelAccelerationStructure(pIASBuilder, isOpaque);
+            _pOpaqueBottomLevelAS->SetName(opaqueBottomLevelASName);
+        }
+        return _pOpaqueBottomLevelAS.get();
+    } else {
+        if (_pTransparentBottomLevelAS == nullptr) {
+            std::string transparentBottomLevelASName = fmt::format("{}_TransparentBottomLevelAS", name);
+            _pTransparentBottomLevelAS = GenerateBottomLevelAccelerationStructure(pIASBuilder, isOpaque);
+            _pTransparentBottomLevelAS->SetName(transparentBottomLevelASName);
+        }
+        return _pTransparentBottomLevelAS.get();
+    }
+}
+
+auto GPUMeshData::GenerateBottomLevelAccelerationStructure(dx::IASBuilder *pIASBuilder, bool isOpaque) const
+    -> std::shared_ptr<dx::BottomLevelAS> {
     constexpr DXGI_FORMAT vertexFormat = GetSemanticInfo(SemanticIndex::eVertex).format;
     dx::BottomLevelASGenerator generator;
     if (_indexBufferView.SizeInBytes > 0) {
@@ -62,5 +86,5 @@ void GPUMeshData::GenerateBottomLevelAccelerationStructure(bool isOpaque) {
     } else {
         generator.AddGeometry(_vertexBufferView, vertexFormat, isOpaque);
     }
-    generator.CommitCommand(pASBuilder);
+    return generator.CommitBuildCommand(pIASBuilder);
 }

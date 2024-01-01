@@ -1,5 +1,5 @@
 #include "GfxDevice.h"
-#include "D3d12/D3dUtils.h"
+#include "D3d12/D3dStd.h"
 #include "D3d12/Device.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
@@ -20,7 +20,7 @@ void GfxDevice::OnCreate(uint32_t numBackBuffer, HWND hwnd, DXGI_FORMAT rtFormat
     _pDevice = std::make_unique<dx::Device>();
     _pSwapChain = std::make_unique<dx::SwapChain>();
     _pUploadHeap = std::make_unique<dx::UploadHeap>();
-    _pASBuilder = std::make_unique<dx::ASBuilder>();
+    _pASBuilder = std::make_unique<dx::SyncASBuilder>();
 
     _pDevice->OnCreate(true);
     _pSwapChain->OnCreate(_pDevice.get(), 3, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);

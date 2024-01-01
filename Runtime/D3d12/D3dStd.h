@@ -78,7 +78,9 @@ class FrameResourceRing;
 
 class BottomLevelAS;
 class TopLevelAS;
-class ASBuilder;
+class IASBuilder;
+class SyncASBuilder;
+class AsyncASBuilder;
 
 class RTV;
 class DSV;
@@ -102,10 +104,14 @@ enum class ContextType {
 
 struct ASInstance {
 	ID3D12Resource *pBottomLevelAs	 = nullptr;
-	glm::mat4x4	    transform		 = glm::mat3x4(1.0);
+	glm::mat4x4	    transform		 = glm::mat4x4(1.0);
 	uint32_t	    instanceID		 = 0;	
 	uint32_t	    hitGroupIndex	 = 0;
     uint16_t        instanceMask     = 0xff;
+public:
+	bool IsValid() const {
+		return pBottomLevelAs != nullptr;
+	}
 };
 
 Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {

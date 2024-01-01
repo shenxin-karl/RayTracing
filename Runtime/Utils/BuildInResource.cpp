@@ -42,5 +42,5 @@ void BuildInResource::BuildSkyBoxCubeMesh() {
 	};
 
 	_pSkyBoxCubeMesh->SetVertices(skyBoxVertices);
-	_pSkyBoxCubeMesh->UploadMeshData(false);
+	_pSkyBoxCubeMesh->UploadMeshData();
 }

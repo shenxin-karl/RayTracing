@@ -1,5 +1,5 @@
 #pragma once
-#include "D3dUtils.h"
+#include "D3dStd.h"
 
 namespace dx {
 
@@ -23,14 +23,24 @@ public:
     bool IsNull() const {
         return _pAllocation != nullptr;
     }
+private:
+    friend class TopLevelASGenerator;
+    auto GetAllocation() const -> WRL::ComPtr<D3D12MA::Allocation> {
+	    return _pAllocation;
+    }
 protected:
     WRL::ComPtr<D3D12MA::Allocation> _pAllocation;
 };
 
-class BottomLevelAS : public AccelerationStructure {};
+class BottomLevelAS : public AccelerationStructure {
+public:
+    using SharedPtr = std::shared_ptr<BottomLevelAS>;
+};
 
 class TopLevelAS : public AccelerationStructure {
 public:
+    using SharedPtr = std::shared_ptr<TopLevelAS>;
+
     auto GetInstanceCount() const -> size_t {
         return _instanceCount;
     }

@@ -1,6 +1,6 @@
 #pragma once
 #include <mutex>
-#include "D3dUtils.h"
+#include "D3dStd.h"
 #include "DescriptorHandle.h"
 
 namespace dx {

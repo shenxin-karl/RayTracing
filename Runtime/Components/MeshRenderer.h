@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.h"
+#include "D3d12/D3dStd.h"
 #include "RenderObject/RenderObject.h"
 #include "RenderObject/VertexSemantic.hpp"
 
@@ -8,26 +9,38 @@ class Material;
 class Scene;
 
 class MeshRenderer : public Component {
-	DECLARE_CLASS(MeshRenderer);
+    DECLARE_CLASS(MeshRenderer);
 public:
-	MeshRenderer();
-	void SetMesh(std::shared_ptr<Mesh> pMesh);
-	void SetMaterial(std::shared_ptr<Material> pMaterial);
+    MeshRenderer();
+    void SetMesh(std::shared_ptr<Mesh> pMesh);
+    void SetMaterial(std::shared_ptr<Material> pMaterial);
+    auto GetASInstance() const -> const dx::ASInstance & {
+	    return _instanceData;
+    }
 public:
-	void OnRemoveFormScene() override;
-	void OnAddToScene() override;
-	void OnPreRender() override;
+    void OnAddToGameObject() override;
+    void OnRemoveFormScene() override;
+    void OnAddToScene() override;
+    void OnPreRender() override;
+    // Check if the ray tracing acceleration structure validity
+    bool CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder);
 private:
-	struct CachedRenderData {
-		SemanticMask	  meshSemanticMask;
-		Scene			 *pCurrentScene;
-		bool			  shouldRender;
-		RenderObject	  renderObject;
-	};
+    void CommitRenderObject();
 private:
-	// clang-format off
-	std::shared_ptr<Mesh>				_pMesh;
+    struct CachedRenderData {
+        SemanticMask meshSemanticMask;
+        bool shouldRender;
+        RenderObject renderObject;
+    };
+    struct CachedASInstanceData {
+        bool dirty = true;
+    };
+private:
+    // clang-format off
+	std::shared_ptr<Mesh>		_pMesh;
 	std::shared_ptr<Material>	_pMaterial;
-	CachedRenderData					_renderData;
-	// clang-format on
+    Scene                      *_pCurrentScene;
+	CachedRenderData			_renderData;
+    dx::ASInstance              _instanceData;
+    // clang-format on
 };

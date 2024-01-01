@@ -1,5 +1,4 @@
 #include "AccelerationStructure.h"
-
 #include "Device.h"
 #include "ResourceStateTracker.h"
 #include "Foundation/StringUtil.h"
