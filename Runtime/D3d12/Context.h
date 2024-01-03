@@ -11,30 +11,6 @@
 
 namespace dx {
 
-struct DWParam {
-    DWParam(float f) : Float(f) {
-    }
-    DWParam(uint32_t u) : Uint(u) {
-    }
-    DWParam(int32_t i) : Int(i) {
-    }
-    void operator=(float f) {
-        Float = f;
-    }
-    void operator=(uint32_t u) {
-        Uint = u;
-    }
-    void operator=(int32_t i) {
-        Int = i;
-    }
-
-    union {
-        float Float;
-        uint32_t Uint;
-        int32_t Int;
-    };
-};
-
 class Context : NonCopyable {
 protected:
     friend class FrameResource;

@@ -55,7 +55,7 @@ void HitGeometryTest(inout HitGeometryParam param) {
     }
 
     // primitiveIndex * triangleSize * sizeof(uint16);
-    size_t offset = param.primitiveIndex * 3 * 2;
+    uint offset = param.primitiveIndex * 3 * 2;
     uint3 indices = Load3x16BitIndices(gIndexBuffer, offset);
 
     float2 uv0 = gVertexBuffer.Load<float2>(indices[0] * mat.vertexStride + mat.uv0Offset);
@@ -105,9 +105,9 @@ void ShadowRaygenShader() {
 }
 
 [shader("anyhit")]
-void ShadowAnyHitShader(inout RayPayload payload, in MyAttributes attr) {
+void ShadowAnyHitShader(inout ShadowRayPayload payload, in MyAttributes attr) {
     HitGeometryParam param;
-    param.attrs = attr;
+    param.attr = attr;
     param.primitiveIndex = PrimitiveIndex();
     param.hitGeometry = false;
     CallShader(InstanceIndex(), param);        // call HitGeometryTest
@@ -121,6 +121,6 @@ void ShadowAnyHitShader(inout RayPayload payload, in MyAttributes attr) {
 }
 
 [shader("miss")]
-void ShadowMissShader(inout RayPayload payload) {
+void ShadowMissShader(inout ShadowRayPayload payload) {
     payload.visFactor = 1.0;
 }

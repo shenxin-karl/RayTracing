@@ -28,12 +28,15 @@ uint3 Load3x16BitIndices(ByteAddressBuffer indexBuffer, uint offsetBytes) {
 }
 
 
-template<typename T>
-T BarycentricBlend(in T v0, in T v1, in T v1, float2 barycentrics) {
-    return v0 + barycentrics.x * (v1 - v0) + barycentrics.y * (v2 - v0);
-}
+#define DECLARE_BARYCENTRIC_BLEND(Type)                                                         \
+    Type BarycentricBlend(in Type v0, in Type v1, in Type v2, float2 barycentrics) {            \
+        return v0 + barycentrics.x * (v1 - v0) + barycentrics.y * (v2 - v0);                    \
+    }                                                                                           \
+    Type BarycentricBlend(in Type attributes[3], float2 barycentrics) {                         \
+        return BarycentricBlend(attributes[0], attributes[1], attributes[2], barycentrics);     \
+    }
 
-template<typename T>
-T BarycentricBlend(in T attributes[3], float2 barycentrics) {
-    return BarycentricBlend(attributes[0], attributes[1], attributes[2], barycentrics);
-}
+DECLARE_BARYCENTRIC_BLEND(float)
+DECLARE_BARYCENTRIC_BLEND(float2)
+DECLARE_BARYCENTRIC_BLEND(float3)
+DECLARE_BARYCENTRIC_BLEND(float4)

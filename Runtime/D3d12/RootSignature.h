@@ -45,6 +45,9 @@ public:
     auto GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> const  RootParamDescriptorTableInfo &;
     auto GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE heapType) const -> DescriptorTableBitMask;
     void SetName(std::string_view name);
+    auto GetRootParameters() const -> const std::vector<RootParameter> & {
+	    return _rootParameters;
+    }
 private:
     // clang-format off
     std::string                             _name;

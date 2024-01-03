@@ -20,6 +20,7 @@
 #include <bitset>
 #include <array>
 #include <glm/glm.hpp>
+#include <variant>
 
 //#define ENABLE_D3D_11 1
 
@@ -95,6 +96,9 @@ class DynamicDescriptorHeap;
 class TopLevelASGenerator;
 class BottomLevelASGenerator;
 
+class DescriptorHandleArray;
+class BindlessCollection;
+
 namespace WRL = Microsoft::WRL;
 
 enum class ContextType {
@@ -103,16 +107,42 @@ enum class ContextType {
 };
 
 struct ASInstance {
-	ID3D12Resource *pBottomLevelAs	 = nullptr;
-	glm::mat4x4	    transform		 = glm::mat4x4(1.0);
-	uint32_t	    instanceID		 = 0;	
-	uint32_t	    hitGroupIndex	 = 0;
-    uint16_t        instanceMask     = 0xff;
+    ID3D12Resource *pBottomLevelAs = nullptr;
+    glm::mat4x4 transform = glm::mat4x4(1.0);
+    uint32_t instanceID = 0;
+    uint32_t hitGroupIndex = 0;
+    uint16_t instanceMask = 0xff;
 public:
-	bool IsValid() const {
-		return pBottomLevelAs != nullptr;
-	}
+    bool IsValid() const {
+        return pBottomLevelAs != nullptr;
+    }
 };
+
+struct DWParam {
+    DWParam(float f) : Float(f) {
+    }
+    DWParam(uint32_t u) : Uint(u) {
+    }
+    DWParam(int32_t i) : Int(i) {
+    }
+    void operator=(float f) {
+        Float = f;
+    }
+    void operator=(uint32_t u) {
+        Uint = u;
+    }
+    void operator=(int32_t i) {
+        Int = i;
+    }
+    union {
+        float Float;
+        uint32_t Uint;
+        int32_t Int;
+    };
+    static DWParam Zero;
+};
+
+inline DWParam DWParam::Zero = {0.f};
 
 Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {
     if (FAILED(hr)) {
@@ -153,101 +183,84 @@ Inline(2) constexpr size_t GetMByte(size_t num) {
 
 template<typename T>
 Inline(2) constexpr size_t SizeofInUint32(const T &obj) {
-	return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
+    return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
 }
 
 template<typename T>
 Inline(2) constexpr size_t SizeofInUint32() {
-	return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
+    return (sizeof(T) - 1) / sizeof(uint32_t) + 1;
 }
 
-
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetPointWrapStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_MIN_MAG_MIP_POINT,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_MIN_MAG_MIP_POINT,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetPointClampStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_MIN_MAG_MIP_POINT,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_MIN_MAG_MIP_POINT,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetLinearWrapStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetLinearClampStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetAnisotropicWrapStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_ANISOTROPIC,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_ANISOTROPIC,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetAnisotropicClampStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister,
-		D3D12_FILTER_ANISOTROPIC,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,
+        D3D12_FILTER_ANISOTROPIC,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetLinearShadowCompareStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister, // shaderRegister
-		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
-		0.0f,                               // mipLODBias
-		16,                                 // maxAnisotropy
-		D3D12_COMPARISON_FUNC_LESS_EQUAL,
-		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,       // shaderRegister
+        D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,    // filter
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                   // addressU
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                   // addressV
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                   // addressW
+        0.0f,                                                // mipLODBias
+        16,                                                  // maxAnisotropy
+        D3D12_COMPARISON_FUNC_LESS_EQUAL,
+        D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
 }
 
 Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetPointShadowCompareStaticSampler(UINT shaderRegister) {
-	return CD3DX12_STATIC_SAMPLER_DESC(
-		shaderRegister, // shaderRegister
-		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT, // filter
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
-		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
-		0.0f,                               // mipLODBias
-		16,                                 // maxAnisotropy
-		D3D12_COMPARISON_FUNC_LESS_EQUAL,
-		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE
-	);
+    return CD3DX12_STATIC_SAMPLER_DESC(shaderRegister,    // shaderRegister
+        D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT,        // filter
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                // addressU
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                // addressV
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER,                // addressW
+        0.0f,                                             // mipLODBias
+        16,                                               // maxAnisotropy
+        D3D12_COMPARISON_FUNC_LESS_EQUAL,
+        D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
 }
 
 }    // namespace dx
@@ -265,5 +278,5 @@ struct std::hash<D3D12_CPU_DESCRIPTOR_HANDLE> {
 };
 
 inline bool operator==(D3D12_CPU_DESCRIPTOR_HANDLE lhs, D3D12_CPU_DESCRIPTOR_HANDLE rhs) {
-	return lhs.ptr == rhs.ptr;
-} 
+    return lhs.ptr == rhs.ptr;
+}
