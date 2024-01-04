@@ -40,16 +40,7 @@ void GBufferPass::OnCreate() {
         D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
     };
     _pRootSignature->At(eTextureList).InitAsDescriptorTable({range});
-
-    D3D12_STATIC_SAMPLER_DESC samplers[6] = {
-        dx::GetPointWrapStaticSampler(0),
-        dx::GetPointClampStaticSampler(1),
-        dx::GetLinearWrapStaticSampler(2),
-        dx::GetLinearClampStaticSampler(3),
-        dx::GetAnisotropicWrapStaticSampler(4),
-        dx::GetAnisotropicClampStaticSampler(5),
-    };
-    _pRootSignature->SetStaticSamplers(samplers);
+    _pRootSignature->SetStaticSamplers(dx::GetStaticSamplerArray());
     _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
     _pRootSignature->SetName("GBufferPass::RootSignature");
 

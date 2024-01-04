@@ -34,7 +34,7 @@ void RootParameter::InitAsConstants(UINT num32BitValues,
     CD3DX12_ROOT_CONSTANTS::Init(Constants, num32BitValues, shaderRegister, registerSpace);
 }
 
-void RootParameter::InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
+void RootParameter::InitAsBufferCBV(UINT Register, UINT space, D3D12_SHADER_VISIBILITY visibility) {
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
@@ -42,7 +42,7 @@ void RootParameter::InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visib
     Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 }
 
-void RootParameter::InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
+void RootParameter::InitAsBufferSRV(UINT Register, UINT space, D3D12_SHADER_VISIBILITY visibility) {
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
@@ -50,7 +50,7 @@ void RootParameter::InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visib
     Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 }
 
-void RootParameter::InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visibility, UINT space) {
+void RootParameter::InitAsBufferUAV(UINT Register, UINT space, D3D12_SHADER_VISIBILITY visibility) {
     ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
     ShaderVisibility = visibility;
     Descriptor.ShaderRegister = Register;
@@ -141,7 +141,7 @@ void RootSignature::OnDestroy() {
     _staticSamplers.clear();
 }
 
-void RootSignature::SetStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset) {
+void RootSignature::SetStaticSamplers(ReadonlyArraySpan<CD3DX12_STATIC_SAMPLER_DESC> descs, size_t offset) {
     Assert(offset < _numStaticSamplers);
     size_t i = 0;
     while (i < descs.Size()) {

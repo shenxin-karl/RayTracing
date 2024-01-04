@@ -16,6 +16,9 @@ public:
     void StageDescriptors(size_t rootParameterIndex, ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles, size_t offset = 0);
     void CommitStagedDescriptorForDraw(NativeCommandList *pCommandList);
     void CommitStagedDescriptorForDispatch(NativeCommandList *pCommandList);
+	void EnsureCapacity(NativeCommandList *pCommandList, size_t numDescriptorToCommit);
+	auto CommitDescriptorHandleArray(const DescriptorHandleArray *pHandleArray) -> D3D12_GPU_DESCRIPTOR_HANDLE;
+    auto ComputeStaleDescriptorCount() const -> size_t;
 private:
 	struct DescriptorTableCache {
 	    void Reset(bool enableBindless, size_t capacity);
@@ -32,7 +35,6 @@ private:
 
     using CommitFunc = decltype(&ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
     using DescriptorHeapPool = std::queue<WRL::ComPtr<ID3D12DescriptorHeap>>;
-    auto ComputeStaleDescriptorCount() const -> size_t;
     void CommitDescriptorTables(NativeCommandList *pCommandList, CommitFunc commitFunc);
     auto RequestDescriptorHeap() -> WRL::ComPtr<ID3D12DescriptorHeap>;
 private:

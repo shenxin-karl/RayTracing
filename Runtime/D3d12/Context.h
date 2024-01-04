@@ -8,6 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "DescriptorHandle.h"
 #include "RootSignature.h"
+#include "ShaderRecode.h"
 
 namespace dx {
 
@@ -57,6 +58,16 @@ protected:
     // clang-format on
 };
 
+struct DispatchRaysDesc {
+	ShaderRecode rayGenerationShaderRecode;
+    std::vector<ShaderRecode> missShaderTable;
+    std::vector<ShaderRecode> hitGroupTable;
+    std::vector<ShaderRecode> callShaderTable;
+    UINT width;
+    UINT height;
+    UINT depth;
+};
+
 class ComputeContext : public Context {
 public:
     ComputeContext(Device *pDevice);
@@ -75,7 +86,7 @@ public:
     void SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data);
 
     void SetRayTracingPipelineState(ID3D12StateObject *pStateObject);
-    void DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc);
+    void DispatchRays(const DispatchRaysDesc &dispatchRaysDesc);
 public:
     auto GetContextType() const -> ContextType override {
         return ContextType::eCompute;
@@ -290,15 +301,6 @@ void ComputeContext::SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T
 inline void ComputeContext::SetRayTracingPipelineState(ID3D12StateObject *pStateObject) {
 #if ENABLE_RAY_TRACING
     _pCommandList->SetPipelineState1(pStateObject);
-#endif
-}
-
-inline void ComputeContext::DispatchRays(const D3D12_DISPATCH_RAYS_DESC &dispatchRaysDesc) {
-#if ENABLE_RAY_TRACING
-    FlushResourceBarriers();
-    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    _pCommandList->DispatchRays(&dispatchRaysDesc);
 #endif
 }
 

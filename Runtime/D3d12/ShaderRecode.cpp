@@ -5,6 +5,12 @@
 namespace dx {
 
 LocalRootParameterData::LocalRootParameterData(const RootSignature *pRootSignature) : _pRootSignature(pRootSignature) {
+    if (_pRootSignature != nullptr) {
+        InitLayout(_pRootSignature);
+    }
+}
+
+void LocalRootParameterData::InitLayout(const RootSignature *pRootSignature) {
     _rootParamDataList.resize(_pRootSignature->GetRootParameters().size());
     const std::vector<RootParameter> &rootParameters = _pRootSignature->GetRootParameters();
     for (size_t i = 0; i < rootParameters.size(); ++i) {
@@ -13,6 +19,13 @@ LocalRootParameterData::LocalRootParameterData(const RootSignature *pRootSignatu
         case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS: {
             size_t num32BitValue = rootParameter.Constants.Num32BitValues;
             _rootParamDataList[i].emplace<std::vector<DWParam>>(num32BitValue, DWParam::Zero);
+            break;
+        }
+        case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE: {
+            for (size_t rangeIdx = 0; rangeIdx != rootParameter.DescriptorTable.NumDescriptorRanges; ++rangeIdx) {
+                const D3D12_DESCRIPTOR_RANGE1 &range = rootParameter.DescriptorTable.pDescriptorRanges[rangeIdx];
+                Assert(range.RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER);
+            }
             break;
         }
         default:
@@ -57,12 +70,36 @@ void LocalRootParameterData::SetView(size_t rootIndex, D3D12_GPU_VIRTUAL_ADDRESS
 void LocalRootParameterData::SetDescriptorTable(size_t rootIndex, std::shared_ptr<DescriptorHandleArray> pHandleArray) {
     Assert(rootIndex < _rootParamDataList.size());
     Assert(GetRootParamType(rootIndex) == eDescriptorTable);
-
     const auto &tableInfo = _pRootSignature->GetRootParamDescriptorTableInfo(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     if (!tableInfo[rootIndex].enableBindless && pHandleArray->Count() > tableInfo[rootIndex].numDescriptor) {
-	    Exception::Throw("Invalid Descriptor Table out of range!");
+        Exception::Throw("Invalid Descriptor Table out of range!");
     }
     _rootParamDataList[rootIndex] = pHandleArray;
+}
+
+auto LocalRootParameterData::GetSize() const -> size_t {
+    if (_pRootSignature == nullptr) {
+        return 0;
+    }
+    size_t size = 0;
+    const std::vector<RootParameter> &rootParameters = _pRootSignature->GetRootParameters();
+    for (const RootParameter &rootParam : rootParameters) {
+        switch (rootParam.ParameterType) {
+        case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+            size = AlignUp(size, sizeof(D3D12_GPU_DESCRIPTOR_HANDLE)) + sizeof(D3D12_GPU_DESCRIPTOR_HANDLE);
+            break;
+        case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+            size = AlignUp(size, sizeof(DWParam)) + sizeof(DWParam) * rootParam.Constants.Num32BitValues;
+            break;
+        case D3D12_ROOT_PARAMETER_TYPE_CBV:
+        case D3D12_ROOT_PARAMETER_TYPE_SRV:
+        case D3D12_ROOT_PARAMETER_TYPE_UAV:
+            size = AlignUp(size, sizeof(D3D12_GPU_VIRTUAL_ADDRESS)) + sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+        default:
+            Assert(false);
+        }
+    }
+    return size;
 }
 
 auto LocalRootParameterData::GetRootParamType(size_t rootIndex) const -> size_t {
@@ -79,6 +116,18 @@ auto LocalRootParameterData::GetRootParamType(size_t rootIndex) const -> size_t 
     default:
         return -1;
     }
+}
+
+ShaderRecode::ShaderRecode(void *pShaderIdentifier) : _pShaderIdentifier(pShaderIdentifier) {
+}
+
+ShaderRecode::ShaderRecode(void *pShaderIdentifier, const RootSignature *pLocalRootSignature)
+    : _pShaderIdentifier(pShaderIdentifier) {
+    _localRootParameterData.InitLayout(pLocalRootSignature);
+}
+
+ShaderRecode::ShaderRecode(void *pShaderIdentifier, LocalRootParameterData localRootParameterData)
+    : _pShaderIdentifier(pShaderIdentifier), _localRootParameterData(std::move(localRootParameterData)) {
 }
 
 }    // namespace dx

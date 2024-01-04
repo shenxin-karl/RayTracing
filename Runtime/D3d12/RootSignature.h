@@ -13,9 +13,9 @@ public:
     ~RootParameter();
     void Clear(); 
 	void InitAsConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
-    void InitAsBufferCBV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
-    void InitAsBufferSRV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
-    void InitAsBufferUAV(UINT Register, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL, UINT space = 0);
+    void InitAsBufferCBV(UINT Register, UINT space = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
+    void InitAsBufferSRV(UINT Register, UINT space = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
+    void InitAsBufferUAV(UINT Register, UINT space = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
     void InitAsDescriptorTable(UINT rangeCount, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
     void InitAsDescriptorTable(std::initializer_list<D3D12_DESCRIPTOR_RANGE1> ranges, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
     void SetTableRange(size_t rangeIndex, D3D12_DESCRIPTOR_RANGE_TYPE type, UINT Register, UINT count, UINT space = 0, D3D12_DESCRIPTOR_RANGE_FLAGS Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
@@ -37,7 +37,7 @@ public:
 public:
     void OnCreate(size_t numRootParam, size_t numStaticSamplers = 0);
     void OnDestroy();
-    void SetStaticSamplers(ReadonlyArraySpan<D3D12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
+    void SetStaticSamplers(ReadonlyArraySpan<CD3DX12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
     void SetStaticSampler(size_t index, const D3D12_STATIC_SAMPLER_DESC &desc);
     auto GetRootSignature() const -> ID3D12RootSignature *;
     auto At(size_t index) -> RootParameter &;

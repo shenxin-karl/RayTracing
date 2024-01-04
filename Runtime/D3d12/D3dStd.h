@@ -263,6 +263,17 @@ Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetPointShadowCompareStaticSampler(UINT sh
         D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
 }
 
+Inline(2) std::array<CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplerArray() {
+	return {
+		GetPointWrapStaticSampler(0),
+        GetPointClampStaticSampler(1),
+        GetLinearWrapStaticSampler(2),
+        GetLinearClampStaticSampler(3),
+        GetAnisotropicWrapStaticSampler(4),
+        GetAnisotropicClampStaticSampler(5),
+	};
+};
+
 }    // namespace dx
 
 template<>

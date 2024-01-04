@@ -6,7 +6,6 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "D3d12/ShaderTableGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
@@ -77,7 +76,6 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
     // build dispatch rays desc
-    D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
     {
         dx::WRL::ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
         dx::ThrowIfFailed(_pRayTracingPSO.As(&stateObjectProperties));
@@ -85,22 +83,20 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(MissShaderName.data());
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
 
-        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, _rayGenConstantBuffer);
-        dispatchRaysDesc.RayGenerationShaderRecord = MakeRayGenShaderRecode(pGraphicsCtx.get(), rayGenShaderRecode);
+        dx::DispatchRaysDesc dispatchRaysDesc = {};
+        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, &_localRootSignature);
+        rayGenShaderRecode.GetLocalRootParameterData().SetConstants(0,
+            dx::SizeofInUint32<RayGenConstantBuffer>(),
+            &_rayGenConstantBuffer);
 
-        dx::ShaderTableGenerator missShaderTable;
-        missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
-        dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
-
-        dx::ShaderTableGenerator hitGroupShaderTable;
-        hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier);
-        dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
-
-        dispatchRaysDesc.Width = _width;;
-        dispatchRaysDesc.Height = _height;
-        dispatchRaysDesc.Depth = 1;
+        dispatchRaysDesc.rayGenerationShaderRecode = std::move(rayGenShaderRecode);
+        dispatchRaysDesc.missShaderTable.push_back(dx::ShaderRecode(pMissShaderIdentifier));
+        dispatchRaysDesc.hitGroupTable.push_back(dx::ShaderRecode(pHitGroupShaderIdentifier));
+        dispatchRaysDesc.width = _width;
+        dispatchRaysDesc.height = _height;
+        dispatchRaysDesc.depth = 1;
+        pGraphicsCtx->DispatchRays(dispatchRaysDesc);
     }
-    pGraphicsCtx->DispatchRays(dispatchRaysDesc);
 
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
@@ -207,7 +203,7 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
 
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
 #if ENABLE_RAY_TRACING
-	dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+    dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
 #endif
 }
 

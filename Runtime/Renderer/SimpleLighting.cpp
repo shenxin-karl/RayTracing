@@ -7,7 +7,6 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "D3d12/ShaderTableGenerator.h"
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
@@ -131,7 +130,6 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         GlobalRootParams::Table0Offset::CubeMap);
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
-    D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
     {
         dx::WRL::ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
         dx::ThrowIfFailed(_pRayTracingPSO.As(&stateObjectProperties));
@@ -139,30 +137,27 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         void *pMissShaderIdentifier = stateObjectProperties->GetShaderIdentifier(sMissShader);
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(sHitGroup);
 
-        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier);
-        dispatchRaysDesc.RayGenerationShaderRecord = dx::MakeRayGenShaderRecode(pGraphicsCtx.get(), rayGenShaderRecode);
-
-        dx::ShaderTableGenerator missShaderTable;
-        missShaderTable.EmplaceShaderRecode(pMissShaderIdentifier);
-        dispatchRaysDesc.MissShaderTable = missShaderTable.Generate(pGraphicsCtx.get());
+        dx::DispatchRaysDesc dispatchRaysDesc = {};
+        dispatchRaysDesc.rayGenerationShaderRecode.SetShaderIdentifier(pRayGenShaderIdentifier);
+        dispatchRaysDesc.missShaderTable.push_back(dx::ShaderRecode(pMissShaderIdentifier));
 
         CubeConstantBuffer cbuffer;
         cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTime()) * 0.5 + 0.5f, std::cos(timer.GetTotalTime()) * 0.5 + 0.5f, 1.f, 1.f);
-        cbuffer.noiseTile =  (std::sin(timer.GetTotalTime() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
+        cbuffer.noiseTile = (std::sin(timer.GetTotalTime() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
         auto cubeCB = pGraphicsCtx->AllocConstantBuffer(cbuffer);
 
-        dx::ShaderTableGenerator hitGroupShaderTable;
-        hitGroupShaderTable.EmplaceShaderRecode(pHitGroupShaderIdentifier,
-            cubeCB,                               // gCubeCB
-            _indexBufferView.BufferLocation,      // gIndices
-            _vertexBufferView.BufferLocation);    // gVertices
-        dispatchRaysDesc.HitGroupTable = hitGroupShaderTable.Generate(pGraphicsCtx.get());
+        dx::ShaderRecode hitGroupShaderRecode(pHitGroupShaderIdentifier, &_closestLocalRootSignature);
+        dx::LocalRootParameterData &localRootParameterData = hitGroupShaderRecode.GetLocalRootParameterData();
+        localRootParameterData.SetView(LocalRootParams::CubeCB, cubeCB);
+        localRootParameterData.SetView(LocalRootParams::Indices, _indexBufferView.BufferLocation);
+        localRootParameterData.SetView(LocalRootParams::Vertices, _vertexBufferView.BufferLocation);
+        dispatchRaysDesc.hitGroupTable.push_back(std::move(hitGroupShaderRecode));
 
-        dispatchRaysDesc.Width = _width;
-        dispatchRaysDesc.Height = _height;
-        dispatchRaysDesc.Depth = 1;
+        dispatchRaysDesc.width = _width;
+        dispatchRaysDesc.height = _height;
+        dispatchRaysDesc.depth = 1;
+		pGraphicsCtx->DispatchRays(dispatchRaysDesc);
     }
-    pGraphicsCtx->DispatchRays(dispatchRaysDesc);
     pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
     pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput.GetResource());
@@ -294,7 +289,7 @@ void SimpleLighting::CreateRootSignature() {
             CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
         });
     }
-    _globalRootSignature.SetStaticSamplers({ dx::GetLinearClampStaticSampler(0) });        // s0
+    _globalRootSignature.SetStaticSamplers(dx::GetLinearClampStaticSampler(0));        // s0
     _globalRootSignature.Generate(_pDevice);
     // clang-format on
 }

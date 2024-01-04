@@ -13,7 +13,7 @@ public:
 		_handles.push_back(handle);
 	}
 	void Add(ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> handles) {
-		_handles.insert_range(_handles.end(), handles);
+        _handles.insert(_handles.end(), handles.begin(), handles.end());
 	}
 	void Erase(D3D12_CPU_DESCRIPTOR_HANDLE handle) {
 		std::erase(_handles, handle);

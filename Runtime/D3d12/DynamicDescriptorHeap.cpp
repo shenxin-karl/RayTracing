@@ -1,4 +1,6 @@
 #include "DynamicDescriptorHeap.h"
+
+#include "DescriptorHandleArray.hpp"
 #include "Device.h"
 #include "RootSignature.h"
 
@@ -84,6 +86,57 @@ void DynamicDescriptorHeap::CommitStagedDescriptorForDispatch(NativeCommandList 
     CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
 }
 
+void DynamicDescriptorHeap::EnsureCapacity(NativeCommandList *pCommandList, size_t numDescriptorToCommit) {
+    Assert(numDescriptorToCommit <= _numDescriptorsPreHeap);
+    if (_pCurrentDescriptorHeap == nullptr || _numFreeHandles < numDescriptorToCommit) {
+        _staleDescriptorTableBitMask = _pRootSignature->GetDescriptorTableBitMask(_heapType);
+        _pCurrentDescriptorHeap = RequestDescriptorHeap();
+        _currentCPUDescriptorHandle = _pCurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        _currentGPUDescriptorHandle = _pCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+        _numFreeHandles = _numDescriptorsPreHeap;
+        pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
+    }
+}
+
+auto DynamicDescriptorHeap::CommitDescriptorHandleArray(const DescriptorHandleArray *pHandleArray)
+    -> D3D12_GPU_DESCRIPTOR_HANDLE {
+
+    NativeDevice *device = _pDevice->GetNativeDevice();
+    UINT numDescriptors = static_cast<UINT>(pHandleArray->Count());
+    const D3D12_CPU_DESCRIPTOR_HANDLE *pSrcHandle = pHandleArray->GetHandles().data();
+    D3D12_CPU_DESCRIPTOR_HANDLE pDstDescriptorRangeStarts[] = {_currentCPUDescriptorHandle};
+    UINT pDstDescriptorRangeSizes[] = {numDescriptors};
+
+    device->CopyDescriptors(1,
+        pDstDescriptorRangeStarts,
+        pDstDescriptorRangeSizes,
+        numDescriptors,
+        pSrcHandle,
+        nullptr,
+        _heapType);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE handle = _currentGPUDescriptorHandle;
+    _currentCPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
+        static_cast<UINT>(_descriptorHandleIncrementSize));
+    _currentGPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
+        static_cast<UINT>(_descriptorHandleIncrementSize));
+    return handle;
+}
+
+auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
+    if (_staleDescriptorTableBitMask.none()) {
+        return 0;
+    }
+
+    size_t numStaleDescriptors = 0;
+    for (std::size_t i = 0; i < kMaxRootParameter; ++i) {
+        if (_staleDescriptorTableBitMask[i]) {
+            numStaleDescriptors += _descriptorTableCache[i].count;
+        }
+    }
+    return numStaleDescriptors;
+}
+
 void DynamicDescriptorHeap::DescriptorTableCache::Reset(bool enableBindless, size_t capacity) {
     this->enableBindless = enableBindless;
     this->capacity = capacity;
@@ -106,34 +159,13 @@ void DynamicDescriptorHeap::DescriptorTableCache::Fill(size_t offset,
     count = std::max(count, offset + handles.Count());
 }
 
-auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
-    if (_staleDescriptorTableBitMask.none()) {
-        return 0;
-    }
-
-    size_t numStaleDescriptors = 0;
-    for (std::size_t i = 0; i < kMaxRootParameter; ++i) {
-        if (_staleDescriptorTableBitMask[i]) {
-            numStaleDescriptors += _descriptorTableCache[i].count;
-        }
-    }
-    return numStaleDescriptors;
-}
-
 void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandList, CommitFunc commitFunc) {
     size_t numStaleDescriptors = ComputeStaleDescriptorCount();
     if (numStaleDescriptors == 0) {
         return;
     }
 
-    if (_pCurrentDescriptorHeap == nullptr || _numFreeHandles < numStaleDescriptors) {
-        _staleDescriptorTableBitMask = _pRootSignature->GetDescriptorTableBitMask(_heapType);
-        _pCurrentDescriptorHeap = RequestDescriptorHeap();
-        _currentCPUDescriptorHandle = _pCurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        _currentGPUDescriptorHandle = _pCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-        _numFreeHandles = _numDescriptorsPreHeap;
-        pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
-    }
+    EnsureCapacity(pCommandList, numStaleDescriptors);
 
     ID3D12Device *device = _pDevice->GetNativeDevice();
     for (std::size_t rootIndex = 0; rootIndex < kMaxRootParameter; ++rootIndex) {

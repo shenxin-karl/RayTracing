@@ -34,7 +34,7 @@ Material::Material()
     _cbPreMaterial.roughness = 1.f;
     _cbPreMaterial.metallic = 0.f;
     _cbPreMaterial.normalScale = 1.f;
-    _cbPreMaterial.samplerStateIndex = eLinearWrap;
+    _cbPreMaterial.samplerStateIndex = eAnisotropicWrap;
     _cbPreMaterial.albedoTexIndex = 0;
     _cbPreMaterial.ambientOcclusionTexIndex = 0;
     _cbPreMaterial.emissionTexIndex = 0;
