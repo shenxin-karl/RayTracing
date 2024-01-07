@@ -11,6 +11,8 @@ LocalRootParameterData::LocalRootParameterData(const RootSignature *pRootSignatu
 }
 
 void LocalRootParameterData::InitLayout(const RootSignature *pRootSignature) {
+    Assert(pRootSignature != nullptr);
+    _pRootSignature = pRootSignature;
     _rootParamDataList.resize(_pRootSignature->GetRootParameters().size());
     const std::vector<RootParameter> &rootParameters = _pRootSignature->GetRootParameters();
     for (size_t i = 0; i < rootParameters.size(); ++i) {
@@ -37,7 +39,7 @@ void LocalRootParameterData::InitLayout(const RootSignature *pRootSignature) {
 void LocalRootParameterData::SetConstants(size_t rootIndex, ReadonlyArraySpan<DWParam> constants, size_t offset) {
     Assert(rootIndex < _rootParamDataList.size());
     Assert(_rootParamDataList[rootIndex].index() == eConstants);
-    std::vector<DWParam> &rootConstants = std::get<0>(_rootParamDataList[rootIndex]);
+    std::vector<DWParam> &rootConstants = std::get<eConstants>(_rootParamDataList[rootIndex]);
     assert(constants.Count() + offset <= rootConstants.size());
     for (size_t i = 0; i < constants.Count(); ++i) {
         rootConstants[i + offset] = constants[i];
@@ -51,7 +53,7 @@ void LocalRootParameterData::SetConstants(size_t rootIndex,
 
     Assert(rootIndex < _rootParamDataList.size());
     Assert(_rootParamDataList[rootIndex].index() == eConstants);
-    std::vector<DWParam> &rootConstants = std::get<0>(_rootParamDataList[rootIndex]);
+    std::vector<DWParam> &rootConstants = std::get<eConstants>(_rootParamDataList[rootIndex]);
     assert(num32BitValuesToSet + offset <= rootConstants.size());
 
     float *pFloat = (float *)pData;
@@ -74,7 +76,7 @@ void LocalRootParameterData::SetDescriptorTable(size_t rootIndex, std::shared_pt
     if (!tableInfo[rootIndex].enableBindless && pHandleArray->Count() > tableInfo[rootIndex].numDescriptor) {
         Exception::Throw("Invalid Descriptor Table out of range!");
     }
-    _rootParamDataList[rootIndex] = pHandleArray;
+    _rootParamDataList[rootIndex] = std::move(pHandleArray);
 }
 
 auto LocalRootParameterData::GetSize() const -> size_t {
@@ -95,6 +97,7 @@ auto LocalRootParameterData::GetSize() const -> size_t {
         case D3D12_ROOT_PARAMETER_TYPE_SRV:
         case D3D12_ROOT_PARAMETER_TYPE_UAV:
             size = AlignUp(size, sizeof(D3D12_GPU_VIRTUAL_ADDRESS)) + sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+            break;
         default:
             Assert(false);
         }

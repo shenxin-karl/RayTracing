@@ -39,6 +39,7 @@ add_requires("d3d12-memory-allocator v2.0.1")
 add_requires("magic_enum v0.9.0")
 add_requires("stb 2023.01.30")
 add_requires("assimp v5.3.1", {configs = {shared = false}})
+add_requires("imgui v1.90", {debug = isDebug, configs={shared=false}})
 
 -- local package
 add_requires("dxc")
@@ -75,6 +76,7 @@ target("RayTracing")
     add_packages("magic_enum")
     add_packages("stb")
     add_packages("assimp")
+    add_packages("imgui")
 
     -- local packages
     add_packages("stduuid")
@@ -90,4 +92,5 @@ target("RayTracing")
     add_syslinks("D3D12")
     add_syslinks("dxgi")
     add_syslinks("User32")
+    add_syslinks("Shcore")
 target_end()

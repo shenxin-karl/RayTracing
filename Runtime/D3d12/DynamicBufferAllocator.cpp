@@ -58,7 +58,7 @@ auto DynamicBufferAllocator::AllocConstantBuffer(size_t strideInBytes, const voi
     -> D3D12_GPU_VIRTUAL_ADDRESS {
 
     size_t bufferSize = strideInBytes;
-    AllocInfo allocInfo = AllocBuffer(AlignUp(bufferSize, 256));
+    AllocInfo allocInfo = AllocBuffer(AlignUp(bufferSize, 256), 256);
     std::memcpy(allocInfo.pBuffer, pInitData, strideInBytes);
     return allocInfo.virtualAddress;
 }

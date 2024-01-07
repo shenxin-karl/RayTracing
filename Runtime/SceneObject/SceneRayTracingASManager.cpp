@@ -31,7 +31,7 @@ void SceneRayTracingASManager::RemoveMeshRenderer(MeshRenderer *pMeshRenderer) {
 }
 
 void SceneRayTracingASManager::RebuildTopLevelAS() {
-    static bool sDebugBuildAS = false;
+    static bool sDebugBuildAS = 0;
     if (CompileEnvInfo::IsModeDebug() && sDebugBuildAS) {
         GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 		HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
@@ -39,13 +39,20 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
 		FrameCapture::BeginFrameCapture(hwnd, device);
     }
 
-
+    _rayTracingGeometries.clear();
     std::vector<dx::ASInstance> instances;
     instances.reserve(_meshRendererList.size());
     for (MeshRenderer *pMeshRenderer : _meshRendererList) {
         const dx::ASInstance &instance = pMeshRenderer->GetASInstance();
         if (instance.IsValid()) {
             instances.push_back(instance);
+            RayTracingGeometry geometry;
+            geometry.instanceID = instance.instanceID;
+            geometry.hitGroupIndex = instance.hitGroupIndex;
+            geometry.instanceMask = instance.instanceMask;
+            geometry.pMesh = pMeshRenderer->GetMesh().get();
+            geometry.pMaterial = pMeshRenderer->GetMaterial().get();
+            _rayTracingGeometries.push_back(geometry);
         }
     }
 
@@ -93,4 +100,8 @@ void SceneRayTracingASManager::OnPreRender() {
 
 auto SceneRayTracingASManager::GetTopLevelAS() const -> dx::TopLevelAS * {
     return _pTopLevelAs.get();
+}
+
+auto SceneRayTracingASManager::GetRayTracingGeometries() const -> const std::vector<RayTracingGeometry> & {
+    return _rayTracingGeometries;
 }

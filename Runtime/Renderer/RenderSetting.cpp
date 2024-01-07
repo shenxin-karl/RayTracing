@@ -1,8 +1,9 @@
 #include "RenderSetting.h"
-
 #include "GfxDevice.h"
 #include "D3d12/Device.h"
 #include "Utils/GlobalCallbacks.h"
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 auto RenderSetting::Get() -> RenderSetting & {
 	static RenderSetting instance;
@@ -14,20 +15,22 @@ RenderSetting::RenderSetting() {
 	_ambientIntensity = 1.f;
 	_toneMapperType = ToneMapperType::eAMDToneMapper;
 	_exposure = 1.f;
+	_gamma = 2.2f;
 	_reversedZ = true;
-
-	_needRecreatePipeline = false;
+	_shadowRayTMin = 0.1f;
+	_shadowRayTMax = 10000.f;
+	_shadowRayMaxCosineTheta = 0.95f;
 }
 
-void RenderSetting::OnPreRender() {
-	bool waitGpuFlush = (_needRecreatePipeline);
-	if (waitGpuFlush) {
-		GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
+void RenderSetting::OnUpdate() {
+	ImGui::Begin("RenderSetting");
+	{
+		ImGui::ColorEdit3("AmbientColor", glm::value_ptr(_ambientColor));
+		ImGui::SliderFloat("AmbientIntensity", &_ambientIntensity, 0.1f, 5.f);
+		ImGui::LabelText("ReversedZ:", "%s",  _reversedZ ? "Enable" : "Disable");
+		GlobalCallbacks::Get().OnBuildRenderSettingGUI.Invoke();
 	}
-	if (_needRecreatePipeline) {
-		GlobalCallbacks::Get().onRecreatePipelineState.Invoke();
-		_needRecreatePipeline = false;
-	}
+	ImGui::End();
 }
 
 void RenderSetting::SetAmbientColor(glm::vec3 ambientColor) {
@@ -63,12 +66,43 @@ auto RenderSetting::GetExposure() const -> float {
 }
 
 void RenderSetting::SetReversedZ(bool enable) {
-	_needRecreatePipeline |= (_reversedZ != enable);
 	_reversedZ = enable;
 }
 
 bool RenderSetting::GetReversedZ() const {
 	return _reversedZ;
+}
+
+void RenderSetting::SetShadowRayTMin(float shadowRayTMin) {
+	_shadowRayTMin = shadowRayTMin;
+}
+
+auto RenderSetting::GetShadowRayTMin() const -> float {
+	return _shadowRayTMin;
+}
+
+void RenderSetting::SetShadowRayTMax(float shadowRayTMax) {
+	_shadowRayTMax = shadowRayTMax;
+}
+
+auto RenderSetting::GetShadowRayTMax() const -> float {
+	return _shadowRayTMax;
+}
+
+void RenderSetting::SetShadowRayMaxCosineTheta(float rayMaxCosineTheta) {
+	_shadowRayMaxCosineTheta = rayMaxCosineTheta;
+}
+
+auto RenderSetting::GetShadowRayMaxCosineTheta() const -> float {
+	return _shadowRayMaxCosineTheta;
+}
+
+void RenderSetting::SetGamma(float gamma) {
+	_gamma = gamma;
+}
+
+auto RenderSetting::GetGamma() -> float {
+	return _gamma;
 }
 
 

@@ -26,13 +26,13 @@ public:
     }
     auto GetHandleIndex(D3D12_CPU_DESCRIPTOR_HANDLE handle) const -> int {
         if (handle.ptr == 0) {
-            return 0;
+            return -1;
         }
         auto iter = _handleMap.find(handle);
         if (iter != _handleMap.end()) {
             return static_cast<int>(iter->second);
         }
-        return 0;
+        return -1;
     }
     auto GetCount() const -> size_t {
         return _pHandleArray->Count();
@@ -40,7 +40,7 @@ public:
     auto GetHandles() const -> const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> & {
         return _pHandleArray->GetHandles();
     }
-    auto GetHandleArrayPtr() const -> std::shared_ptr<DescriptorHandleArray> {
+    auto GetHandleArrayPtr() const -> const std::shared_ptr<DescriptorHandleArray> & {
 	    return _pHandleArray;
     }
     bool EnsureCapacity(bool size) const {

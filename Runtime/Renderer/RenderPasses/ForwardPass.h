@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderObject/ConstantBufferHelper.h"
 #include "RenderPass.h"
+#include "Utils/GlobalCallbacks.h"
 
 class ForwardPass : public RenderPass {
 public:

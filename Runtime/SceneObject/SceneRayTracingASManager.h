@@ -1,4 +1,5 @@
 #pragma once
+#include "RayTracingGeometry.h"
 #include "D3d12/D3dStd.h"
 #include "Foundation/NonCopyable.h"
 
@@ -11,11 +12,13 @@ public:
     void RemoveMeshRenderer(MeshRenderer *pMeshRenderer);
     void OnPreRender();
     auto GetTopLevelAS() const -> dx::TopLevelAS *;
+    auto GetRayTracingGeometries() const -> const std::vector<RayTracingGeometry> &;
 private:
     void RebuildTopLevelAS();
 private:
     // clang-format off
 	std::vector<MeshRenderer *>		    _meshRendererList;
+    std::vector<RayTracingGeometry>     _rayTracingGeometries;
 	std::shared_ptr<dx::TopLevelAS>     _pTopLevelAs;
     std::unique_ptr<dx::AsyncASBuilder> _pAsyncASBuilder;
     bool                                _rebuildTopLevelAS;

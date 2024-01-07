@@ -19,7 +19,9 @@ public:
     Material();
     ~Material();
     void SetRenderGroup(uint16_t renderGroup);
-    void SetTextures(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv);
+    void SetTexture(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv);
+    auto GetTexture(TextureType textureType) -> const std::shared_ptr<dx::Texture> &;
+    auto GetTextureHandle(TextureType textureType) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     void SetAlbedo(const glm::vec4 &albedo);
     void SetEmission(const glm::vec4 &emission);
     void SetTillingAndOffset(const glm::vec4 &tilingAndOffset);
@@ -32,6 +34,20 @@ public:
     bool PipelineIDDirty() const;
     auto GetRenderGroup() const -> uint16_t;
     auto GetPipelineID() const -> uint16_t;
+
+public:
+    auto GetAlbedo() const -> glm::vec4 {
+	    return _cbPreMaterial.albedo;
+    }
+    auto GetCutoff() const -> float {
+	    return _cbPreMaterial.cutoff;
+    }
+    auto GetSamplerAddressMode() -> SamplerAddressMode {
+	    return static_cast<SamplerAddressMode>(_cbPreMaterial.samplerStateIndex);
+    }
+    auto GetSamplerStateIndex() const -> int {
+	    return _cbPreMaterial.samplerStateIndex;
+    }
 private:
     struct alignas(sizeof(glm::vec4)) CbPreMaterial {
         glm::vec4 albedo;

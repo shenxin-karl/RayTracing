@@ -14,11 +14,16 @@ public:
     MeshRenderer();
     void SetMesh(std::shared_ptr<Mesh> pMesh);
     void SetMaterial(std::shared_ptr<Material> pMaterial);
+    auto GetMesh() const -> const std::shared_ptr<Mesh> & {
+	    return _pMesh;
+    }
+    auto GetMaterial() const -> const std::shared_ptr<Material> & {
+	    return _pMaterial;
+    }
     auto GetASInstance() const -> const dx::ASInstance & {
 	    return _instanceData;
     }
 public:
-    void OnAddToGameObject() override;
     void OnRemoveFormScene() override;
     void OnAddToScene() override;
     void OnPreRender() override;

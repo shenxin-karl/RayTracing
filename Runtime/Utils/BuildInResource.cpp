@@ -1,20 +1,27 @@
 #include "BuildInResource.h"
+#include "D3d12/RootSignature.h"
+#include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
 #include "RenderObject/VertexSemantic.hpp"
 
 static BuildInResource sInstance;
 
 BuildInResource::BuildInResource() {
-	_onCreateCallbackHandle = GlobalCallbacks::Get().onCreate.Register(this, &BuildInResource::OnCreate);
-	_onDestroyCallbackHandle = GlobalCallbacks::Get().onDestroy.Register(this, &BuildInResource::OnDestroy);
+	_onCreateCallbackHandle = GlobalCallbacks::Get().OnCreate.Register(this, &BuildInResource::OnCreate);
+	_onDestroyCallbackHandle = GlobalCallbacks::Get().OnDestroy.Register(this, &BuildInResource::OnDestroy);
 }
 
 void BuildInResource::OnCreate() {
 	BuildSkyBoxCubeMesh();
+
+	_pEmptyLocalRootSignature = std::make_shared<dx::RootSignature>();
+	_pEmptyLocalRootSignature->OnCreate(0);
+	_pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
 void BuildInResource::OnDestroy() {
 	_pSkyBoxCubeMesh = nullptr;
+	_pEmptyLocalRootSignature = nullptr;
 }
 
 auto BuildInResource::Get() -> BuildInResource & {

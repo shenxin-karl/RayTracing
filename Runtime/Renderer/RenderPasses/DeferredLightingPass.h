@@ -21,6 +21,7 @@ public:
 		eGBuffer1,
 		eGBuffer2,
 		eDepthTex,
+		eShadowMask,
 		eOutput,
 		eTable0DescriptorCount,
 	};
@@ -32,6 +33,7 @@ public:
 		D3D12_GPU_VIRTUAL_ADDRESS	cbLightingAddress;
 		D3D12_CPU_DESCRIPTOR_HANDLE gBufferSRV[3];
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE shadowMaskSRV;
 		D3D12_CPU_DESCRIPTOR_HANDLE outputUAV;
 		dx::ComputeContext		   *pComputeCtx;
 	};

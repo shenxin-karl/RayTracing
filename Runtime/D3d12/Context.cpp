@@ -5,6 +5,9 @@ namespace dx {
 
 void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 #if ENABLE_RAY_TRACING
+    Assert(!dispatchRaysDesc.missShaderTable.empty());
+    Assert(!dispatchRaysDesc.hitGroupTable.empty());
+
     std::unordered_map<DescriptorHandleArray *, D3D12_GPU_DESCRIPTOR_HANDLE> gpuDescriptorHandleMap;
     size_t handleCount = 0;
 
@@ -15,7 +18,7 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
                 auto &rootParamData = localRootParameterData._rootParamDataList[i];
                 Assert(rootParamData.index() != std::variant_npos);
                 if (rootParamData.index() == LocalRootParameterData::eDescriptorTable) {
-                    DescriptorHandleArray *pDescriptorHandleArray = std::get<2>(rootParamData).get();
+                    DescriptorHandleArray *pDescriptorHandleArray = std::get<3>(rootParamData).get();
                     if (!gpuDescriptorHandleMap.contains(pDescriptorHandleArray)) {
                         handleCount += pDescriptorHandleArray->Count();
                         gpuDescriptorHandleMap[pDescriptorHandleArray] = {0};
@@ -46,29 +49,33 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
             auto &rootParamData = localRootParameterData._rootParamDataList[i];
             Assert(rootParamData.index() != std::variant_npos);
             switch (rootParamData.index()) {
-            case LocalRootParameterData::eConstants:
+            case LocalRootParameterData::eConstants: {
                 pDest = reinterpret_cast<uint8_t *>(AlignUp(reinterpret_cast<intptr_t>(pDest), sizeof(DWParam)));
-                for (auto &dwParam : std::get<0>(rootParamData)) {
+                for (auto &dwParam : std::get<1>(rootParamData)) {
                     std::memcpy(pDest, &dwParam, sizeof(DWParam));
                     pDest += sizeof(DWParam);
                 }
                 break;
-            case LocalRootParameterData::eView:
+            }
+            case LocalRootParameterData::eView: {
                 pDest = reinterpret_cast<uint8_t *>(
                     AlignUp(reinterpret_cast<intptr_t>(pDest), sizeof(D3D12_GPU_VIRTUAL_ADDRESS)));
-                std::memcpy(pDest, &std::get<1>(rootParamData), sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
+                std::memcpy(pDest, &std::get<2>(rootParamData), sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
                 pDest += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
                 break;
-            case LocalRootParameterData::eDescriptorTable:
+            }
+            case LocalRootParameterData::eDescriptorTable: {
                 pDest = reinterpret_cast<uint8_t *>(
                     AlignUp(reinterpret_cast<intptr_t>(pDest), sizeof(D3D12_GPU_DESCRIPTOR_HANDLE)));
-                DescriptorHandleArray *pDescriptorHandleArray = std::get<2>(rootParamData).get();
+                DescriptorHandleArray *pDescriptorHandleArray = std::get<3>(rootParamData).get();
                 D3D12_GPU_DESCRIPTOR_HANDLE baseHandle = gpuDescriptorHandleMap.find(pDescriptorHandleArray)->second;
                 std::memcpy(pDest, &baseHandle, sizeof(D3D12_GPU_DESCRIPTOR_HANDLE));
                 pDest += sizeof(D3D12_GPU_DESCRIPTOR_HANDLE);
                 break;
+            }
             default:
                 Assert(false);
+                break;
             };
         }
     };
@@ -86,7 +93,7 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 
         size_t bufferSize = shaderRecodeList.Count() * stride;
         DynamicBufferAllocator::AllocInfo allocInfo = _dynamicBufferAllocator.AllocBuffer(bufferSize,
-            ShaderRecode::kAddressAlignment);
+            D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
         uint8_t *pDest = allocInfo.pBuffer;
         std::memset(pDest, 0, bufferSize);
         for (const ShaderRecode &shaderRecode : shaderRecodeList) {
@@ -130,5 +137,6 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
     _pCommandList->DispatchRays(&desc);
 #endif
 }
+
 
 }    // namespace dx

@@ -67,21 +67,21 @@ private:
 };
 
 struct GlobalCallbacks {
-    CallbackList<GameTimer &> onPreUpdate;
-    CallbackList<GameTimer &> onUpdate;
-    CallbackList<GameTimer &> onPostUpdate;
+    CallbackList<GameTimer &> OnPreUpdate;
+    CallbackList<GameTimer &> OnUpdate;
+    CallbackList<GameTimer &> OnPostUpdate;
 
-    CallbackList<GameTimer &> onPreRender;
-    CallbackList<GameTimer &> onRender;
-    CallbackList<GameTimer &> onPostRender;
+    CallbackList<GameTimer &> OnPreRender;
+    CallbackList<GameTimer &> OnRender;
+    CallbackList<GameTimer &> OnPostRender;
 
-    CallbackList<> onCreate;
-    CallbackList<> onDestroy;
+    CallbackList<> OnCreate;
+    CallbackList<> OnDestroy;
 
     // void(size_t width, size_t height)
-    CallbackList<size_t, size_t> onResize;
+    CallbackList<size_t, size_t> OnResize;
 
-    CallbackList<> onRecreatePipelineState;      
+    CallbackList<> OnBuildRenderSettingGUI;
 
     static GlobalCallbacks &Get() {
         static GlobalCallbacks instance;

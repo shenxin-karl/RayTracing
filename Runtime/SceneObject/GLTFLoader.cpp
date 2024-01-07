@@ -182,29 +182,29 @@ auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<Material
     if (gltfMaterial.baseColorMap.IsValid()) {
         std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
         dx::SRV srv = _textureLoader.GetSRV2D(pBaseTexture.get());
-        pMaterial->SetTextures(Material::eAlbedoTex, pBaseTexture, std::move(srv));
+        pMaterial->SetTexture(Material::eAlbedoTex, pBaseTexture, std::move(srv));
     }
     if (gltfMaterial.normalMap.IsValid()) {
         std::shared_ptr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap, false);
         dx::SRV srv = _textureLoader.GetSRV2D(pNormalMap.get());
-        pMaterial->SetTextures(Material::eNormalTex, pNormalMap, std::move(srv));
+        pMaterial->SetTexture(Material::eNormalTex, pNormalMap, std::move(srv));
     }
     if (gltfMaterial.emissionMap.IsValid()) {
         std::shared_ptr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap, false);
         dx::SRV srv = _textureLoader.GetSRV2D(pEmissionMap.get());
-        pMaterial->SetTextures(Material::eEmissionTex, pEmissionMap, std::move(srv));
+        pMaterial->SetTexture(Material::eEmissionTex, pEmissionMap, std::move(srv));
     }
     if (gltfMaterial.metalnessRoughnessMap.IsValid()) {
         std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
         dx::SRV srv = _textureLoader.GetSRV2D(pMetalRoughnessMap.get());
-        pMaterial->SetTextures(Material::eMetalRoughnessTex, pMetalRoughnessMap, std::move(srv));
+        pMaterial->SetTexture(Material::eMetalRoughnessTex, pMetalRoughnessMap, std::move(srv));
         pMaterial->SetRoughness(1.f);
         pMaterial->SetMetallic(1.f);
     }
     if (gltfMaterial.ambientOcclusionMap.IsValid()) {
         std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);
         dx::SRV srv = _textureLoader.GetSRV2D(pAmbientOcclusionMap.get());
-        pMaterial->SetTextures(Material::eAmbientOcclusionTex, pAmbientOcclusionMap, std::move(srv));
+        pMaterial->SetTexture(Material::eAmbientOcclusionTex, pAmbientOcclusionMap, std::move(srv));
     }
     return pMaterial;
 }

@@ -14,7 +14,7 @@ public:
 	auto GetMSPF() const -> float;
 	bool IsStopped() const;
 	bool IsStarted() const;
-
+	auto GetFrameCount() const -> uint64_t;
 	static auto Get() -> GameTimer &;
 private:
 	using time_point = std::chrono::steady_clock::time_point;
@@ -29,5 +29,6 @@ private:
 	std::time_t		_nextTime;
 	bool			_stopped;
 	bool			_newSeconds;
+	uint64_t		_frameCount;
 };
 

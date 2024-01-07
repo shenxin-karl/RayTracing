@@ -21,7 +21,6 @@ SkyBoxPass::~SkyBoxPass() {
 
 void SkyBoxPass::OnCreate() {
     RenderPass::OnCreate();
-
     dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
     _pRootSignature = std::make_unique<dx::RootSignature>();
     _pRootSignature->OnCreate(eNumRootParam, 1);
@@ -31,7 +30,47 @@ void SkyBoxPass::OnCreate() {
     }, D3D12_SHADER_VISIBILITY_PIXEL);
     _pRootSignature->SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
     _pRootSignature->Generate(pDevice);
+    CreatePipelineState();
+}
 
+void SkyBoxPass::OnDestroy() {
+    RenderPass::OnDestroy();
+    _pRootSignature = nullptr;
+    _pPipelineState = nullptr;
+}
+
+void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
+    dx::GraphicsContext *pGfxCtx = drawArgs.pGfxCtx;
+    UserMarker userMarker(pGfxCtx, "SkyBoxPass");
+
+    glm::mat4 matView = drawArgs.matView;
+    matView[3][0] = 0.f;
+    matView[3][1] = 0.f;
+    matView[3][2] = 0.f;
+
+    struct CbSetting {
+        glm::mat4x4 matViewProj;
+        float       reversedZ;
+    };
+
+    CbSetting cbSetting;
+    cbSetting.matViewProj = drawArgs.matProj * matView;
+    cbSetting.reversedZ = RenderSetting::Get().GetReversedZ() ? 1.f : 0.f;
+
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetPipelineState(_pPipelineState.Get());
+
+	pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbSetting, cbSetting);
+    pGfxCtx->SetDynamicViews(eCubeMap, drawArgs.cubeMapSRV);
+
+    std::shared_ptr<Mesh> pSkyBoxCubeMesh = BuildInResource::Get().GetSkyBoxCubeMesh();
+    D3D12_VERTEX_BUFFER_VIEW vertexBuffer = pSkyBoxCubeMesh->GetGPUMeshData()->GetVertexBufferView();
+    pGfxCtx->SetVertexBuffers(0, vertexBuffer);
+    pGfxCtx->DrawInstanced(pSkyBoxCubeMesh->GetVertexCount(), 1, 0, 0);
+}
+
+void SkyBoxPass::CreatePipelineState() {
+    dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
     ShaderLoadInfo shaderLoadInfo;
     shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/SkyBox.hlsl");
     shaderLoadInfo.entryPoint = "VSMain";
@@ -95,40 +134,5 @@ void SkyBoxPass::OnCreate() {
     dx::WRL::ComPtr<ID3D12PipelineState> pPipelineState;
     dx::NativeDevice *device = pDevice->GetNativeDevice();
     dx::ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&_pPipelineState)));
-}
 
-void SkyBoxPass::OnDestroy() {
-    RenderPass::OnDestroy();
-    _pRootSignature = nullptr;
-    _pPipelineState = nullptr;
-}
-
-void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
-    dx::GraphicsContext *pGfxCtx = drawArgs.pGfxCtx;
-    UserMarker userMarker(pGfxCtx, "SkyBoxPass");
-
-    glm::mat4 matView = drawArgs.matView;
-    matView[3][0] = 0.f;
-    matView[3][1] = 0.f;
-    matView[3][2] = 0.f;
-
-    struct CbSetting {
-        glm::mat4x4 matViewProj;
-        float       reversedZ;
-    };
-
-    CbSetting cbSetting;
-    cbSetting.matViewProj = drawArgs.matProj * matView;
-    cbSetting.reversedZ = RenderSetting::Get().GetReversedZ() ? 1.f : 0.f;
-
-    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
-    pGfxCtx->SetPipelineState(_pPipelineState.Get());
-
-	pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbSetting, cbSetting);
-    pGfxCtx->SetDynamicViews(eCubeMap, drawArgs.cubeMapSRV);
-
-    std::shared_ptr<Mesh> pSkyBoxCubeMesh = BuildInResource::Get().GetSkyBoxCubeMesh();
-    D3D12_VERTEX_BUFFER_VIEW vertexBuffer = pSkyBoxCubeMesh->GetGPUMeshData()->GetVertexBufferView();
-    pGfxCtx->SetVertexBuffers(0, vertexBuffer);
-    pGfxCtx->DrawInstanced(pSkyBoxCubeMesh->GetVertexCount(), 1, 0, 0);
 }

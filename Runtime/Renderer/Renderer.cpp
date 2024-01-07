@@ -7,6 +7,7 @@
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
+#include "RenderUtils/GUI.h"
 
 Renderer::Renderer()
     : _width(0), _height(0), _pDevice(nullptr), _pSwapChain(nullptr), _pUploadHeap(nullptr), _pASBuilder(nullptr) {

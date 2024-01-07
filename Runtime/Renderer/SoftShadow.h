@@ -4,6 +4,7 @@
 #include "D3d12/Texture.h"
 #include "RenderObject/ConstantBufferHelper.h"
 
+class RayTracingShadowPass;
 class SkyBoxPass;
 class DeferredLightingPass;
 class PostProcessPass;
@@ -17,6 +18,7 @@ public:
 	void OnCreate() override;
 	void OnDestroy() override;
 public:
+	void OnUpdate(GameTimer &timer) override;
 	void OnPreRender(GameTimer &timer) override;
 	void OnRender(GameTimer &timer) override;
 	void OnResize(uint32_t width, uint32_t height) override;
@@ -51,5 +53,5 @@ private:
 	std::unique_ptr<PostProcessPass>		_pPostProcessPass;
 	std::unique_ptr<DeferredLightingPass>	_pDeferredLightingPass;
 	std::unique_ptr<SkyBoxPass>				_pSkyBoxPass;
-
+	std::unique_ptr<RayTracingShadowPass>	_pRayTracingShadowPass;	
 };

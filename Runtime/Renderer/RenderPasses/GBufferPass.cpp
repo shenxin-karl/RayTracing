@@ -1,5 +1,4 @@
 #include "GBufferPass.h"
-
 #include "D3d12/BindlessCollection.hpp"
 #include "D3d12/Context.h"
 #include "D3d12/D3dStd.h"
@@ -43,10 +42,6 @@ void GBufferPass::OnCreate() {
     _pRootSignature->SetStaticSamplers(dx::GetStaticSamplerArray());
     _pRootSignature->Generate(GfxDevice::GetInstance()->GetDevice());
     _pRootSignature->SetName("GBufferPass::RootSignature");
-
-    _recreatePipelineStateCallbackHandle = GlobalCallbacks::Get().onRecreatePipelineState.Register([&]() {
-	    _pipelineStateMap.clear();
-    });
 }
 
 void GBufferPass::OnDestroy() {
@@ -57,7 +52,6 @@ void GBufferPass::OnDestroy() {
     _gBufferSRV.Release();
     _pRootSignature->OnDestroy();
     _pipelineStateMap.clear();
-    _recreatePipelineStateCallbackHandle.Release();
 }
 
 void GBufferPass::OnResize(size_t width, size_t height) {

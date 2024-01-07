@@ -19,12 +19,16 @@
 #include "RenderPasses/DeferredLightingPass.h"
 #include "RenderPasses/GBufferPass.h"
 #include "RenderPasses/PostProcessPass.h"
+#include "RenderPasses/RayTracingShadowPass.h"
 #include "RenderPasses/SkyBoxPass.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
+#include "SceneObject/SceneRayTracingASManager.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
+#include "imgui.h"
+#include "RenderUtils/GUI.h"
 
 SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
 }
@@ -45,10 +49,16 @@ void SoftShadow::OnDestroy() {
     _pGBufferPass->OnDestroy();
     _pPostProcessPass->OnDestroy();
     _pDeferredLightingPass->OnDestroy();
+    _pSkyBoxPass->OnDestroy();
+    _pRayTracingShadowPass->OnDestroy();
     _renderTargetRTV.Release();
     _depthStencilDSV.Release();
     _renderTargetTex.OnDestroy();
     _depthStencilTex.OnDestroy();
+}
+
+void SoftShadow::OnUpdate(GameTimer &timer) {
+	Renderer::OnUpdate(timer);
 }
 
 void SoftShadow::OnPreRender(GameTimer &timer) {
@@ -88,6 +98,18 @@ void SoftShadow::OnRender(GameTimer &timer) {
     _pGBufferPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), gbufferDrawArgs);
     _pGBufferPass->PostDraw(gbufferDrawArgs);
 
+    // shadow map
+    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
+    RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
+    shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
+    shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
+    shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
+    shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
+    shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
+    shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
+    _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
+
+    // deferred lighting pass
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
     deferredLightingPassDrawArgs.width = _width;
@@ -99,6 +121,7 @@ void SoftShadow::OnRender(GameTimer &timer) {
     deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
     deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
     deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
+    deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
     deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
     _pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
 
@@ -124,8 +147,9 @@ void SoftShadow::OnRender(GameTimer &timer) {
     postProcessPassDrawArgs.pGfxCtx = pGfxCxt.get();
     _pPostProcessPass->Draw(postProcessPassDrawArgs);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
-
     pFrameResource.ExecuteContexts(pGfxCxt.get());
+
+    GUI::Get().Render();
     _pSwapChain->Present();
 
     if (frameCapture) {
@@ -139,6 +163,7 @@ void SoftShadow::OnRender(GameTimer &timer) {
 void SoftShadow::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
     _pGBufferPass->OnResize(width, height);
+    _pRayTracingShadowPass->OnResize(width, height);
     RecreateWindowSizeDependentResources();
 }
 
@@ -147,10 +172,12 @@ void SoftShadow::CreateRenderPass() {
     _pPostProcessPass = std::make_unique<PostProcessPass>();
     _pDeferredLightingPass = std::make_unique<DeferredLightingPass>();
     _pSkyBoxPass = std::make_unique<SkyBoxPass>();
+    _pRayTracingShadowPass = std::make_unique<RayTracingShadowPass>();
     _pGBufferPass->OnCreate();
     _pPostProcessPass->OnCreate();
     _pDeferredLightingPass->OnCreate();
     _pSkyBoxPass->OnCreate();
+    _pRayTracingShadowPass->OnCreate();
 }
 
 void SoftShadow::CreateScene() {

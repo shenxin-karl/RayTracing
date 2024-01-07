@@ -55,6 +55,5 @@ private:
     size_t                              _height;
     PipelineStateMap                    _pipelineStateMap;
     std::unique_ptr<dx::RootSignature>  _pRootSignature;
-    CallbackHandle                      _recreatePipelineStateCallbackHandle;
     // clang-format on
 };

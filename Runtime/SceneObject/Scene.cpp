@@ -11,12 +11,12 @@ Scene::Scene() {
     _pRayTracingASMgr = std::make_unique<SceneRayTracingASManager>();
 
     // register scene callbacks
-    _preUpdateCallbackHandle = GlobalCallbacks::Get().onPreUpdate.Register(this, &Scene::OnPreUpdate);
-	_updateCallbackHandle = GlobalCallbacks::Get().onUpdate.Register(this, &Scene::OnUpdate);
-	_postUpdateCallbackHandle = GlobalCallbacks::Get().onPostUpdate.Register(this, &Scene::OnPostUpdate);
-	_preRenderCallbackHandle = GlobalCallbacks::Get().onPreRender.Register(this, &Scene::OnPreRender);
-	_renderCallbackHandle = GlobalCallbacks::Get().onRender.Register(this, &Scene::OnRender);
-	_postRenderCallbackHandle = GlobalCallbacks::Get().onPostRender.Register(this, &Scene::OnPostRender);
+    _preUpdateCallbackHandle = GlobalCallbacks::Get().OnPreUpdate.Register(this, &Scene::OnPreUpdate);
+	_updateCallbackHandle = GlobalCallbacks::Get().OnUpdate.Register(this, &Scene::OnUpdate);
+	_postUpdateCallbackHandle = GlobalCallbacks::Get().OnPostUpdate.Register(this, &Scene::OnPostUpdate);
+	_preRenderCallbackHandle = GlobalCallbacks::Get().OnPreRender.Register(this, &Scene::OnPreRender);
+	_renderCallbackHandle = GlobalCallbacks::Get().OnRender.Register(this, &Scene::OnRender);
+	_postRenderCallbackHandle = GlobalCallbacks::Get().OnPostRender.Register(this, &Scene::OnPostRender);
 }
 
 Scene::~Scene() {

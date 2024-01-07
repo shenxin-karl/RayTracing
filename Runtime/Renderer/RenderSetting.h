@@ -1,5 +1,7 @@
 #pragma once
 #include <d3d12.h>
+
+#include "D3d12/D3dStd.h"
 #include "Foundation/GlmStd.hpp"
 #include "Foundation/NonCopyable.h"
 
@@ -17,7 +19,7 @@ public:
     static auto Get() -> RenderSetting &;
     RenderSetting();
 public:
-    void OnPreRender();
+    void OnUpdate();
     void SetAmbientColor(glm::vec3 ambientColor);
     auto GetAmbientColor() const -> glm::vec3;
     void SetAmbientIntensity(float ambientIntensity);
@@ -28,6 +30,14 @@ public:
     auto GetExposure() const -> float;
     void SetReversedZ(bool enable);
     bool GetReversedZ() const;
+    void SetShadowRayTMin(float shadowRayTMin);
+    auto GetShadowRayTMin() const -> float;
+    void SetShadowRayTMax(float shadowRayTMax);
+    auto GetShadowRayTMax() const -> float;
+    void SetShadowRayMaxCosineTheta(float rayMaxCosineTheta);
+    auto GetShadowRayMaxCosineTheta() const -> float;
+    void SetGamma(float gamma);
+    auto GetGamma() -> float;
 public:
     auto GetDepthClearValue() const -> float {
         return _reversedZ ? 0.f : 1.f;
@@ -35,14 +45,18 @@ public:
     auto GetDepthFunc() const -> D3D12_COMPARISON_FUNC {
         return _reversedZ ? D3D12_COMPARISON_FUNC_GREATER : D3D12_COMPARISON_FUNC_LESS;
     }
+
+
 private:
     // clang-format off
 	glm::vec3			_ambientColor;
 	float				_ambientIntensity;
 	ToneMapperType		_toneMapperType;
 	float				_exposure;
+    float               _gamma;
 	bool				_reversedZ;
-private:
-    bool                _needRecreatePipeline;
+    float               _shadowRayTMin;
+    float               _shadowRayTMax;
+    float               _shadowRayMaxCosineTheta;
     // clang-format on
 };

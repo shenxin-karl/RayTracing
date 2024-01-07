@@ -102,7 +102,7 @@ float4 GetAlbedo(VertexOut pin) {
 
 	float4 sampleColor = (float4)1.0;
 	#if ENABLE_ALBEDO_TEXTURE
-		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
+		SamplerState samplerState = NonUniformResourceIndex(gStaticSamplerState[gCbMaterial.samplerStateIndex]);
         sampleColor = gTextureList[gCbMaterial.albedoTexIndex].Sample(samplerState, pin.uv0);
 		albedo *= sampleColor;
 	#endif
@@ -118,7 +118,7 @@ float2 GetMetallicAndRoughness(VertexOut pin) {
     float metallic = gCbMaterial.metallic;
     float roughness = gCbMaterial.roughness;
 	#if ENABLE_METAL_ROUGHNESS_TEXTURE
-		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
+		SamplerState samplerState = NonUniformResourceIndex(gStaticSamplerState[gCbMaterial.samplerStateIndex]);
         float2 sampleTexture = gTextureList[gCbMaterial.metalRoughnessTexIndex].Sample(samplerState, pin.uv0).rg;
         metallic *= sampleTexture.r;
 		roughness *= sampleTexture.g;
@@ -129,7 +129,7 @@ float2 GetMetallicAndRoughness(VertexOut pin) {
 float3 GetNormal(VertexOut pin) {
     float3 N = normalize(float3(pin.normal.xy * gCbMaterial.normalScale, pin.normal.z));
 	#if ENABLE_NORMAL_TEX
-		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
+		SamplerState samplerState = NonUniformResourceIndex(gStaticSamplerState[gCbMaterial.samplerStateIndex]);
 		float3 sampleNormal = gTextureList[gCbMaterial.normalTexIndex].Sample(samplerState, pin.uv0);
 		sampleNormal = sampleNormal * 2.f - 1.f;
         float3 T = normalize(pin.tangent);
@@ -142,7 +142,7 @@ float3 GetNormal(VertexOut pin) {
 float GetAmbientOcclusion(VertexOut pin) {
     float ao = 1.0;
     #if ENABLE_AMBIENT_OCCLUSION_TEXTURE
-		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
+		SamplerState samplerState = NonUniformResourceIndex(gStaticSamplerState[gCbMaterial.samplerStateIndex]);
         ao *= gTextureList[gCbMaterial.ambientOcclusionTexIndex].Sample(samplerState, pin.uv0).r;
     #endif
     return ao;
@@ -151,7 +151,7 @@ float GetAmbientOcclusion(VertexOut pin) {
 float3 GetEmission(VertexOut pin) {
 	float3 emission = gCbMaterial.emission;
 	#if ENABLE_EMISSION_TEXTURE
-		SamplerState samplerState = gStaticSamplerState[gCbMaterial.samplerStateIndex];
+		SamplerState samplerState = NonUniformResourceIndex(gStaticSamplerState[gCbMaterial.samplerStateIndex]);
 		emission += gTextureList[gCbMaterial.emissionTexIndex].Sample(samplerState, pin.uv0).rgb;
 	#endif
     return emission;

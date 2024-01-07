@@ -12,10 +12,12 @@
 #include "D3d12/UploadHeap.h"
 #include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "Renderer/GfxDevice.h"
+#include "Renderer/RenderUtils/GUI.h"
 
 #include "Renderer/TriangleRenderer.h"
 #include "Renderer/SimpleLighting.h"
 #include "Renderer/GLTFSample.h"
+#include "Renderer/RenderSetting.h"
 #include "Renderer/SoftShadow.h"
 
 
@@ -47,7 +49,8 @@ void Application::OnCreate() {
     ShaderManager::GetInstance()->OnCreate();
     GarbageCollection::GetInstance()->OnCreate();
     SceneManager::GetInstance()->OnCreate();
-    GlobalCallbacks::Get().onCreate.Invoke();
+    GlobalCallbacks::Get().OnCreate.Invoke();
+    GUI::Get().OnCreate();
 
     //_pRenderer = std::make_unique<TriangleRenderer>();
     //_pRenderer = std::make_unique<SimpleLighting>();
@@ -62,6 +65,10 @@ void Application::OnCreate() {
     // register resize call back
     pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
 
+    pInputSystem->pWindow->SetPrepareMessageCallBack([](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	    return GUI::Get().PollEvent(hwnd, msg, wParam, lParam);
+    });
+
     // first resize
     uint32_t width = pInputSystem->pWindow->GetWidth();
     uint32_t height = pInputSystem->pWindow->GetHeight();
@@ -71,7 +78,8 @@ void Application::OnCreate() {
 void Application::OnDestroy() {
     _pRenderer->OnDestroy();
     _pRenderer = nullptr;
-    GlobalCallbacks::Get().onDestroy.Invoke();
+    GUI::Get().OnDestroy();
+    GlobalCallbacks::Get().OnDestroy.Invoke();
 
     SceneManager::GetInstance()->OnDestroy();
     SceneManager::GetInstance()->OnDestroy();
@@ -105,10 +113,11 @@ void Application::PollEvent(GameTimer &timer) {
 }
 
 void Application::OnPreUpdate(GameTimer &timer) {
+    GUI::Get().NewFrame();
     ITick::OnPreUpdate(timer);
     InputSystem::GetInstance()->OnPreUpdate(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PreUpdate, timer);
-    GlobalCallbacks::Get().onPreUpdate.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnPreUpdate.Invoke(std::ref(timer));
     _pRenderer->OnPreUpdate(timer);
 }
 
@@ -116,7 +125,8 @@ void Application::OnUpdate(GameTimer &timer) {
     ITick::OnUpdate(timer);
     InputSystem::GetInstance()->OnUpdate(timer);
     MainThread::ExecuteMainThreadJob(MainThread::OnUpdate, timer);
-    GlobalCallbacks::Get().onUpdate.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnUpdate.Invoke(std::ref(timer));
+    RenderSetting::Get().OnUpdate();
     _pRenderer->OnUpdate(timer);
 }
 
@@ -124,7 +134,7 @@ void Application::OnPostUpdate(GameTimer &timer) {
     ITick::OnPostUpdate(timer);
     InputSystem::GetInstance()->OnPostUpdate(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PostUpdate, timer);
-    GlobalCallbacks::Get().onPostUpdate.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnPostUpdate.Invoke(std::ref(timer));
     _pRenderer->OnPostUpdate(timer);
 }
 
@@ -132,7 +142,7 @@ void Application::OnPreRender(GameTimer &timer) {
     ITick::OnPreRender(timer);
     InputSystem::GetInstance()->OnPreRender(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PreRender, timer);
-    GlobalCallbacks::Get().onPreRender.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnPreRender.Invoke(std::ref(timer));
     _pRenderer->OnPreRender(timer);
 }
 
@@ -140,7 +150,7 @@ void Application::OnRender(GameTimer &timer) {
     ITick::OnRender(timer);
     InputSystem::GetInstance()->OnRender(timer);
     MainThread::ExecuteMainThreadJob(MainThread::OnRender, timer);
-    GlobalCallbacks::Get().onRender.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnRender.Invoke(std::ref(timer));
     _pRenderer->OnRender(timer);
 }
 
@@ -148,13 +158,13 @@ void Application::OnPostRender(GameTimer &timer) {
     ITick::OnPostRender(timer);
     InputSystem::GetInstance()->OnPostRender(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PostRender, timer);
-    GlobalCallbacks::Get().onPostRender.Invoke(std::ref(timer));
+    GlobalCallbacks::Get().OnPostRender.Invoke(std::ref(timer));
     _pRenderer->OnPostRender(timer);
     GarbageCollection::GetInstance()->OnPostRender(timer);
 }
 
 void Application::OnResize(uint32_t width, uint32_t height) {
-    GlobalCallbacks::Get().onResize.Invoke(width, height);
+    GlobalCallbacks::Get().OnResize.Invoke(width, height);
     GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
     _pRenderer->OnResize(width, height);
 }

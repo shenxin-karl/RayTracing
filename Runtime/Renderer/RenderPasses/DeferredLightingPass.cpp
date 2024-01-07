@@ -17,8 +17,8 @@ void DeferredLightingPass::OnCreate() {
 	_pRootSignature->At(eCbPrePass).InitAsBufferCBV(1);	// b1
 	_pRootSignature->At(eCbLighting).InitAsBufferCBV(0);	// b0
 	_pRootSignature->At(eTable0).InitAsDescriptorTable({
-		// t0 - t3
-		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0),
+		// t0 - t4
+		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0),
 		// u0
 		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0),
 	});
@@ -75,6 +75,7 @@ void DeferredLightingPass::Draw(const DrawArgs &args) {
 	table0Handles[eGBuffer1] = args.gBufferSRV[1];
 	table0Handles[eGBuffer2] = args.gBufferSRV[2];
 	table0Handles[eDepthTex] = args.depthStencilSRV;
+	table0Handles[eShadowMask] = args.shadowMaskSRV;
 	table0Handles[eOutput] = args.outputUAV;
 	pComputeCtx->SetDynamicViews(eTable0, table0Handles);
 

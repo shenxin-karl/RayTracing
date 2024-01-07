@@ -8,6 +8,7 @@ Texture2D<float4>			gBuffer0	: register(t0);
 Texture2D<float4>			gBuffer1	: register(t1);
 Texture2D<float4>			gBuffer2	: register(t2);
 Texture2D<float>            gDepthTex   : register(t3);
+Texture2D<float>            gShadowMask : register(t4);
 RWTexture2D<float4>         gOutput     : register(u0);
 
 ConstantBuffer<CbLighting>  gCbLighting : register(b0);
@@ -43,6 +44,10 @@ float3 GetWorldPosition(ComputeIn cin) {
     return WorldPositionFromDepth(uv, zNdc, gCbPrePass.matInvViewProj);
 }
 
+float GetShadow(ComputeIn cin) {
+	return gShadowMask[cin.DispatchThreadID.xy];
+}
+
 [numthreads(THREAD_WRAP_SIZE, 16, 1)]
 void CSMain(ComputeIn cin) {
 	float3 albedo;
@@ -60,8 +65,10 @@ void CSMain(ComputeIn cin) {
     float3 emission;
     UnpackGBuffer2(cin, emission);
 
+    float shadow = GetShadow(cin);
+
     MaterialData materialData = CalcMaterialData(albedo.rgb, roughness, metallic);
-    float3 finalColor = ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
+    float3 finalColor = shadow * ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
     finalColor += ao * ComputeAmbientLight(gCbLighting.ambientLight, materialData, ao);
     finalColor += emission;
     gOutput[cin.DispatchThreadID.xy] = float4(finalColor, 1.0);

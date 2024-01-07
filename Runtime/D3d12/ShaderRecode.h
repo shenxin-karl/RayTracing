@@ -33,10 +33,10 @@ public:
     auto GetSize() const -> size_t;
 private:
     friend class ComputeContext;
-    enum { eConstants, eView, eDescriptorTable };
+    enum { eMonoState, eConstants, eView, eDescriptorTable };
     auto GetRootParamType(size_t rootIndex) const -> size_t;
     using RootParamData = std::
-        variant<std::vector<DWParam>, D3D12_GPU_VIRTUAL_ADDRESS, std::shared_ptr<DescriptorHandleArray>>;
+        variant<std::monostate, std::vector<DWParam>, D3D12_GPU_VIRTUAL_ADDRESS, std::shared_ptr<DescriptorHandleArray>>;
 private:
     // clang-format off
     const RootSignature        *_pRootSignature;

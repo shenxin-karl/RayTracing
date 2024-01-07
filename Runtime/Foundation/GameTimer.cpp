@@ -15,6 +15,7 @@ void GameTimer::Reset() {
     _currFameTimes = 0;
     _nextTime = std::chrono::system_clock::to_time_t(stdchrono::system_clock::now()) + 1;
     _newSeconds = false;
+    _frameCount = 0;
 }
 
 void GameTimer::Start() {
@@ -48,6 +49,7 @@ void GameTimer::StartNewFrame() {
     diff = currentTime - _baseTime;
     _totalTime = diff.count() - _pausedTime;
     ++_currFameTimes;
+    ++_frameCount;
     time_t sysTime = stdchrono::system_clock::to_time_t(stdchrono::system_clock::now());
     _newSeconds = false;
     if (sysTime >= _nextTime) {
@@ -80,6 +82,10 @@ bool GameTimer::IsStopped() const {
 
 bool GameTimer::IsStarted() const {
     return !_stopped;
+}
+
+auto GameTimer::GetFrameCount() const -> uint64_t {
+    return _frameCount;
 }
 
 auto GameTimer::Get() -> GameTimer & {

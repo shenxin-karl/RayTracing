@@ -21,6 +21,9 @@ public:
 public:
 	void OnCreate(uint32_t numBackBuffer, HWND hwnd, DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat);
 	void OnDestroy();
+	auto GetNumBackBuffer() const -> size_t {
+		return _numBackBuffer;
+	}
 	auto GetDevice() const -> dx::Device * {
 		return _pDevice.get();
 	}
@@ -41,12 +44,12 @@ public:
 	}
 private:
 	// clang-format off
-	size_t							_numBackBuffer;
-	std::unique_ptr<dx::Device>		_pDevice;
-	std::unique_ptr<dx::SwapChain>	_pSwapChain;
-	std::unique_ptr<dx::UploadHeap>	_pUploadHeap;
+	size_t								_numBackBuffer;
+	std::unique_ptr<dx::Device>			_pDevice;
+	std::unique_ptr<dx::SwapChain>		_pSwapChain;
+	std::unique_ptr<dx::UploadHeap>		_pUploadHeap;
 	std::unique_ptr<dx::SyncASBuilder>	_pASBuilder;
-	DXGI_FORMAT						_renderTargetFormat;
-	DXGI_FORMAT						_depthStencilFormat;
+	DXGI_FORMAT							_renderTargetFormat;
+	DXGI_FORMAT							_depthStencilFormat;
 	// clang-format on
 };

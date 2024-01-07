@@ -131,6 +131,9 @@ public:
     void SetGraphicsRootShaderResourceView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetGraphicsRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
 
+    void SetBlendFactor(const float blendFactor[4]);
+    void SetBlendFactor(glm::vec4 blendFactor);
+
     template<typename T>
     void SetGraphicsRootDynamicConstantBuffer(UINT rootIndex, const T &data);
 public:
@@ -418,6 +421,14 @@ inline void GraphicsContext::SetGraphicsRootShaderResourceView(UINT rootIndex,
 inline void GraphicsContext::SetGraphicsRootUnorderedAccessView(UINT rootIndex,
     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
     _pCommandList->SetGraphicsRootUnorderedAccessView(rootIndex, bufferLocation);
+}
+
+inline void GraphicsContext::SetBlendFactor(const float blendFactor[4]) {
+    _pCommandList->OMSetBlendFactor(blendFactor);
+}
+
+inline void GraphicsContext::SetBlendFactor(glm::vec4 blendFactor) {
+    _pCommandList->OMSetBlendFactor(glm::value_ptr(blendFactor));
 }
 
 template <typename T>

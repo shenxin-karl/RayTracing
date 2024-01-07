@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderPass.h"
 #include "D3d12/D3dStd.h"
+#include "Utils/GlobalCallbacks.h"
 
 class SkyBoxPass : public RenderPass {
 public:
@@ -26,8 +27,12 @@ public:
 
 	void Draw(const DrawArgs &drawArgs);
 private:
+	void CreatePipelineState();
+private:
 	// clang-format off
 	std::unique_ptr<dx::RootSignature>		_pRootSignature;
 	dx::WRL::ComPtr<ID3D12PipelineState>	_pPipelineState;
+	CallbackHandle							_recreatePipelineStateCallbackHandle;
+
 	// clang-format on
 };

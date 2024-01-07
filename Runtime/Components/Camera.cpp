@@ -35,7 +35,7 @@ void Camera::OnAddToScene() {
     if (it == sAvailableCameras.end()) {
 	    sAvailableCameras.push_back(this);
     }
-    _resizeCallbackHandle = GlobalCallbacks::Get().onResize.Register(this, &Camera::OnResize);
+    _resizeCallbackHandle = GlobalCallbacks::Get().OnResize.Register(this, &Camera::OnResize);
 }
 
 void Camera::OnRemoveFormScene() {

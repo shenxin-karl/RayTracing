@@ -25,6 +25,7 @@
 #include "Components/CameraColtroller.h"
 #include "Components/Transform.h"
 #include "D3d12/UploadHeap.h"
+#include "RenderUtils/GUI.h"
 #include "TextureObject/TextureLoader.h"
 
 static const wchar_t *sMyRayGenShader = L"MyRaygenShader";
@@ -164,6 +165,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
 
+    GUI::Get().Render();
     _pSwapChain->Present();
     _pFrameResourceRing->OnEndFrame();
 

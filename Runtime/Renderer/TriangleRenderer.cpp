@@ -14,6 +14,7 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
+#include "RenderUtils/GUI.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
@@ -104,6 +105,8 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
+
+    GUI::Get().Render();
     _pSwapChain->Present();
     _pFrameResourceRing->OnEndFrame();
 

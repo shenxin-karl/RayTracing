@@ -23,10 +23,6 @@ void MeshRenderer::SetMaterial(std::shared_ptr<Material> pMaterial) {
     _pMaterial = std::move(pMaterial);
 }
 
-void MeshRenderer::OnAddToGameObject() {
-    Component::OnAddToGameObject();
-    _instanceData.instanceID = GetGameObject()->GetInstanceID();
-}
 
 void MeshRenderer::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
@@ -39,6 +35,7 @@ void MeshRenderer::OnAddToScene() {
     SceneID sceneId = GetGameObject()->GetSceneID();
     _pCurrentScene = SceneManager::GetInstance()->GetScene(sceneId);
     _pCurrentScene->GetRayTracingASManager()->AddMeshRenderer(this);
+    _instanceData.instanceID = GetInstanceID();
 }
 
 void MeshRenderer::OnPreRender() {
@@ -63,7 +60,6 @@ bool MeshRenderer::CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder) 
     ID3D12Resource *pBottomLevelASResource = nullptr;
     if (pBottomLevelAs != nullptr) {
         pBottomLevelASResource = pBottomLevelAs->GetResource();
-        ;
     }
 
     if (transformDirty) {

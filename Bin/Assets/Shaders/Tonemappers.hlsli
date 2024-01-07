@@ -153,7 +153,6 @@ float3 ApplyToneMapping(float3 input, int type) {
 	}
 }
 
-float3 ApplyGammaCorrection(float3 input) {
-	static const float gamma = 2.2;
+float3 ApplyGammaCorrection(float3 input, float gamma) {
 	return pow(input, 1.f / gamma);
 }
