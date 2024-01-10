@@ -57,9 +57,9 @@ target("RayTracing")
     set_languages("c++latest")
     set_warnings("all")
     set_kind("binary")
-    add_headerfiles("**.h")
-    add_headerfiles("**.hpp")
-    add_headerfiles("**.inc")
+    add_headerfiles("Runtime/**.h")
+    add_headerfiles("Runtime/**.hpp")
+    add_headerfiles("Runtime/**.inc")
 
     add_headerfiles("Bin/Assets/Shaders/**.hlsl")
     add_headerfiles("Bin/Assets/Shaders/**.hlsli")
@@ -84,12 +84,23 @@ target("RayTracing")
 
     -- local packages
     add_packages("stduuid")
+    add_headerfiles("ThirdParty/stduuid/include/**.h")
+
     add_packages("dxc")
+    add_headerfiles("ThirdParty/dxc/inc/**.h")
+
     add_packages("renderdoc")
+    add_headerfiles("ThirdParty/renderdoc/inc/**.h")
+
     add_defines("USE_PIX=1")
     add_packages("pix")
+    add_headerfiles("ThirdParty/WinPixEventRuntime/Include/WinPixEventRuntime/**.h")
+
     add_packages("RayTracingDenoiser")
+    add_headerfiles("ThirdParty/RayTracingDenoiser/_NRD_SDK/Include/**.h")
+
     add_packages("NRI")
+    add_headerfiles("ThirdParty/NRI/_NRI_SDK/Include/**.h")
 
     set_targetdir(BINARY_DIR)
 
