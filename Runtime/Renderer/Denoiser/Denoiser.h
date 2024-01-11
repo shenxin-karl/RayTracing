@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "NRI.h"
+#include "NRD.h"
 #include "NRDSettings.h"
 
 class NriInterface;

@@ -138,5 +138,4 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 #endif
 }
 
-
 }    // namespace dx

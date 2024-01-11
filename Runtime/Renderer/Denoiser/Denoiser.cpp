@@ -4,7 +4,6 @@
 #include "Extensions/NRIHelper.h"
 #include "Extensions/NRIWrapperD3D12.h"
 
-#include "NRD.h"
 #include "NRDIntegration.hpp"
 #include "D3d12/Device.h"
 #include "Renderer/GfxDevice.h"
@@ -45,17 +44,19 @@ void Denoiser::OnCreate() {
 }
 
 void Denoiser::OnDestroy() {
-	_pNrd->Destroy();
-    _pNrd = nullptr;
+    if (_pNrd != nullptr) {
+        _pNrd->Destroy();
+        _pNrd = nullptr;
+    }
     nri::nriDestroyDevice(*_pNriDevice);
 }
 
 void Denoiser::NewFrame() {
-	_pNrd->NewFrame();
+    _pNrd->NewFrame();
 }
 
 void Denoiser::SetCommonSetting(const nrd::CommonSettings &settings) {
-	_pNrd->SetCommonSettings(settings);
+    _pNrd->SetCommonSettings(settings);
 }
 
 void Denoiser::OnResize(size_t width, size_t height) {
@@ -77,7 +78,6 @@ void Denoiser::CreateNRD(size_t width, size_t height) {
     instanceCreationDesc.denoisers = denoiserDescs;
     instanceCreationDesc.denoisersNum = std::size(denoiserDescs);
 
-    nrd::InstanceCreationDesc desc = {};
     bool result = _pNrd
                       ->Initialize(width, height, instanceCreationDesc, *_pNriDevice, *_pNriInterface, *_pNriInterface);
     Assert(result);

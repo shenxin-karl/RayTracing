@@ -15,7 +15,7 @@ auto MakeCbPreObject(const Transform *pTransform) -> CbPreObject {
     cbuffer.matWorld = pTransform->GetWorldMatrix();
     cbuffer.matInvWorld = inverse(cbuffer.matWorld);
     cbuffer.matNormal = glm::WorldMatrixToNormalMatrix(cbuffer.matWorld);
-    cbuffer.matInvNormal = inverse(cbuffer.matNormal);
+    //cbuffer.matInvNormal = ;
     return cbuffer;
 }
 
@@ -35,6 +35,7 @@ auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
     cbuffer.matInvProj = pCamera->GetInverseProjectionMatrix();
     cbuffer.matViewProj = pCamera->GetViewProjectionMatrix();
     cbuffer.matInvViewProj = pCamera->GetInverseViewProjectionMatrix();
+    cbuffer.matPrevViewProj = pCamera->GetPreviousViewProjectionMatrix();
     cbuffer.nearClip = pCamera->GetNearClip();
     cbuffer.farClip = pCamera->GetFarClip();
 

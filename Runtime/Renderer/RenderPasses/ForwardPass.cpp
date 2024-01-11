@@ -67,8 +67,8 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
 
         size_t batchIdx = index;
         while (batchIdx < batch.size() && bindlessCollection.EnsureCapacity(TextureType::eMaxNum)) {
-            Material *pMaterial = batch[batchIdx]->pMaterial;
-            for (dx::SRV &srv : pMaterial->_textureHandles) {
+            const Material *pMaterial = batch[batchIdx]->pMaterial;
+            for (const dx::SRV &srv : pMaterial->_textureHandles) {
                 bindlessCollection.AddHandle(srv.GetCpuHandle());
             }
             ++batchIdx;
@@ -77,11 +77,9 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
         // texture list bindless
         pGfxCtx->SetDynamicViews(eTextureList, bindlessCollection.GetHandles());
         for (size_t i = index; i != batchIdx; ++i) {
-            Transform *pTransform = batch[i]->pTransform;
-            cbuffer::CbPreObject cbPreObject = cbuffer::MakeCbPreObject(pTransform);
-            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, cbPreObject);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, batch[index]->transform);
 
-            Material *pMaterial = batch[i]->pMaterial;
+            const Material *pMaterial = batch[i]->pMaterial;
             Material::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;
             cbMaterial.albedoTexIndex = bindlessCollection.GetHandleIndex(
                 pMaterial->_textureHandles[TextureType::eAlbedoTex].GetCpuHandle());
@@ -95,7 +93,7 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
                 pMaterial->_textureHandles[TextureType::eNormalTex].GetCpuHandle());
             pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eMaterial, cbMaterial);
 
-            Mesh *pMesh = batch[i]->pMesh;
+            const Mesh *pMesh = batch[i]->pMesh;
             const GPUMeshData *pGpuMeshData = pMesh->GetGPUMeshData();
             pGfxCtx->SetVertexBuffers(0, pGpuMeshData->GetVertexBufferView());
             if (pMesh->GetIndexCount() > 0) {
@@ -119,7 +117,7 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
 }
 
 auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12PipelineState * {
-    Material *pMaterial = pRenderObject->pMaterial;
+    const Material *pMaterial = pRenderObject->pMaterial;
     auto iter = _pipelineStateMap.find(pMaterial->GetPipelineID());
     if (iter != _pipelineStateMap.end()) {
         return iter->second.Get();

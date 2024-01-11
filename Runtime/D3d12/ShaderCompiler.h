@@ -31,12 +31,14 @@ public:
     using const_iterator = std::vector<MacroItem>::const_iterator;
 public:
     DefineList() = default;
+    DefineList(DefineList &&) noexcept = default;
     void Set(std::string_view key, int value = 1);
     auto Get(std::string_view key) const -> std::optional<int>;
     bool Remove(std::string_view key);
     auto operator[](std::string_view key) -> int &;
     auto ToString() const -> std::string;
     auto FromString(std::string source) -> size_t;
+    auto Clone() const -> DefineList;
 
     void Clear() {
         _macroItems.clear();

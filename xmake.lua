@@ -98,6 +98,7 @@ target("RayTracing")
 
     add_packages("RayTracingDenoiser")
     add_headerfiles("ThirdParty/RayTracingDenoiser/_NRD_SDK/Include/**.h")
+    add_headerfiles("ThirdParty/RayTracingDenoiser/_NRD_SDK/Shaders/Include/**.hlsli")
 
     add_packages("NRI")
     add_headerfiles("ThirdParty/NRI/_NRI_SDK/Include/**.h")

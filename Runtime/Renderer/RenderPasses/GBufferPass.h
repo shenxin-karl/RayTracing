@@ -46,9 +46,8 @@ private:
     using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
 private:
     // clang-format off
-    dx::Texture                         _gBuffer0;    // R8G8B8A8,      float3 albedo,	float ao
-    dx::Texture                         _gBuffer1;    // R16G16B16A16   float2 normal,	float metallic, float roughness
-    dx::Texture                         _gBuffer2;    // R11G11B10      float3 emission,
+    using TexturePtr = std::unique_ptr<dx::Texture>;
+    std::vector<TexturePtr>             _gBufferTextures;
     dx::RTV                             _gBufferRTV;   
     dx::SRV                             _gBufferSRV;
     size_t                              _width;

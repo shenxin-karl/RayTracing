@@ -5,7 +5,7 @@ struct CBPreObject {
     float4x4 gMatWorld;
     float4x4 gMatInvWorld;
     float4x4 gMatNormal;
-    float4x4 gMatInvNormal;
+    float4x4 gPrevMatWorld;     // generate motion vector
 };
 
 #endif

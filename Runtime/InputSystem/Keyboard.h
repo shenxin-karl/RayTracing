@@ -65,7 +65,7 @@ class GameTimer;
 class Keyboard : public ITick {
 public:
     Keyboard();
-
+    ~Keyboard() override;
     bool IsKeyClicked(unsigned char key) const {
 	    return _preFrameKeyState.test(key) && !_keyState.test(key);
     }

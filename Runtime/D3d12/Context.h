@@ -59,7 +59,7 @@ protected:
 };
 
 struct DispatchRaysDesc {
-	ShaderRecode rayGenerationShaderRecode;
+    ShaderRecode rayGenerationShaderRecode;
     std::vector<ShaderRecode> missShaderTable;
     std::vector<ShaderRecode> hitGroupTable;
     std::vector<ShaderRecode> callShaderTable;
@@ -102,6 +102,9 @@ public:
     void SetScissor(ReadonlyArraySpan<D3D12_RECT> scissors);
     void SetRenderTargets(ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargets);
     void SetRenderTargets(ReadonlyArraySpan<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargets,
+        D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor);
+    void SetRenderTargets(D3D12_CPU_DESCRIPTOR_HANDLE baseHandle,
+        UINT renderTargetCount,
         D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor);
     void ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE rtv,
         glm::vec4 color,
@@ -333,6 +336,10 @@ inline void GraphicsContext::SetRenderTargets(ReadonlyArraySpan<D3D12_CPU_DESCRI
 
     _pCommandList->OMSetRenderTargets(renderTargets.Count(), renderTargets.Data(), false, &depthDescriptor);
 }
+inline void GraphicsContext::SetRenderTargets(D3D12_CPU_DESCRIPTOR_HANDLE baseHandle, UINT renderTargetCount,
+	D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor) {
+    _pCommandList->OMSetRenderTargets(renderTargetCount, &baseHandle, true, &depthDescriptor);
+}
 
 inline void GraphicsContext::ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE rtv,
     glm::vec4 color,
@@ -431,7 +438,7 @@ inline void GraphicsContext::SetBlendFactor(glm::vec4 blendFactor) {
     _pCommandList->OMSetBlendFactor(glm::value_ptr(blendFactor));
 }
 
-template <typename T>
+template<typename T>
 void GraphicsContext::SetGraphicsRootDynamicConstantBuffer(UINT rootIndex, const T &data) {
     D3D12_GPU_VIRTUAL_ADDRESS bufferLoc = _dynamicBufferAllocator.AllocConstantBuffer(sizeof(T), &data);
     _pCommandList->SetGraphicsRootConstantBufferView(rootIndex, bufferLoc);

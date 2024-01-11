@@ -39,6 +39,7 @@ class GameTimer;
 class Mouse : public ITick {
 public:
 	Mouse(InputSystem *pInputSystem);
+	~Mouse() override;
 	void HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	void OnPostRender(GameTimer &timer) override;
 	auto GetEvent() -> MouseEvent;

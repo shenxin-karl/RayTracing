@@ -3,6 +3,9 @@
 Keyboard::Keyboard() {
 }
 
+Keyboard::~Keyboard() {
+}
+
 KeyEvent Keyboard::GetKeyEvent() {
     if (_keycodeQueue.empty())
         return KeyEvent{};

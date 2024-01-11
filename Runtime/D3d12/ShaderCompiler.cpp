@@ -75,6 +75,12 @@ auto DefineList::FromString(std::string source) -> size_t {
     return count;
 }
 
+auto DefineList::Clone() const -> DefineList {
+    DefineList result;
+    result._macroItems = _macroItems;
+    return result;
+}
+
 auto DefineList::Find(std::string_view key) const -> iterator {
     for (iterator iter = _macroItems.begin(); iter != _macroItems.end(); ++iter) {
         if (iter->key == key) {

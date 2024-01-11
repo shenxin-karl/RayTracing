@@ -3,6 +3,10 @@
 #include "CbPreObject.hlsli"
 #include "CookTorrance.hlsli"
 #include "NormalUtil.hlsli"
+#include "DepthUtil.hlsli"
+
+#include "NRDEncoding.hlsli"
+#include "NRD.hlsli"
 
 struct CbMaterial {
     float4      albedo;
@@ -64,6 +68,9 @@ struct VertexOut {
     #if ENABLE_VERTEX_COLOR
         float4 color        : COLOR;
     #endif
+	#if GENERATE_MOTION_VECTOR
+		float2 motionVector : MOTION_VECTOR;
+	#endif
 };
 
 ConstantBuffer<CBPrePass>       gCbPrePass              : register(b0);
@@ -90,6 +97,7 @@ VertexOut VSMain(VertexIn vin) {
     #if ENABLE_VERTEX_UV
         vout.uv0 = vin.uv0 * gCbMaterial.tilingAndOffset.xy + gCbMaterial.tilingAndOffset.zw;
     #endif
+    // todo
     return vout;
 }
 
@@ -174,22 +182,26 @@ float4 ForwardPSMain(VertexOut pin) : SV_TARGET {
 }
 
 struct GBufferOut {
-	float4 gBuffer0 : SV_TARGET0;
-    float4 gBuffer1 : SV_TARGET1;
-    float3 gBuffer2 : SV_TARGET2;
+	float4 gBuffer0 : SV_TARGET0;           // .rgb: albedo .a: metallic
+    float4 gBuffer1 : SV_TARGET1;           // NRD_FrontEnd_PackNormalAndRoughness result     
+    float3 gBuffer2 : SV_TARGET2;           // emission
+    float2 gBuffer3 : SV_TARGET3;           // motion vector (rg16f+)
+    float  gBuffer4 : SV_TARGET4;           // view-depth
 };
 GBufferOut GBufferPSMain(VertexOut pin) {
 	GBufferOut pout = (GBufferOut)0;
     float2 metallicAndRoughness = GetMetallicAndRoughness(pin);
     float4 albedo = GetAlbedo(pin);
-    float ao = GetAmbientOcclusion(pin);
     float3 N = GetNormal(pin);
     float3 emission = GetEmission(pin);
 
     pout.gBuffer0.xyz = albedo.rgb;
-    pout.gBuffer0.w = ao;
-    pout.gBuffer1.xy = NormalEncode(N);
-	pout.gBuffer1.zw = metallicAndRoughness;
+    pout.gBuffer0.w = metallicAndRoughness.x;
+	pout.gBuffer1 = NRD_FrontEnd_PackNormalAndRoughness(N, metallicAndRoughness.y, 0);
     pout.gBuffer2.rgb = emission;
+    #if GENERATE_MOTION_VECTOR
+		pout.gBuffer3 = pin.motionVector;;
+	#endif
+    pout.gBuffer4 = ViewSpaceDepth(pin.SVPosition.z, gCbPrePass.zBufferParams);
     return pout;
 }

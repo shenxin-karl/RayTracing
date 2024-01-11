@@ -1,7 +1,5 @@
 #pragma once
 
-// from https://www.humus.name/temp/Linearize%20depth.txt
-
 float ViewSpaceDepth(float zNdc, float4 zBufferParams) {
 	return 1.0 / (zBufferParams.z * zNdc + zBufferParams.w);
 }

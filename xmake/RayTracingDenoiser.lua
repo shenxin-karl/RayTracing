@@ -1,7 +1,12 @@
 package("RayTracingDenoiser")
-    -- set_policy("package.install_always", true)
     add_deps("cmake")
     set_sourcedir(path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser"))
+
+    on_load(function (package)
+        local ndkDir = path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser", "_NRD_SDK");
+        local shaderDir = path.join(ndkDir, "Shaders", "Include")
+        os.trycp(path.join(shaderDir, "**.hlsli"), path.join(os.projectdir(), "Bin", "Assets", "Shaders"))
+    end)
 
     on_install(function (package)
         local sourceDir = path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser");

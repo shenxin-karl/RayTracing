@@ -8,7 +8,7 @@ namespace dx {
 
 class Texture : NonCopyable {
 public:
-    Texture(const std::source_location &sl = std::source_location::current());
+    Texture(const std::source_location &sl = std::source_location::current()); 
     ~Texture();
 public:
     void OnCreate(Device *pDevice,

@@ -83,6 +83,8 @@ void MeshRenderer::CommitRenderObject() {
         _renderData.renderObject.pMaterial = _pMaterial.get();
         _renderData.renderObject.pMesh = _pMesh.get();
         _renderData.renderObject.pTransform = GetGameObject()->GetTransform();
+        _renderData.renderObject.cbPreObject.matPrevWorld = _renderData.renderObject.cbPreObject.matWorld;
+        _renderData.renderObject.cbPreObject = cbuffer::MakeCbPreObject(GetGameObject()->GetTransform());
     }
     if (_renderData.shouldRender) {
         SceneRenderObjectManager *pRenderObjectMgr = _pCurrentScene->GetRenderObjectManager();

@@ -9,6 +9,7 @@ struct CBPrePass {
 	float4x4 matInvProj;
 	float4x4 matViewProj; 
 	float4x4 matInvViewProj;
+	float4x4 matPrevViewProj;
 	float3   cameraPos;
 	float	 nearClip;
     float3   cameraLookUp;

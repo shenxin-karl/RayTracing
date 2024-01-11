@@ -1,11 +1,15 @@
-#include "Mouse.h"
-#include <iostream>
-#include "Window.h"
 #include "InputSystem.h"
+#include <iostream>
+#include "Mouse.h"
+#include "Window.h"
 
-Mouse::Mouse(InputSystem *pInputSystem) : _pInputSystem(pInputSystem) {
+Mouse::Mouse(InputSystem *pInputSystem) : _windowCenter(), _virtualCursorPos(), _pInputSystem(pInputSystem) {
 	GetCursorPos(&_lastCursorPos);
 	ScreenToClient(_pInputSystem->pWindow->GetHWND(), &_lastCursorPos);
+}
+
+Mouse::~Mouse() {
+
 }
 
 void Mouse::HandleMsg(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

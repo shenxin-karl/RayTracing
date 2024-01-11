@@ -16,7 +16,7 @@ struct alignas(kAlignment) CbPreObject {
 	glm::mat4x4 matWorld;
 	glm::mat4x4 matInvWorld;
 	glm::mat4x4 matNormal;
-	glm::mat4x4 matInvNormal;
+	glm::mat4x4 matPrevWorld;
 };
 
 struct alignas(kAlignment) CbPrePass {
@@ -26,6 +26,7 @@ struct alignas(kAlignment) CbPrePass {
 	glm::mat4x4 matInvProj;
 	glm::mat4x4 matViewProj;
 	glm::mat4x4 matInvViewProj;
+	glm::mat4x4 matPrevViewProj;
 	glm::vec3   cameraPos;
 	float		nearClip;
 	glm::vec3	cameraLookUp;

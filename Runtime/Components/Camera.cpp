@@ -18,6 +18,7 @@ Camera::Camera() {
     _matInvView = glm::identity<glm::mat4x4>();
     _matInvProj = glm::identity<glm::mat4x4>();
     _matInvViewProj = glm::identity<glm::mat4x4>();
+    _matPrevViewProj = glm::identity<glm::mat4x4>();
     SetTickType(ePreRender);
 }
 
@@ -71,6 +72,7 @@ void Camera::OnPreRender() {
 		_matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
     }
 
+    _matPrevViewProj = _matViewProj;
     _matViewProj = _matProj * _matView;
 
     _matInvView = inverse(_matView);
