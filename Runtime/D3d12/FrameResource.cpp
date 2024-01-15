@@ -54,7 +54,6 @@ void FrameResource::OnDestroy() {
 void FrameResource::OnBeginFrame(uint64_t newFenceValue) {
     _fenceValue = newFenceValue;
     _pGraphicsCmdListPool->OnBeginFrame();
-    _pGraphicsCmdListPool->OnBeginFrame();
     _graphicsContextIndex = 0;
 #if ENABLE_D3D_COMPUTE_QUEUE
     _computeContextIndex = 0;

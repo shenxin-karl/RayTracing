@@ -14,9 +14,9 @@ private:
 	using CommandAllocatorContainer = std::vector<WRL::ComPtr<ID3D12CommandAllocator>>;
 private:
 	// clang-format off
-    uint32_t					_allocCount = 0;
-	CommandListContainer		_cmdList;
-    CommandAllocatorContainer	_allocatorList;
+    uint32_t							_commandListIndex = 0;
+	CommandListContainer				_cmdList;
+	WRL::ComPtr<ID3D12CommandAllocator> _pCommandAllocator;
 	// clang-format on
 };
 

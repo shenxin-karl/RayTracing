@@ -167,7 +167,6 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
     GUI::Get().Render();
     _pSwapChain->Present();
-    _pFrameResourceRing->OnEndFrame();
 
     if (beginCapture) {
         FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);

@@ -157,7 +157,6 @@ void SoftShadow::OnRender(GameTimer &timer) {
         FrameCapture::OpenCaptureInUI();
     }
 
-    _pFrameResourceRing->OnEndFrame();
 }
 
 void SoftShadow::OnResize(uint32_t width, uint32_t height) {

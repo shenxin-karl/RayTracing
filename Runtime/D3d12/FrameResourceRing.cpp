@@ -31,21 +31,25 @@ void FrameResourceRing::OnDestroy() {
 }
 
 void FrameResourceRing::OnBeginFrame() {
+	uint64_t issueFenceValue = _graphicsQueueFence.IssueFence(_pDevice->GetGraphicsQueue());
+#if ENABLE_D3D_COMPUTE_QUEUE
+	_computeQueueFence.IssueFence(_pDevice->GetComputeQueue());
+#endif
+
 	++_frameIndex;
 	size_t index = _frameIndex % _frameResourcePool.size();
 	uint64_t fenceValue = _frameResourcePool[index]->GetFenceValue();
+
 	_graphicsQueueFence.CpuWaitForFence(fenceValue);
 #if ENABLE_D3D_COMPUTE_QUEUE
 	_computeQueueFence.CpuWaitForFence(fenceValue);
 #endif
-	 _frameResourcePool[index]->OnBeginFrame(_frameIndex);
+
+	 _frameResourcePool[index]->OnBeginFrame(issueFenceValue + 1);
 }
 
 void FrameResourceRing::OnEndFrame() {
-	_graphicsQueueFence.IssueFence(_pDevice->GetGraphicsQueue());
-#if ENABLE_D3D_COMPUTE_QUEUE
-	_computeQueueFence.IssueFence(_pDevice->GetComputeQueue());
-#endif
+
 }
 
 auto FrameResourceRing::GetCurrentFrameResource() const -> FrameResource & {

@@ -38,6 +38,23 @@ void PostProcessPass::Draw(const PostProcessPassDrawArgs &args) {
     Assert(args.width > 0);
     Assert(args.height > 0);
 
+    D3D12_VIEWPORT viewport = {
+        0,
+        0,
+        static_cast<float>(args.width),
+        static_cast<float>(args.height),
+        0.f,
+        1.f,
+    };
+    D3D12_RECT scissor = {
+        0,
+        0,
+        static_cast<LONG>(args.width),
+        static_cast<LONG>(args.height),
+    };
+
+    args.pGfxCtx->SetViewport(viewport);
+    args.pGfxCtx->SetScissor(scissor);
     args.pGfxCtx->SetGraphicsRootSignature(&_rootSignature);
     args.pGfxCtx->SetPipelineState(_pPipelineState.Get());
     args.pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
