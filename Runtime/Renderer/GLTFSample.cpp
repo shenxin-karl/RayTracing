@@ -23,6 +23,7 @@
 #include "Utils/AssetProjectSetting.h"
 #include "RenderPasses/ForwardPass.h"
 #include "RenderPasses/PostProcessPass.h"
+#include "RenderUtils/GUI.h"
 
 GLTFSample::GLTFSample() : _cbPrePass{}, _cbLighting{} {
 }
@@ -61,13 +62,27 @@ void GLTFSample::OnPreRender(GameTimer &timer) {
 
 void GLTFSample::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
-
-    _pFrameResourceRing->OnBeginFrame();
     bool frameCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
     if (frameCapture) {
         FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
+    PrepareFrame(timer);
+    _pFrameResourceRing->OnBeginFrame();
+    {
+		RenderFrame(timer);
+		_pSwapChain->Present();
+        GUI::Get().Render();
+    }
+    _pFrameResourceRing->OnEndFrame();
+
+    if (frameCapture) {
+	    FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::OpenCaptureInUI();
+    }
+}
+
+void GLTFSample::PrepareFrame(GameTimer &timer) {
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
@@ -97,10 +112,14 @@ void GLTFSample::OnRender(GameTimer &timer) {
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), forwardPassDrawArgs);
 
     // todo SkyBox pass
-
-    _pForwardPass->DrawBatch(pRenderObjectMgr->GetTransparentRenderObjects(), forwardPassDrawArgs);
-
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    _pForwardPass->DrawBatch(pRenderObjectMgr->GetTransparentRenderObjects(), forwardPassDrawArgs);
+    pFrameResource.ExecuteContexts(pGfxCxt.get());
+}
+
+void GLTFSample::RenderFrame(GameTimer &timer) {
+    dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
+    std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 
@@ -113,14 +132,6 @@ void GLTFSample::OnRender(GameTimer &timer) {
     _pPostProcessPass->Draw(postProcessPassDrawArgs);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     pFrameResource.ExecuteContexts(pGfxCxt.get());
-    _pSwapChain->Present();
-
-    if (frameCapture) {
-	    FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
-        FrameCapture::OpenCaptureInUI();
-    }
-
-    _pFrameResourceRing->OnEndFrame();
 }
 
 void GLTFSample::OnResize(uint32_t width, uint32_t height) {

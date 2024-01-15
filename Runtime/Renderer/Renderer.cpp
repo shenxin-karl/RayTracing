@@ -26,8 +26,8 @@ void Renderer::OnCreate() {
     _pFrameResourceRing = std::make_unique<dx::FrameResourceRing>();
     dx::FrameResourceRingDesc frameResourceRingDesc;
     frameResourceRingDesc.pDevice = _pDevice;
-    frameResourceRingDesc.numComputeCmdListPreFrame = 1;
-    frameResourceRingDesc.numGraphicsCmdListPreFrame = 1;
+    frameResourceRingDesc.numComputeCmdListPreFrame = 2;
+    frameResourceRingDesc.numGraphicsCmdListPreFrame = 2;
     frameResourceRingDesc.numFrameResource = 2;
     _pFrameResourceRing->OnCreate(frameResourceRingDesc);
 }

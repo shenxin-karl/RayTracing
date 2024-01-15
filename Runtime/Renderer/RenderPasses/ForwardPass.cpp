@@ -77,7 +77,7 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
         // texture list bindless
         pGfxCtx->SetDynamicViews(eTextureList, bindlessCollection.GetHandles());
         for (size_t i = index; i != batchIdx; ++i) {
-            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, batch[index]->transform);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(ePreObject, batch[index]->cbPreObject);
 
             const Material *pMaterial = batch[i]->pMaterial;
             Material::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;

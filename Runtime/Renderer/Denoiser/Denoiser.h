@@ -3,11 +3,12 @@
 #include "NRI.h"
 #include "NRD.h"
 #include "NRDSettings.h"
+#include "Foundation/NonCopyable.h"
 
 class NriInterface;
 class NrdIntegration;
 
-class Denoiser {
+class Denoiser : private NonCopyable {
 public:
     void OnCreate();
     void OnDestroy();

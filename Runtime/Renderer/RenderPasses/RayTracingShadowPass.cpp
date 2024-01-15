@@ -138,7 +138,6 @@ void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
         float minT;
     };
 
-
     float cosineTheta = RenderSetting::Get().GetShadowRayMaxCosineTheta();
     RayGenCB rayGenCb;
     rayGenCb.matInvViewProj = args.matInvViewProj;

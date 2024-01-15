@@ -26,20 +26,14 @@ void Denoiser::OnCreate() {
     nri::Result nriResult = nri::nriCreateDeviceFromD3D12Device(deviceDesc, _pNriDevice);
     Assert(nriResult == nri::Result::SUCCESS);
 
-    nriResult = nri::nriGetInterface(*_pNriDevice,
-        NRI_INTERFACE(nri::CoreInterface),
-        (nri::CoreInterface *)_pNrd.get());
+    nriResult = nri::nriGetInterface(*_pNriDevice, NRI_INTERFACE(nri::CoreInterface), _pNrd.get());
     Assert(nriResult == nri::Result::SUCCESS);
 
-    nriResult = nri::nriGetInterface(*_pNriDevice,
-        NRI_INTERFACE(nri::HelperInterface),
-        (nri::HelperInterface *)_pNrd.get());
+    nriResult = nri::nriGetInterface(*_pNriDevice, NRI_INTERFACE(nri::HelperInterface), _pNrd.get());
     Assert(nriResult == nri::Result::SUCCESS);
 
     // Get appropriate "wrapper" extension (XXX - can be D3D11, D3D12 or VULKAN)
-    nriResult = nri::nriGetInterface(*_pNriDevice,
-        NRI_INTERFACE(nri::WrapperD3D12Interface),
-        (nri::WrapperD3D12Interface *)_pNrd.get());
+    nriResult = nri::nriGetInterface(*_pNriDevice, NRI_INTERFACE(nri::WrapperD3D12Interface), _pNrd.get());
     Assert(nriResult == nri::Result::SUCCESS);
 }
 

@@ -26,7 +26,9 @@ void MeshRenderer::SetMaterial(std::shared_ptr<Material> pMaterial) {
 
 void MeshRenderer::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
+#if ENABLE_RAY_TRACING
     _pCurrentScene->GetRayTracingASManager()->RemoveMeshRenderer(this);
+#endif
     _pCurrentScene = nullptr;
 }
 
@@ -34,7 +36,9 @@ void MeshRenderer::OnAddToScene() {
     Component::OnAddToScene();
     SceneID sceneId = GetGameObject()->GetSceneID();
     _pCurrentScene = SceneManager::GetInstance()->GetScene(sceneId);
+#if ENABLE_RAY_TRACING
     _pCurrentScene->GetRayTracingASManager()->AddMeshRenderer(this);
+#endif
     _instanceData.instanceID = GetInstanceID();
 }
 

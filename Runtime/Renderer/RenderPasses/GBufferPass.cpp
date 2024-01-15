@@ -171,7 +171,7 @@ void GBufferPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
         // texture list bindless
         pGfxCtx->SetDynamicViews(eTextureList, bindlessCollection.GetHandles());
         for (size_t i = index; i != batchIdx; ++i) {
-            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbPreObject, batch[i]->transform);
+            pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbPreObject, batch[i]->cbPreObject);
 
             const Material *pMaterial = batch[i]->pMaterial;
             Material::CbPreMaterial cbMaterial = pMaterial->_cbPreMaterial;

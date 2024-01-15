@@ -8,7 +8,9 @@
 Scene::Scene() {
     _pLightManager = std::make_unique<SceneLightManager>();
     _pRenderObjectMgr = std::make_unique<SceneRenderObjectManager>();
+#if ENABLE_RAY_TRACING
     _pRayTracingASMgr = std::make_unique<SceneRayTracingASManager>();
+#endif
 
     // register scene callbacks
     _preUpdateCallbackHandle = GlobalCallbacks::Get().OnPreUpdate.Register(this, &Scene::OnPreUpdate);
@@ -79,7 +81,9 @@ void Scene::OnPostUpdate(GameTimer &timer) {
 
 void Scene::OnPreRender(GameTimer &timer) {
     InvokeTickFunc(&GameObject::InnerOnPreRender);
+#if ENABLE_RAY_TRACING
     _pRayTracingASMgr->OnPreRender();
+#endif
 }
 
 void Scene::OnRender(GameTimer &timer) {

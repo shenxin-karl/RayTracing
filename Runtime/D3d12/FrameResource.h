@@ -1,5 +1,6 @@
 #pragma once
 #include "D3dStd.h"
+#include "BarrierCommandListPool.h"
 #include "Foundation/ReadonlyArraySpan.hpp"
 
 namespace dx {
@@ -29,6 +30,8 @@ private:
     // clang-format off
     Device                          *_pDevice;
     uint64_t                         _fenceValue;
+    BarrierCommandListPool           _barrierCommandListPool;
+
     std::unique_ptr<CommandListPool> _pGraphicsCmdListPool;
     GraphicsContextList              _graphicsContextList;
     size_t                           _graphicsContextIndex;

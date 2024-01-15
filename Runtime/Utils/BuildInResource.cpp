@@ -14,9 +14,11 @@ BuildInResource::BuildInResource() {
 void BuildInResource::OnCreate() {
 	BuildSkyBoxCubeMesh();
 
+#if !ENABLE_D3D_11
 	_pEmptyLocalRootSignature = std::make_shared<dx::RootSignature>();
 	_pEmptyLocalRootSignature->OnCreate(0);
 	_pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+#endif
 }
 
 void BuildInResource::OnDestroy() {

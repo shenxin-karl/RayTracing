@@ -16,6 +16,8 @@ public:
 	void OnDestroy() override;
 	void OnPreRender(GameTimer &timer) override;
 	void OnRender(GameTimer &timer) override;
+	void PrepareFrame(GameTimer &timer);
+	void RenderFrame(GameTimer &timer);
 	void OnResize(uint32_t width, uint32_t height) override;
 private:
 	void InitRenderPass();

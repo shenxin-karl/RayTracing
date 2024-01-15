@@ -40,6 +40,7 @@ void PostProcessPass::Draw(const PostProcessPassDrawArgs &args) {
 
     args.pGfxCtx->SetGraphicsRootSignature(&_rootSignature);
     args.pGfxCtx->SetPipelineState(_pPipelineState.Get());
+    args.pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     std::vector<dx::DWParam> constants;
     constants.push_back(RenderSetting::Get().GetExposure());
@@ -91,15 +92,15 @@ void PostProcessPass::CreatePipelineState() {
 }
 
 void PostProcessPass::BuildRenderSettingUI() {
-	RenderSetting &renderSetting = RenderSetting::Get();
+    RenderSetting &renderSetting = RenderSetting::Get();
 
     const char *toneMapperType[] = {
         "AMDToneMapper",
-	    "DX11SDK",
-	    "Reinhard",
-	    "Uncharted2ToneMap",
-	    "ACESFilm",
-	    "None",
+        "DX11SDK",
+        "Reinhard",
+        "Uncharted2ToneMap",
+        "ACESFilm",
+        "None",
     };
 
     if (!ImGui::TreeNode("PostProcess")) {
@@ -107,18 +108,18 @@ void PostProcessPass::BuildRenderSettingUI() {
     }
 
     int toneMapper = static_cast<int>(renderSetting.GetToneMapperType());
-	if (ImGui::Combo("ToneMapper", &toneMapper, toneMapperType, std::size(toneMapperType))) {
-		renderSetting.SetToneMapperType(static_cast<ToneMapperType>(toneMapper));
-	}
+    if (ImGui::Combo("ToneMapper", &toneMapper, toneMapperType, std::size(toneMapperType))) {
+        renderSetting.SetToneMapperType(static_cast<ToneMapperType>(toneMapper));
+    }
 
     float gamma = renderSetting.GetGamma();
     if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.f, 3.f)) {
-	    renderSetting.SetGamma(gamma);
+        renderSetting.SetGamma(gamma);
     }
 
     float exposure = renderSetting.GetExposure();
     if (ImGui::SliderFloat("Exposure", &exposure, 0.f, 5.f)) {
-	    renderSetting.SetExposure(exposure);
+        renderSetting.SetExposure(exposure);
     }
 
     ImGui::TreePop();

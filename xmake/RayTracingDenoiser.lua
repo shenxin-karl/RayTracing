@@ -1,4 +1,5 @@
 package("RayTracingDenoiser")
+    set_policy("package.install_always", true)
     add_deps("cmake")
     set_sourcedir(path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser"))
 

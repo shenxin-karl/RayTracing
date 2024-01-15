@@ -21,6 +21,7 @@ void FrameResource::OnCreate(Device *pDevice, uint32_t numGraphicsCmdListPreFram
     _pDevice = pDevice;
     _pGraphicsCmdListPool = std::make_unique<CommandListPool>();
     _pGraphicsCmdListPool->OnCreate(pDevice, numGraphicsCmdListPreFrame + 1, D3D12_COMMAND_LIST_TYPE_DIRECT);
+    _barrierCommandListPool.OnCreate(pDevice);
 
 #if ENABLE_D3D_COMPUTE_QUEUE
     _pComputeCmdListPool = std::make_unique<CommandListPool>();
@@ -81,14 +82,10 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     using ResourceState = ResourceStateTracker::ResourceState;
     using ResourceStateMap = ResourceStateTracker::ResourceStateMap;
 
-    for (Context *pContext : contexts) {
-        pContext->FlushResourceBarriers();
-    }
-
     GlobalResourceState::Lock();
 
     std::vector<ID3D12CommandList *> graphicsCmdList;
-    std::unordered_set<ID3D12Resource *> hashSet;
+    std::vector<ID3D12CommandList *> computeCmdList;
     ResourceBarriers linkCommandListStateBarriers;
 
     for (int i = 0; i < static_cast<int>(contexts.Count()); ++i) {
@@ -106,7 +103,6 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
                     continue;
                 }
 
-                hashSet.insert(pResource);
                 D3D12_RESOURCE_STATES currentState = pResourceState->state;
                 pResourceState->state = barrier.Transition.StateAfter;
                 if (pResourceState->subResourceStateMap.empty() && currentState == D3D12_RESOURCE_STATE_COMMON &&
@@ -132,7 +128,6 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
             D3D12_RESOURCE_STATES currentState = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
             if (currentState != barrier.Transition.StateAfter) {
-                hashSet.insert(pResource);
                 barrier.Transition.StateBefore = currentState;
                 pResourceState->state = barrier.Transition.StateAfter;
                 linkCommandListStateBarriers.push_back(barrier);
@@ -150,24 +145,30 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
             continue;
         }
 
+        // The first command list, there is no command list to execute ResourceBarrier so we need to allocate one
         NativeCommandList *pCmdList = nullptr;
-        if (i == 0) {
-            pCmdList = _pGraphicsCmdListPool->AllocCommandList();
-            pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
+        if (i == 0) {                           
+            if (contexts[i]->GetContextType() == ContextType::eGraphics) {
+				pCmdList = _barrierCommandListPool.AllocGraphicsCommandList();
+				pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
+	            graphicsCmdList.push_back(pCmdList);
+	        } else {
+                #if ENABLE_D3D_COMPUTE_QUEUE
+					pCmdList = _barrierCommandListPool.AllocComputeCommandList();
+					computeCmdList.push_back(pCmdList);
+				#endif
+	        }
             ThrowIfFailed(pCmdList->Close());
-            graphicsCmdList.push_back(pCmdList);
         } else {
             pCmdList = contexts[i - 1]->GetCommandList();
             pCmdList->ResourceBarrier(linkCommandListStateBarriers.size(), linkCommandListStateBarriers.data());
+     
         }
     }
 
     for (Context *pContext : contexts) {
+        pContext->FlushResourceBarriers();
         ThrowIfFailed(pContext->GetCommandList()->Close());
-    }
-
-    std::vector<ID3D12CommandList *> computeCmdList;
-    for (Context *pContext : contexts) {
         if (pContext->GetContextType() == ContextType::eGraphics) {
             graphicsCmdList.push_back(pContext->GetCommandList());
         } else {
@@ -184,19 +185,6 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         _pDevice->GetComputeQueue()->ExecuteCommandLists(computeCmdList.size(), computeCmdList.data());
     }
 #endif
-
-    //for (ID3D12Resource *pResource : hashSet) {
-    //    ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
-    //    for (auto &subResourceState : pResourceState->subResourceStateMap | std::views::values) {
-    //        if (ResourceStateTracker::OptimizeResourceBarrierState(subResourceState)) {
-    //            subResourceState = D3D12_RESOURCE_STATE_COMMON;
-    //        }
-    //    }
-    //    if (ResourceStateTracker::OptimizeResourceBarrierState(pResourceState->state)) {
-    //        pResourceState->state = D3D12_RESOURCE_STATE_COMMON;
-    //    }
-    //}
-
     GlobalResourceState::UnLock();
 }
 
