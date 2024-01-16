@@ -58,7 +58,7 @@ void SoftShadow::OnDestroy() {
 }
 
 void SoftShadow::OnUpdate(GameTimer &timer) {
-	Renderer::OnUpdate(timer);
+    Renderer::OnUpdate(timer);
 }
 
 void SoftShadow::OnPreRender(GameTimer &timer) {
@@ -74,12 +74,30 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
 void SoftShadow::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
-    _pFrameResourceRing->OnBeginFrame();
     bool frameCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
     if (frameCapture) {
         FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);
     }
 
+    PrepareFrame();
+    RenderFrame();
+    GUI::Get().Render();
+    _pSwapChain->Present();
+
+    if (frameCapture) {
+        FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
+        FrameCapture::OpenCaptureInUI();
+    }
+}
+
+void SoftShadow::OnResize(uint32_t width, uint32_t height) {
+    Renderer::OnResize(width, height);
+    _pGBufferPass->OnResize(width, height);
+    _pRayTracingShadowPass->OnResize(width, height);
+    RecreateWindowSizeDependentResources();
+}
+
+void SoftShadow::PrepareFrame() {
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
@@ -137,8 +155,20 @@ void SoftShadow::OnRender(GameTimer &timer) {
     _pSkyBoxPass->Draw(skyBoxDrawArgs);
 
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pFrameResource.ExecuteContexts(pGfxCxt.get());
+}
+
+void SoftShadow::RenderFrame() {
+    _pFrameResourceRing->OnBeginFrame();
+    dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
+    std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
+
+    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
+    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
+    pGfxCxt->SetViewport(viewport);
+    pGfxCxt->SetScissor(scissor);
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {};
     postProcessPassDrawArgs.width = _width;
@@ -148,22 +178,6 @@ void SoftShadow::OnRender(GameTimer &timer) {
     _pPostProcessPass->Draw(postProcessPassDrawArgs);
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     pFrameResource.ExecuteContexts(pGfxCxt.get());
-
-    GUI::Get().Render();
-    _pSwapChain->Present();
-
-    if (frameCapture) {
-        FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
-        FrameCapture::OpenCaptureInUI();
-    }
-
-}
-
-void SoftShadow::OnResize(uint32_t width, uint32_t height) {
-    Renderer::OnResize(width, height);
-    _pGBufferPass->OnResize(width, height);
-    _pRayTracingShadowPass->OnResize(width, height);
-    RecreateWindowSizeDependentResources();
 }
 
 void SoftShadow::CreateRenderPass() {
@@ -284,14 +298,15 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
         _renderTargetSRV.GetCpuHandle());
 
     if (_renderTargetUAV.IsNull()) {
-	    _renderTargetUAV = _pDevice->AllocDescriptor<dx::UAV>(1);
+        _renderTargetUAV = _pDevice->AllocDescriptor<dx::UAV>(1);
     }
     D3D12_UNORDERED_ACCESS_VIEW_DESC renderTextureUav = {};
     renderTextureUav.Format = _renderTargetTex.GetFormat();
     renderTextureUav.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     renderTextureUav.Texture2D.MipSlice = 0;
     renderTextureUav.Texture2D.PlaneSlice = 0;
-    device->CreateUnorderedAccessView(_renderTargetTex.GetResource(), nullptr,
+    device->CreateUnorderedAccessView(_renderTargetTex.GetResource(),
+        nullptr,
         &renderTextureUav,
         _renderTargetUAV.GetCpuHandle());
 

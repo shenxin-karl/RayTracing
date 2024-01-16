@@ -1,4 +1,5 @@
 #include "GUI.h"
+#include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 #include "UserMarker.h"
@@ -38,21 +39,8 @@ void GUI::OnCreate() {
         _pSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
         _pSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != nullptr);
+    float fontScale = ImGui_ImplWin32_GetDpiScaleForHwnd(pGfxDevice->GetSwapChain()->GetHWND());
+    UpdateUIScaling(fontScale);
 }
 
 void GUI::OnDestroy() {
@@ -75,7 +63,28 @@ void GUI::OnDestroy() {
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool GUI::PollEvent(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    return ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) {
+        return true;
+    }
+
+    switch (msg) {
+    case WM_DPICHANGED: {
+        RECT *rect = reinterpret_cast<RECT *>(lParam);
+        IM_ASSERT(LOWORD(wParam) == HIWORD(wParam));
+        SetWindowPos(hwnd,
+            NULL,
+            rect->left,
+            rect->top,
+            rect->right - rect->left,
+            rect->bottom - rect->top,
+            SWP_NOZORDER);
+        UpdateUIScaling(static_cast<float>(LOWORD(wParam)) / static_cast<float>(USER_DEFAULT_SCREEN_DPI));
+        break;
+    }
+    default:
+        break;
+    }
+    return false;
 }
 
 void GUI::NewFrame() {
@@ -111,7 +120,7 @@ void GUI::Render() {
         Assert(pResourceState->state == D3D12_RESOURCE_STATE_PRESENT);
         Assert(pResourceState->subResourceStateMap.empty());
 
-	    D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
+        D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
             D3D12_RESOURCE_STATE_PRESENT,
             D3D12_RESOURCE_STATE_RENDER_TARGET);
         _pCommandList->ResourceBarrier(1, &barrier);
@@ -184,4 +193,53 @@ bool GUI::InitD3DObjects() {
     _pFence = std::make_unique<dx::Fence>();
     _pFence->OnCreate(pGfxDevice->GetDevice(), "GUI::Fence");
     return true;
+}
+
+void GUI::UpdateUIScaling(float scale) {
+    ImGuiIO &io = ImGui::GetIO();
+
+    ImGui_ImplDX12_InvalidateDeviceObjects();
+
+    // Setup Dear ImGui style
+    ImGuiStyle &style = ImGui::GetStyle();
+    ImGuiStyle styleold = style;    // Backup colors
+    style =
+        ImGuiStyle();    // IMPORTANT: ScaleAllSizes will change the original size, so we should reset all style config
+    style.WindowBorderSize = 1.0f;
+    style.ChildBorderSize = 1.0f;
+    style.PopupBorderSize = 1.0f;
+    style.FrameBorderSize = 1.0f;
+    style.TabBorderSize = 1.0f;
+    style.WindowRounding = 0.0f;
+    style.ChildRounding = 0.0f;
+    style.PopupRounding = 0.0f;
+    style.FrameRounding = 0.0f;
+    style.ScrollbarRounding = 0.0f;
+    style.GrabRounding = 0.0f;
+    style.TabRounding = 0.0f;
+    style.ScaleAllSizes(scale);
+    CopyMemory(style.Colors, styleold.Colors, sizeof(style.Colors));    // Restore colors
+
+    io.Fonts->Clear();
+
+    // Load Fonts
+    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+    // - Read 'docs/FONTS.md' for more instructions and details.
+    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+    //io.Fonts->AddFontDefault();
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
+    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+    //IM_ASSERT(font != NULL);
+    int pixSize = 14.0f * scale;
+    ImFont *font = io.Fonts->AddFontFromFileTTF("C:\\WINDOWS\\Fonts\\consola.ttf",
+        pixSize,
+        nullptr,
+        io.Fonts->GetGlyphRangesJapanese());
+    Assert(font != nullptr);
 }

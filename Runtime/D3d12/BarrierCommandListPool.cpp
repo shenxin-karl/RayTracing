@@ -39,7 +39,6 @@ void BarrierCommandListPool::OnDestroy() {
 void BarrierCommandListPool::OnBeginFrame() {
     ThrowIfFailed(_pGraphicsCommandAllocator->Reset());
     for (size_t i = 0; i < _currentGraphicsCommandListIndex; ++i) {
-        ThrowIfFailed(_graphicsCommandListPool[i]->Reset(_pGraphicsCommandAllocator.Get(), nullptr));
     }
     _currentGraphicsCommandListIndex = 0;
 
@@ -54,7 +53,8 @@ void BarrierCommandListPool::OnBeginFrame() {
 
 auto BarrierCommandListPool::AllocGraphicsCommandList() -> NativeCommandList * {
     ID3D12Device *device = _pDevice->GetNativeDevice();
-    if (_currentGraphicsCommandListIndex >= _graphicsCommandListPool.size()) {
+	size_t index = _currentGraphicsCommandListIndex++;
+    if (index >= _graphicsCommandListPool.size()) {
         WRL::ComPtr<NativeCommandList> pCmdList = nullptr;
         ThrowIfFailed(device->CreateCommandList(0,
             D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -63,8 +63,12 @@ auto BarrierCommandListPool::AllocGraphicsCommandList() -> NativeCommandList * {
             IID_PPV_ARGS(&pCmdList)));
         _graphicsCommandListPool.push_back(pCmdList);
         pCmdList->SetName(L"GraphicsBarrierCommandList");
+        return pCmdList.Get();
+    } else {
+	    ThrowIfFailed(_graphicsCommandListPool[index]->Reset(_pGraphicsCommandAllocator.Get(), nullptr));
+	    return _graphicsCommandListPool[index].Get();
     }
-    return _graphicsCommandListPool[_currentGraphicsCommandListIndex++].Get();
+
 }
 
 #if ENABLE_D3D_COMPUTE_QUEUE

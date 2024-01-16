@@ -23,6 +23,9 @@ public:
 	void OnRender(GameTimer &timer) override;
 	void OnResize(uint32_t width, uint32_t height) override;
 private:
+	void PrepareFrame();
+	void RenderFrame();
+
 	void CreateRenderPass();
 	void CreateScene();
 	void SetupCamera();

@@ -69,8 +69,8 @@ void GLTFSample::OnRender(GameTimer &timer) {
 
     PrepareFrame(timer);
 	RenderFrame(timer);
-	_pSwapChain->Present();
     GUI::Get().Render();
+	_pSwapChain->Present();
 
     if (frameCapture) {
 	    FrameCapture::EndFrameCapture(_pSwapChain->GetHWND(), _pDevice);
@@ -119,6 +119,11 @@ void GLTFSample::RenderFrame(GameTimer &timer) {
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
+
+    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
+    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
+    pGfxCxt->SetViewport(viewport);
+    pGfxCxt->SetScissor(scissor);
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {
         _width,

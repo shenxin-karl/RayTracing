@@ -23,6 +23,7 @@ private:
         UINT64 fenceValue = 0;
     };
     bool InitD3DObjects();
+    void UpdateUIScaling(float scale);
 private:
     // clang-format off
     ID3D12CommandQueue                           *_pGraphicsQueue = nullptr;

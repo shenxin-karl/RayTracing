@@ -80,6 +80,9 @@ void CameraController::OnPostUpdate() {
         }*/
     }
 
+    bool isShiftPress = pInputSystem->pKeyboard->IsKeyPressed(VK_SHIFT);
+    float acceleratedSpeed = isShiftPress ? 5.f : 1.f;
+
     _moveState[Forward] = pInputSystem->pKeyboard->IsKeyPressed('W');
     _moveState[backward] = pInputSystem->pKeyboard->IsKeyPressed('S');
     _moveState[Left] = pInputSystem->pKeyboard->IsKeyPressed('A');
@@ -108,7 +111,7 @@ void CameraController::OnPostUpdate() {
         glm::vec3 forward = {};
         glm::Quaternion2BasisAxis(rotation, right, up, forward);
 
-        float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed;
+        float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed * acceleratedSpeed;
         glm::vec3 offsetX = right * deviation;
         glm::vec3 offsetY = up * elevationRise;
         glm::vec3 offsetZ = forward * advance;
