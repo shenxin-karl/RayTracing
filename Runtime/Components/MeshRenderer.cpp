@@ -23,7 +23,6 @@ void MeshRenderer::SetMaterial(std::shared_ptr<Material> pMaterial) {
     _pMaterial = std::move(pMaterial);
 }
 
-
 void MeshRenderer::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
 #if ENABLE_RAY_TRACING
@@ -40,6 +39,12 @@ void MeshRenderer::OnAddToScene() {
     _pCurrentScene->GetRayTracingASManager()->AddMeshRenderer(this);
 #endif
     _instanceData.instanceID = GetInstanceID();
+}
+
+void MeshRenderer::OnAddToGameObject() {
+	Component::OnAddToGameObject();
+	_renderData.renderObject.pTransform = GetGameObject()->GetTransform();
+    _renderData.renderObject.cbPreObject.matWorld = glm::identity<glm::mat4x4>();
 }
 
 void MeshRenderer::OnPreRender() {
@@ -80,16 +85,26 @@ void MeshRenderer::CommitRenderObject() {
     if (_pMesh == nullptr || _pMaterial == nullptr) {
         return;
     }
-    if (_pMesh->GetSemanticMask() != _renderData.meshSemanticMask ||
-        _pMaterial.get() != _renderData.renderObject.pMaterial || _pMaterial->PipelineIDDirty()) {
+
+    Transform *pTransform = GetGameObject()->GetTransform();
+    bool updateRenderObject = _pMesh->GetSemanticMask() != _renderData.meshSemanticMask ||
+                              _pMaterial.get() != _renderData.renderObject.pMaterial || _pMaterial->PipelineIDDirty();
+
+    if (updateRenderObject) {
         _renderData.meshSemanticMask = _pMesh->GetSemanticMask();
         _renderData.shouldRender = _pMaterial->UpdatePipelineID(_renderData.meshSemanticMask);
         _renderData.renderObject.pMaterial = _pMaterial.get();
         _renderData.renderObject.pMesh = _pMesh.get();
-        _renderData.renderObject.pTransform = GetGameObject()->GetTransform();
-        _renderData.renderObject.cbPreObject.matPrevWorld = _renderData.renderObject.cbPreObject.matWorld;
-        _renderData.renderObject.cbPreObject = cbuffer::MakeCbPreObject(GetGameObject()->GetTransform());
     }
+
+	cbuffer::CbPreObject &cbPreObject = _renderData.renderObject.cbPreObject;
+    cbPreObject.matPrevWorld = cbPreObject.matWorld;
+    if (pTransform->ThisFrameChanged()) {
+        cbPreObject.matWorld = pTransform->GetWorldMatrix();
+        cbPreObject.matInvWorld = inverse(cbPreObject.matWorld);
+        cbPreObject.matNormal = glm::WorldMatrixToNormalMatrix(cbPreObject.matWorld);
+    }
+
     if (_renderData.shouldRender) {
         SceneRenderObjectManager *pRenderObjectMgr = _pCurrentScene->GetRenderObjectManager();
         pRenderObjectMgr->AddRenderObject(&_renderData.renderObject);

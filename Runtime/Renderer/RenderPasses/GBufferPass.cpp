@@ -68,7 +68,7 @@ void GBufferPass::OnResize(size_t width, size_t height) {
         DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_FORMAT_R11G11B10_FLOAT,
-        DXGI_FORMAT_R16G16_UNORM,
+        DXGI_FORMAT_R16G16_FLOAT,
         DXGI_FORMAT_R16_FLOAT,
     };
 
@@ -77,6 +77,7 @@ void GBufferPass::OnResize(size_t width, size_t height) {
 
     for (size_t i = 0; i < 5; ++i) {
 	    D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(gBufferFormats[i], width, height);
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		clearValue.Format = desc.Format;
         _gBufferTextures[i] = std::make_unique<dx::Texture>();
         _gBufferTextures[i]->OnCreate(pDevice->GetDevice(), desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
@@ -93,12 +94,6 @@ auto GBufferPass::GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HAND
 
 void GBufferPass::PreDraw(const DrawArgs &args) {
 	UserMarker marker(args.pGfxCtx, "GBufferPreDrawPass");
-
-    auto TranslationAndClearRT = [&](ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE rtv, glm::vec4 color) {
-        args.pGfxCtx->Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        args.pGfxCtx->ClearRenderTargetView(rtv, color);
-    };
-
     for (size_t i = 0; i < _gBufferTextures.size(); ++i) {
 	    args.pGfxCtx->Transition(_gBufferTextures[i]->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         args.pGfxCtx->ClearRenderTargetView(_gBufferRTV[i], Colors::Black);
@@ -139,7 +134,7 @@ void GBufferPass::PostDraw(const DrawArgs &args) {
     for (TexturePtr &texture : _gBufferTextures) {
 		args.pGfxCtx->Transition(texture->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     }
-    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    args.pGfxCtx->Transition(args.pDepthBufferResource, D3D12_RESOURCE_STATE_DEPTH_READ);
     
 }
 

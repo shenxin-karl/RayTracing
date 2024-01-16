@@ -54,6 +54,11 @@ void ResourceStateTracker::ResourceBarrier(D3D12_RESOURCE_BARRIER barrier) {
 				}
 			}
         } else {
+			// The state is the same, and you can do it without transitions
+			if (resourceState.GetSubResourceState(barrier.Transition.Subresource) == barrier.Transition.StateAfter) {
+				return;
+			}
+
 	        auto lastResourceState = resourceState.GetSubResourceState(subResource);
             barrier.Transition.StateBefore = lastResourceState;
 			_resourceBarriers.push_back(barrier);

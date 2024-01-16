@@ -69,7 +69,8 @@ struct VertexOut {
         float4 color        : COLOR;
     #endif
 	#if GENERATE_MOTION_VECTOR
-		float2 motionVector : MOTION_VECTOR;
+		float4 currentClipPos   : MOTION_VECTOR0;
+		float4 previousClipPos  : MOTION_VECTOR1;
 	#endif
 };
 
@@ -83,7 +84,8 @@ Texture2D<float4>               gTextureList[]          : register(t0);
 
 VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
-    float4 worldPosition = mul(gCbPreObject.gMatWorld, float4(vin.position, 1.0));
+    float4 localPosition = float4(vin.position, 1.0);
+    float4 worldPosition = mul(gCbPreObject.gMatWorld, localPosition);
     vout.SVPosition = mul(gCbPrePass.matViewProj, worldPosition);
     vout.position = worldPosition.xyz;
     vout.normal = mul((float3x3)gCbPreObject.gMatNormal, vin.normal);
@@ -97,7 +99,10 @@ VertexOut VSMain(VertexIn vin) {
     #if ENABLE_VERTEX_UV
         vout.uv0 = vin.uv0 * gCbMaterial.tilingAndOffset.xy + gCbMaterial.tilingAndOffset.zw;
     #endif
-    // todo
+    #if GENERATE_MOTION_VECTOR
+		vout.currentClipPos = mul(gCbPrePass.matViewProj, worldPosition);
+		vout.previousClipPos = mul(gCbPrePass.matPrevViewProj, mul(gCbPreObject.gPrevMatWorld, localPosition));
+	#endif
     return vout;
 }
 
@@ -165,6 +170,17 @@ float3 GetEmission(VertexOut pin) {
     return emission;
 }
 
+float2 GetScreenUV(float4 clipPos) {
+	return (clipPos.xy / clipPos.w) * float2(+0.5, -0.5) + 0.5;
+}
+
+float2 CalcMotionVector(float4 currentClipPos, float4 previousClipPos) {
+	float2 prevSampleUV = GetScreenUV(previousClipPos);
+    float2 currSampleUV = GetScreenUV(currentClipPos);
+    float motionVector = (prevSampleUV - currSampleUV) * gCbPrePass.renderTargetSize;
+    return motionVector;
+}
+
 float4 ForwardPSMain(VertexOut pin) : SV_TARGET {
     float2 metallicAndRoughness = GetMetallicAndRoughness(pin);
     float metallic = metallicAndRoughness.r;
@@ -200,7 +216,7 @@ GBufferOut GBufferPSMain(VertexOut pin) {
 	pout.gBuffer1 = NRD_FrontEnd_PackNormalAndRoughness(N, metallicAndRoughness.y, 0);
     pout.gBuffer2.rgb = emission;
     #if GENERATE_MOTION_VECTOR
-		pout.gBuffer3 = pin.motionVector;;
+		pout.gBuffer3 = CalcMotionVector(pin.currentClipPos, pin.previousClipPos);
 	#endif
     pout.gBuffer4 = ViewSpaceDepth(pin.SVPosition.z, gCbPrePass.zBufferParams);
     return pout;

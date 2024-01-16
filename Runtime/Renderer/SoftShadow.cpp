@@ -117,33 +117,40 @@ void SoftShadow::PrepareFrame() {
     _pGBufferPass->PostDraw(gbufferDrawArgs);
 
     // shadow map
-    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
-    RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
-    shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
-    shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
-    shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
-    shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
-    shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
-    shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
-    _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
+    //SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
+    //RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
+    //shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
+    //shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
+    //shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
+    //shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
+    //shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
+    //shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
+    //_pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
 
-    // deferred lighting pass
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
-    deferredLightingPassDrawArgs.width = _width;
-    deferredLightingPassDrawArgs.height = _height;
-    deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePass;
-    deferredLightingPassDrawArgs.cbLightingAddress = cbLighting;
-    deferredLightingPassDrawArgs.gBufferSRV[0] = _pGBufferPass->GetGBufferSRV(0);
-    deferredLightingPassDrawArgs.gBufferSRV[1] = _pGBufferPass->GetGBufferSRV(1);
-    deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
-    deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
-    deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
-    deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
-    deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
-    _pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
+    //// deferred lighting pass
+    //pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    //DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
+    //deferredLightingPassDrawArgs.width = _width;
+    //deferredLightingPassDrawArgs.height = _height;
+    //deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePass;
+    //deferredLightingPassDrawArgs.cbLightingAddress = cbLighting;
+    //deferredLightingPassDrawArgs.gBufferSRV[0] = _pGBufferPass->GetGBufferSRV(0);
+    //deferredLightingPassDrawArgs.gBufferSRV[1] = _pGBufferPass->GetGBufferSRV(1);
+    //deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
+    //deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
+    //deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
+    //deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
+    //deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
+    //_pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
+
+    // todo, debug flush
+    pGfxCxt->FlushResourceBarriers();
+
 
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    pGfxCxt->ClearRenderTargetView(_renderTargetRTV.GetCpuHandle(), Colors::Black);
+
+
     pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
 

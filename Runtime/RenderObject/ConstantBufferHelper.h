@@ -80,11 +80,9 @@ struct CbLighting {
 
 // clang-format on
 
-auto MakeCbPreObject(const Transform *pTransform) -> CbPreObject;
 auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass;
 auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting;
 
-D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform);
 D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO);
 
 }    // namespace cbuffer

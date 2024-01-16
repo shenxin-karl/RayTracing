@@ -10,15 +10,6 @@
 
 namespace cbuffer {
 
-auto MakeCbPreObject(const Transform *pTransform) -> CbPreObject {
-    CbPreObject cbuffer;
-    cbuffer.matWorld = pTransform->GetWorldMatrix();
-    cbuffer.matInvWorld = inverse(cbuffer.matWorld);
-    cbuffer.matNormal = glm::WorldMatrixToNormalMatrix(cbuffer.matWorld);
-    //cbuffer.matInvNormal = ;
-    return cbuffer;
-}
-
 auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
     if (pCameraGO->GetComponent<Camera>() == nullptr) {
         Exception::Throw("the pCameraGo not Camera Component!");
@@ -89,11 +80,6 @@ auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting {
     cbuffer.ambientLight.color = renderSetting.GetAmbientColor();
     cbuffer.ambientLight.intensity = renderSetting.GetAmbientIntensity();
     return cbuffer;
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS AllocPreObjectCBuffer(dx::Context *pContext, const Transform *pTransform) {
-	CbPreObject cbuffer = MakeCbPreObject(pTransform);
-    return pContext->AllocConstantBuffer(cbuffer);
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO) {

@@ -26,6 +26,7 @@ public:
 public:
     void OnRemoveFormScene() override;
     void OnAddToScene() override;
+    void OnAddToGameObject() override;
     void OnPreRender() override;
     // Check if the ray tracing acceleration structure validity
     bool CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder);
