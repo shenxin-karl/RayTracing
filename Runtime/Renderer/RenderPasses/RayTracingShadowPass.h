@@ -33,6 +33,7 @@ public:
         ReadonlyArraySpan<RayTracingGeometry> geometries;
         D3D12_CPU_DESCRIPTOR_HANDLE depthTexSRV;
         glm::vec3 lightDirection;
+        glm::vec4 zBufferParams;
         glm::mat4x4 matInvViewProj;
         dx::ComputeContext *pComputeContext;
     };
@@ -40,6 +41,7 @@ public:
     auto GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     void OnResize(size_t width, size_t height);
 private:
+    void CreatePipelineState();
     void BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometry> geometries,
         dx::ComputeContext *pComputeContext,
         dx::DispatchRaysDesc &dispatchRaysDesc) const;
@@ -48,7 +50,11 @@ private:
     // clang-format off
 	dx::SRV							   _shadowMaskSRV;
 	dx::UAV							   _shadowMaskUAV;
-	std::unique_ptr<dx::Texture>	   _pShadowMaskTex;
+    std::unique_ptr<dx::Texture>       _pShadowMaskTex;
+
+	std::unique_ptr<dx::Texture>	   _pShadowDataTex;
+    dx::UAV                            _shadowDataUAV;
+
 	std::shared_ptr<dx::RootSignature> _pGlobalRootSignature;
 	std::shared_ptr<dx::RootSignature> _pAlphaTestLocalRootSignature;
 	dx::WRL::ComPtr<ID3D12StateObject> _pRayTracingPSO;

@@ -12,6 +12,12 @@ Texture::Texture(const std::source_location &sl) : _pResource(nullptr), _texture
     _name = fmt::format("{}:{}", sl.function_name(), sl.line());
 }
 
+Texture::Texture(std::string_view name): _textureDesc() {
+	_pDevice = nullptr;
+	_pAllocation = nullptr;
+	_name = name;
+}
+
 Texture::~Texture() {
     OnDestroy();
 }

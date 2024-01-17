@@ -117,15 +117,16 @@ void SoftShadow::PrepareFrame() {
     _pGBufferPass->PostDraw(gbufferDrawArgs);
 
     // shadow map
-    //SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
-    //RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
-    //shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
-    //shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
-    //shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
-    //shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
-    //shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
-    //shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
-    //_pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
+    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
+    RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
+    shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
+    shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
+    shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
+    shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
+    shadowPassDrawArgs.zBufferParams = _cbPrePass.zBufferParams;
+    shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
+    shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
+    _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
 
     //// deferred lighting pass
     //pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

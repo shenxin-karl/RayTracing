@@ -19,18 +19,20 @@
 #include "Renderer/RenderUtils/ImguiHelper.h"
 
 static const wchar_t *sShadowRayGenShaderName = L"ShadowRaygenShader";
-
-static const wchar_t *sOpaqueHitGroupName = L"ShadowOpaqueHitGroup1";
-static const wchar_t *sOpaqueAnyHitShaderName = L"ShadowOpaqueAnyHitShader";
-
-static const wchar_t *sAlphaTestHitGroupName = L"ShadowAlphaTestHitGroup2";
-static const wchar_t *sAlphaTestAnyHitShaderName = L"ShadowAlphaTestAnyHitShader";
 static const wchar_t *sShadowMissShaderName = L"ShadowMissShader";
+
+static const wchar_t *sOpaqueHitGroupName = L"ShadowOpaqueHitGroup";
+static const wchar_t *sOpaqueClosestHitShaderName = L"ShadowOpaqueAnyHitShader";
+
+static const wchar_t *sAlphaTestHitGroupName = L"ShadowAlphaTestHitGroup";
+static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestAnyHitShader";
 
 void RayTracingShadowPass::OnCreate() {
     RenderPass::OnCreate();
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    _pShadowMaskTex = std::make_unique<dx::Texture>();
+    _pShadowMaskTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowMaskTex");
+    _pShadowDataTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowDataTex");
+
     _pGlobalRootSignature = std::make_unique<dx::RootSignature>();
     _pGlobalRootSignature->OnCreate(3, 6);
     _pGlobalRootSignature->At(eScene).InitAsBufferSRV(0);
@@ -58,55 +60,7 @@ void RayTracingShadowPass::OnCreate() {
     };
     _pAlphaTestLocalRootSignature->At(eAlbedoTextureList).InitAsDescriptorTable({range});
     _pAlphaTestLocalRootSignature->Generate(pGfxDevice->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
-
-    ShaderLoadInfo shaderLoadInfo = {};
-    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/RayTracingShadow.hlsl");
-    shaderLoadInfo.shaderType = dx::ShaderType::eLib;
-
-    D3D12_SHADER_BYTECODE byteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
-    Assert(byteCode.pShaderBytecode != nullptr);
-
-    CD3DX12_STATE_OBJECT_DESC rayTracingPipeline{D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE};
-    CD3DX12_DXIL_LIBRARY_SUBOBJECT *pLib = rayTracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-    pLib->SetDXILLibrary(&byteCode);
-    pLib->DefineExport(sShadowRayGenShaderName);
-    pLib->DefineExport(sOpaqueAnyHitShaderName);
-    pLib->DefineExport(sAlphaTestAnyHitShaderName);
-    pLib->DefineExport(sShadowMissShaderName);
-
-    CD3DX12_HIT_GROUP_SUBOBJECT *pOpaqueHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    pOpaqueHitGroup->SetHitGroupExport(sOpaqueHitGroupName);
-    pOpaqueHitGroup->SetAnyHitShaderImport(sOpaqueAnyHitShaderName);
-    pOpaqueHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
-
-    CD3DX12_HIT_GROUP_SUBOBJECT *pAlphaTestHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    pAlphaTestHitGroup->SetHitGroupExport(sAlphaTestHitGroupName);
-    pAlphaTestHitGroup->SetAnyHitShaderImport(sAlphaTestAnyHitShaderName);
-    pAlphaTestHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
-
-    auto *pShaderConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-    size_t payloadSize = sizeof(float);    // float
-    size_t attributeSize = 2 * sizeof(float);
-    pShaderConfig->Config(payloadSize, attributeSize);
-
-    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
-    *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pLocalRootSignature->SetRootSignature(_pAlphaTestLocalRootSignature->GetRootSignature());
-    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
-        CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-    rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
-    rootSignatureAssociation->AddExport(sAlphaTestHitGroupName);
-
-    auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pGlobalRootSignature->SetRootSignature(_pGlobalRootSignature->GetRootSignature());
-
-    auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-    pPipelineConfig->Config(1);
-
-    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
-#if ENABLE_RAY_TRACING
-    dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
-#endif
+    CreatePipelineState();
 
     _buildRenderSettingUiHandle = GlobalCallbacks::Get().OnBuildRenderSettingGUI.Register(this,
         &RayTracingShadowPass::BuildRenderSettingUI);
@@ -114,7 +68,8 @@ void RayTracingShadowPass::OnCreate() {
 
 void RayTracingShadowPass::OnDestroy() {
     RenderPass::OnDestroy();
-    _pShadowMaskTex = nullptr;
+    _pShadowDataTex = nullptr;
+    _pShadowDataTex = nullptr;
     _pGlobalRootSignature = nullptr;
     _pAlphaTestLocalRootSignature = nullptr;
     _pRayTracingPSO = nullptr;
@@ -128,41 +83,48 @@ void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
     pComputeContext->SetRayTracingPipelineState(_pRayTracingPSO.Get());
     pComputeContext->SetComputeRootShaderResourceView(eScene, args.sceneTopLevelAS);
 
+    // clang-format off
     struct RayGenCB {
         glm::mat4x4 matInvViewProj;
-        glm::vec3 lightDirection;
-        float maxCosineTheta;
-        uint enableSoftShadow;
-        uint frameCount;
-        float maxT;
-        float minT;
+        glm::vec3   lightDirection;
+        uint        enableSoftShadow;
+        glm::vec4   zBufferParams;
+		float       cosSunAngularRadius;
+		float       tanSunAngularRadius;
+        uint        frameCount;
+        float       maxT;
+        float       minT;
+		uint        maxRecursiveDepth;
     };
+    // clang-format on
 
-    float cosineTheta = RenderSetting::Get().GetShadowRayMaxCosineTheta();
+    float angularDiameter = RenderSetting::Get().GetShadowSunAngularDiameter();
     RayGenCB rayGenCb;
     rayGenCb.matInvViewProj = args.matInvViewProj;
     rayGenCb.lightDirection = args.lightDirection;
-    rayGenCb.maxCosineTheta = std::cos(glm::radians(cosineTheta));
-    rayGenCb.enableSoftShadow = cosineTheta != 0.f;
+    rayGenCb.enableSoftShadow = angularDiameter != 0.f;
+    rayGenCb.zBufferParams = args.zBufferParams;
+    rayGenCb.cosSunAngularRadius = std::cos(glm::radians(angularDiameter * 0.5f));
+    rayGenCb.tanSunAngularRadius = std::tan(glm::radians(angularDiameter * 0.5f));
     rayGenCb.frameCount = GameTimer::Get().GetFrameCount();
     rayGenCb.maxT = RenderSetting::Get().GetShadowRayTMax();
     rayGenCb.minT = RenderSetting::Get().GetShadowRayTMin();
+    rayGenCb.maxRecursiveDepth = RenderSetting::Get().GetShadowRayTraceMaxRecursiveDepth();
     pComputeContext->SetComputeRootDynamicConstantBuffer(eRayGenCb, rayGenCb);
 
     D3D12_CPU_DESCRIPTOR_HANDLE table0[2];
     table0[eDepthTex] = args.depthTexSRV;
-    table0[eOutputTex] = _shadowMaskUAV.GetCpuHandle();
+    table0[eOutputTex] = _shadowDataUAV.GetCpuHandle();
     pComputeContext->SetDynamicViews(eTable0, table0);
-
-    pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     dx::DispatchRaysDesc dispatchRaysDesc = {};
     BuildShaderRecode(args.geometries, pComputeContext, dispatchRaysDesc);
-    dispatchRaysDesc.width = _pShadowMaskTex->GetWidth();
-    dispatchRaysDesc.height = _pShadowMaskTex->GetHeight();
+    dispatchRaysDesc.width = _pShadowDataTex->GetWidth();
+    dispatchRaysDesc.height = _pShadowDataTex->GetHeight();
     dispatchRaysDesc.depth = 1;
     pComputeContext->DispatchRays(dispatchRaysDesc);
-    pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 }
 
 auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE {
@@ -195,13 +157,68 @@ void RayTracingShadowPass::OnResize(size_t width, size_t height) {
     if (_shadowMaskUAV.IsNull()) {
         _shadowMaskUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
     }
+    device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uav{};
-    uav.Format = _pShadowMaskTex->GetFormat();
-    uav.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    uav.Texture2D.MipSlice = 0;
-    uav.Texture2D.PlaneSlice = 0;
-    device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, &uav, _shadowMaskUAV.GetCpuHandle());
+    _pShadowDataTex->OnDestroy();
+    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, width, height);
+    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+    if (_shadowDataUAV.IsNull()) {
+        _shadowDataUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
+    }
+    device->CreateUnorderedAccessView(_pShadowDataTex->GetResource(), nullptr, nullptr, _shadowDataUAV.GetCpuHandle());
+}
+
+void RayTracingShadowPass::CreatePipelineState() {
+    ShaderLoadInfo shaderLoadInfo = {};
+    shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/RayTracingShadow.hlsl");
+    shaderLoadInfo.shaderType = dx::ShaderType::eLib;
+
+    D3D12_SHADER_BYTECODE byteCode = ShaderManager::GetInstance()->LoadShaderByteCode(shaderLoadInfo);
+    Assert(byteCode.pShaderBytecode != nullptr);
+
+    CD3DX12_STATE_OBJECT_DESC rayTracingPipeline{D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE};
+    CD3DX12_DXIL_LIBRARY_SUBOBJECT *pLib = rayTracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+    pLib->SetDXILLibrary(&byteCode);
+    pLib->DefineExport(sShadowRayGenShaderName);
+    pLib->DefineExport(sOpaqueClosestHitShaderName);
+    pLib->DefineExport(sAlphaClosestHitShader);
+    pLib->DefineExport(sShadowMissShaderName);
+
+    CD3DX12_HIT_GROUP_SUBOBJECT *pOpaqueHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    pOpaqueHitGroup->SetHitGroupExport(sOpaqueHitGroupName);
+    pOpaqueHitGroup->SetClosestHitShaderImport(sOpaqueClosestHitShaderName);
+    pOpaqueHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    CD3DX12_HIT_GROUP_SUBOBJECT *pAlphaTestHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    pAlphaTestHitGroup->SetHitGroupExport(sAlphaTestHitGroupName);
+    pAlphaTestHitGroup->SetClosestHitShaderImport(sAlphaClosestHitShader);
+    pAlphaTestHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    auto *pShaderConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+    size_t payloadSize = sizeof(float) + sizeof(uint);
+    size_t attributeSize = 2 * sizeof(float);
+    pShaderConfig->Config(payloadSize, attributeSize);
+
+    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
+    *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    pLocalRootSignature->SetRootSignature(_pAlphaTestLocalRootSignature->GetRootSignature());
+    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
+        CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
+    rootSignatureAssociation->AddExport(sAlphaTestHitGroupName);
+
+    auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    pGlobalRootSignature->SetRootSignature(_pGlobalRootSignature->GetRootSignature());
+
+    auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    pPipelineConfig->Config(RenderSetting::Get().GetShadowRayTraceMaxRecursiveDepth());
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
+#if ENABLE_RAY_TRACING
+    dx::ThrowIfFailed(device->CreateStateObject(rayTracingPipeline, IID_PPV_ARGS(&_pRayTracingPSO)));
+#endif
 }
 
 void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometry> geometries,
@@ -284,22 +301,29 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
 
 void RayTracingShadowPass::BuildRenderSettingUI() {
     if (!ImGui::TreeNode("RayTracingShadowPass")) {
-	    return;
+        return;
     }
     RenderSetting &renderSetting = RenderSetting::Get();
     float tMin = renderSetting.GetShadowRayTMin();
     if (ImGui::DragFloat("RayTMin", &tMin, 0.1f, 0.f, 1.f)) {
-	    renderSetting.SetShadowRayTMin(tMin);
+        renderSetting.SetShadowRayTMin(tMin);
     }
 
     float tMax = renderSetting.GetShadowRayTMax();
     if (ImGui::InputFloat("RayTMax", &tMax)) {
-	    renderSetting.SetShadowRayTMax(tMax);
+        renderSetting.SetShadowRayTMax(tMax);
     }
 
-    float maxCosineTheta = renderSetting.GetShadowRayMaxCosineTheta();
-    if (ImGui::DragFloat("maxCosineTheta(degrees)", &maxCosineTheta, 0.1f, 0.f, 50.f)) {
-        renderSetting.SetShadowRayMaxCosineTheta(maxCosineTheta);
+    float angularDiameter = renderSetting.GetShadowSunAngularDiameter();
+    if (ImGui::DragFloat("SunAngularDiameter(degrees)", &angularDiameter, 0.1f, 0.f, 10.f)) {
+        renderSetting.SetShadowSunAngularDiameter(angularDiameter);
+    }
+
+    int recursiveDepth = renderSetting.GetShadowRayTraceMaxRecursiveDepth();
+    if (ImGui::SliderInt("RayTraceMaxRecursiveDepth", &recursiveDepth, 1, 5)) {
+        renderSetting.SetShadowRayTraceMaxRecursiveDepth(recursiveDepth);
+        _pRayTracingPSO = nullptr;
+        CreatePipelineState();
     }
 
     ImGui::TreePop();

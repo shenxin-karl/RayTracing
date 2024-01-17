@@ -1,14 +1,20 @@
 #include "DepthUtil.hlsli"
 #include "RayTracingUtils.hlsli"
 
+#include "NRDEncoding.hlsli"
+#include "NRD.hlsli"
+
 struct RayGenCB {
     float4x4    matInvViewProj;
     float3      lightDirection;
-	float       maxCosineTheta;
     uint        enableSoftShadow;
+    float4      zBufferParams;
+    float       cosSunAngularRadius;
+    float       tanSunAngularRadius;
 	uint        frameCount;     // Frame counter, used to perturb random seed each frame
     float       maxT;           // Max distance to start a ray to avoid self-occlusion
 	float       minT;           // Min distance to start a ray to avoid self-occlusion
+    uint        maxRecursiveDepth;
 };
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
@@ -17,20 +23,13 @@ typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 RaytracingAccelerationStructure     gScene                  : register(t0);
 Texture2D<float>                    gDepthTex               : register(t1);
 ConstantBuffer<RayGenCB>            gRayGenCB               : register(b0);
-RWTexture2D<float>                  gOutputTexture          : register(u0);
+RWTexture2D<float2>                 gShadowDataTex          : register(u0);
 SamplerState                        gStaticSamplerState[]   : register(s0);
 
-// local root signature paramaters
-// alpha test usage only
-
-struct CBMaterialIndex {
-    uint index;
-};
-
 struct ShadowRayPayload {
-	float visFactor;  // Will be 1.0 for fully lit, 0.0 for fully shadowed
+    float occlusionDistance;
+    uint  depth;
 };
-
 
 // Generates a seed for a random number generator from 2 inputs plus a backoff
 uint InitRand(uint val0, uint val1, uint backoff = 16) {
@@ -74,8 +73,21 @@ float3 GetConeSample(inout uint randSeed, float3 hitNorm, float cosThetaMax) {
 	return tangent * (r * cos(phi)) + bitangent * (r * sin(phi)) + hitNorm.xyz * cosTheta;
 }
 
+void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
+	TraceRay(gScene, 
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_SKIP_TRIANGLES | RAY_FLAG_CULL_NON_OPAQUE,
+        ~0,
+        0,          // RayContributionToHitGroupIndex
+        1,          // MultiplierForGeometryContributionToShaderIndex
+        0,          // MissShaderIndex
+        rayDesc,
+        payload
+    );
+}
 
-RayDesc GenerateRay() {
+[shader("raygeneration")]
+void ShadowRaygenShader() {
+    ShadowRayPayload payload = { NRD_FP16_MAX, 0 };
     uint2 index = DispatchRaysIndex().xy;
     float2 uv = (index + 0.5f) / DispatchRaysDimensions().xy;
     SamplerState linearClamp = gStaticSamplerState[3];
@@ -84,7 +96,7 @@ RayDesc GenerateRay() {
     float3 direction = gRayGenCB.lightDirection;
     if (gRayGenCB.enableSoftShadow != 0) {
 	    uint seed = InitRand(index.x + index.y * DispatchRaysDimensions().x, gRayGenCB.frameCount);
-	    direction = GetConeSample(seed, gRayGenCB.lightDirection, gRayGenCB.maxCosineTheta);
+	    direction = GetConeSample(seed, gRayGenCB.lightDirection, gRayGenCB.cosSunAngularRadius);
     }
 
     RayDesc rayDesc;
@@ -92,24 +104,10 @@ RayDesc GenerateRay() {
     rayDesc.Direction = direction;
     rayDesc.TMin = gRayGenCB.minT;
     rayDesc.TMax = gRayGenCB.maxT;
-    return rayDesc;
-}
 
-[shader("raygeneration")]
-void ShadowRaygenShader() {
-    ShadowRayPayload payload = { 1.f };
-    RayDesc rayDesc = GenerateRay();
-
-    TraceRay(gScene, 
-        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_NON_OPAQUE ,
-        ~0,
-        0,          // RayContributionToHitGroupIndex
-        1,          // MultiplierForGeometryContributionToShaderIndex
-        0,          // MissShaderIndex
-        rayDesc,
-        payload
-    );
-    gOutputTexture[DispatchRaysIndex().xy] = payload.visFactor;
+    RayCast(rayDesc, payload);
+    float viewSpaceDepth = ViewSpaceDepth(zNdc, gRayGenCB.zBufferParams);
+    gShadowDataTex[index] = SIGMA_FrontEnd_PackShadow(viewSpaceDepth, payload.occlusionDistance, gRayGenCB.tanSunAngularRadius);
 }
 
 struct ShadowMaterial {
@@ -122,17 +120,49 @@ struct ShadowMaterial {
     uint    skipGeometry;
 };
 
+[shader("miss")]
+void ShadowMissShader(inout ShadowRayPayload payload) {
+    payload.occlusionDistance = NRD_FP16_MAX;
+}
+
+[shader("closesthit")]
+void ShadowOpaqueClosestHitShader(inout ShadowRayPayload payload, in MyAttributes attr) {
+    payload.occlusionDistance = RayTCurrent();
+}
+
+void AlphaTestRayCast(float rayCurrentDistance, float rayOrigin, float3 rayDirection, inout ShadowRayPayload payload) {
+	if (payload.depth >= gRayGenCB.maxRecursiveDepth) {
+		payload.occlusionDistance = NRD_FP16_MAX;
+        return;
+	} 
+
+    payload.depth += 1;
+    RayDesc rayDesc;
+    rayDesc.Origin = rayOrigin;
+    rayDesc.Direction = rayDirection;
+    rayDesc.TMin = gRayGenCB.minT;
+    rayDesc.TMax = gRayGenCB.maxT - rayCurrentDistance;
+    RayCast(rayDesc,  payload);
+}
+
+// local root signature paramaters
+// alpha test usage only
+
+struct CBMaterialIndex {
+    uint index;
+};
+
 ConstantBuffer<CBMaterialIndex>     lMaterialIndex          : register(b0, space1);
 ByteAddressBuffer                   lVertexBuffer           : register(t0, space1);
 ByteAddressBuffer                   lIndexBuffer            : register(t1, space1);
 StructuredBuffer<ShadowMaterial>    lAllInstanceMaterial    : register(t2, space1);
 Texture2D<float4>                   lAlbedoTextureList[]    : register(t3, space1);
-
-[shader("anyhit")]
-void ShadowAlphaTestAnyHitShader(inout ShadowRayPayload payload, in MyAttributes attr) {
-    ShadowMaterial mat = lAllInstanceMaterial[lMaterialIndex.index];
+[shader("closesthit")]
+void ShadowAlphaTestClosestHitShader(inout ShadowRayPayload payload, in MyAttributes attr) {
+	ShadowMaterial mat = lAllInstanceMaterial[lMaterialIndex.index];
     if (mat.skipGeometry != 0) {
-        IgnoreHit();
+        AlphaTestRayCast(RayTCurrent(), WorldRayOrigin(), WorldRayDirection(), payload);
+        return;
     }
 
     // primitiveIndex * triangleSize * sizeof(uint16);
@@ -149,18 +179,9 @@ void ShadowAlphaTestAnyHitShader(inout ShadowRayPayload payload, in MyAttributes
     Texture2D<float4> albedoTexture = lAlbedoTextureList[mat.albedoTextureIndex];
     alpha *= albedoTexture.SampleLevel(samplerState, uv, 0).a;
     if (alpha > mat.cutoff) {     
-        payload.visFactor = 0.f;
-        AcceptHitAndEndSearch();
+		payload.occlusionDistance = RayTCurrent();
+        return;
     }
-}
 
-[shader("anyhit")]
-void ShadowOpaqueAnyHitShader(inout ShadowRayPayload payload, in MyAttributes attr) {
-    payload.visFactor = 0.f;
-    AcceptHitAndEndSearch();
-}
-
-[shader("miss")]
-void ShadowMissShader(inout ShadowRayPayload payload) {
-    payload.visFactor = 1.0;
+    AlphaTestRayCast(RayTCurrent(), WorldRayOrigin(), WorldRayDirection(), payload);
 }

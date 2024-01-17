@@ -28,16 +28,18 @@ public:
     auto GetToneMapperType() const -> ToneMapperType;
     void SetExposure(float exposure);
     auto GetExposure() const -> float;
+    void SetGamma(float gamma);
+    auto GetGamma() -> float;
     void SetReversedZ(bool enable);
     bool GetReversedZ() const;
     void SetShadowRayTMin(float shadowRayTMin);
     auto GetShadowRayTMin() const -> float;
     void SetShadowRayTMax(float shadowRayTMax);
     auto GetShadowRayTMax() const -> float;
-    void SetShadowRayMaxCosineTheta(float rayMaxCosineTheta);
-    auto GetShadowRayMaxCosineTheta() const -> float;
-    void SetGamma(float gamma);
-    auto GetGamma() -> float;
+    void SetShadowSunAngularDiameter(float angularDiameter);
+    auto GetShadowSunAngularDiameter() const -> float;
+    void SetShadowRayTraceMaxRecursiveDepth(uint32_t depth);
+    auto GetShadowRayTraceMaxRecursiveDepth() const -> uint32_t;
 public:
     auto GetDepthClearValue() const -> float {
         return _reversedZ ? 0.f : 1.f;
@@ -45,8 +47,6 @@ public:
     auto GetDepthFunc() const -> D3D12_COMPARISON_FUNC {
         return _reversedZ ? D3D12_COMPARISON_FUNC_GREATER : D3D12_COMPARISON_FUNC_LESS;
     }
-
-
 private:
     // clang-format off
 	glm::vec3			_ambientColor;
@@ -57,6 +57,7 @@ private:
 	bool				_reversedZ;
     float               _shadowRayTMin;
     float               _shadowRayTMax;
-    float               _shadowRayMaxCosineTheta;
+    float               _shadowSunAngularDiameter;
+    uint32_t            _shadowRayTraceMaxRecursiveDepth;
     // clang-format on
 };

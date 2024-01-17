@@ -19,7 +19,7 @@ RenderSetting::RenderSetting() {
 	_reversedZ = true;
 	_shadowRayTMin = 0.1f;
 	_shadowRayTMax = 10000.f;
-	_shadowRayMaxCosineTheta = 0.95f;
+	_shadowSunAngularDiameter = 0.95f;
 }
 
 void RenderSetting::OnUpdate() {
@@ -65,6 +65,13 @@ auto RenderSetting::GetExposure() const -> float {
 	return _exposure;
 }
 
+void RenderSetting::SetGamma(float gamma) {
+	_gamma = gamma;
+}
+
+auto RenderSetting::GetGamma() -> float {
+	return _gamma;
+}
 void RenderSetting::SetReversedZ(bool enable) {
 	_reversedZ = enable;
 }
@@ -89,20 +96,19 @@ auto RenderSetting::GetShadowRayTMax() const -> float {
 	return _shadowRayTMax;
 }
 
-void RenderSetting::SetShadowRayMaxCosineTheta(float rayMaxCosineTheta) {
-	_shadowRayMaxCosineTheta = rayMaxCosineTheta;
+void RenderSetting::SetShadowSunAngularDiameter(float angularDiameter) {
+	_shadowSunAngularDiameter = angularDiameter;
 }
 
-auto RenderSetting::GetShadowRayMaxCosineTheta() const -> float {
-	return _shadowRayMaxCosineTheta;
+auto RenderSetting::GetShadowSunAngularDiameter() const -> float {
+	return _shadowSunAngularDiameter;
 }
 
-void RenderSetting::SetGamma(float gamma) {
-	_gamma = gamma;
+void RenderSetting::SetShadowRayTraceMaxRecursiveDepth(uint32_t depth) {
+	_shadowRayTraceMaxRecursiveDepth = std::max<uint32_t>(depth, 1);
 }
 
-auto RenderSetting::GetGamma() -> float {
-	return _gamma;
+auto RenderSetting::GetShadowRayTraceMaxRecursiveDepth() const -> uint32_t {
+	return _shadowRayTraceMaxRecursiveDepth;
 }
-
 
