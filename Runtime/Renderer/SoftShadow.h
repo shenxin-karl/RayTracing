@@ -4,6 +4,7 @@
 #include "D3d12/Texture.h"
 #include "RenderObject/ConstantBufferHelper.h"
 
+class Denoiser;
 class RayTracingShadowPass;
 class SkyBoxPass;
 class DeferredLightingPass;
@@ -56,5 +57,6 @@ private:
 	std::unique_ptr<PostProcessPass>		_pPostProcessPass;
 	std::unique_ptr<DeferredLightingPass>	_pDeferredLightingPass;
 	std::unique_ptr<SkyBoxPass>				_pSkyBoxPass;
-	std::unique_ptr<RayTracingShadowPass>	_pRayTracingShadowPass;	
+	std::unique_ptr<RayTracingShadowPass>	_pRayTracingShadowPass;
+	std::unique_ptr<Denoiser>				_pDenoiser;
 };

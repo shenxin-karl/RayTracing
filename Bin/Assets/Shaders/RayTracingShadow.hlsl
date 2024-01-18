@@ -75,7 +75,7 @@ float3 GetConeSample(inout uint randSeed, float3 hitNorm, float cosThetaMax) {
 
 void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
 	TraceRay(gScene, 
-        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_SKIP_TRIANGLES | RAY_FLAG_CULL_NON_OPAQUE,
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_CULL_NON_OPAQUE,
         ~0,
         0,          // RayContributionToHitGroupIndex
         1,          // MultiplierForGeometryContributionToShaderIndex
@@ -130,7 +130,7 @@ void ShadowOpaqueClosestHitShader(inout ShadowRayPayload payload, in MyAttribute
     payload.occlusionDistance = RayTCurrent();
 }
 
-void AlphaTestRayCast(float rayCurrentDistance, float rayOrigin, float3 rayDirection, inout ShadowRayPayload payload) {
+void AlphaTestRayCast(float rayCurrentDistance, float3 rayOrigin, float3 rayDirection, inout ShadowRayPayload payload) {
 	if (payload.depth >= gRayGenCB.maxRecursiveDepth) {
 		payload.occlusionDistance = NRD_FP16_MAX;
         return;

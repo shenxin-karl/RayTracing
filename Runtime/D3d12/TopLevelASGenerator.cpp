@@ -36,8 +36,10 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     preBuildDesc.NumDescs = static_cast<UINT>(_instances.size());
-    preBuildDesc.Flags = pPreviousResult != nullptr ? D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE
-                                                    : D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+    preBuildDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    if (pPreviousResult != nullptr) {
+	    preBuildDesc.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+    }
 
     NativeDevice *device = pASBuilder->GetDevice()->GetNativeDevice();
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};

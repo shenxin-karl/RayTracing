@@ -17,7 +17,7 @@ public:
     enum GlobalParam { eScene, eRayGenCb, eTable0 };
     enum GlobalParamTable0 {
         eDepthTex,
-        eOutputTex,
+        eOutputShadowData,
     };
 
     enum LocalParam {

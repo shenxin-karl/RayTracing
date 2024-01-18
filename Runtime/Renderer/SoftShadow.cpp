@@ -28,6 +28,7 @@
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "imgui.h"
+#include "Denoiser/Denoiser.h"
 #include "RenderUtils/GUI.h"
 
 SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
@@ -51,6 +52,7 @@ void SoftShadow::OnDestroy() {
     _pDeferredLightingPass->OnDestroy();
     _pSkyBoxPass->OnDestroy();
     _pRayTracingShadowPass->OnDestroy();
+    _pDenoiser->OnDestroy();
     _renderTargetRTV.Release();
     _depthStencilDSV.Release();
     _renderTargetTex.OnDestroy();
@@ -94,6 +96,7 @@ void SoftShadow::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
     _pGBufferPass->OnResize(width, height);
     _pRayTracingShadowPass->OnResize(width, height);
+    _pDenoiser->OnResize(width, height);
     RecreateWindowSizeDependentResources();
 }
 
@@ -194,11 +197,13 @@ void SoftShadow::CreateRenderPass() {
     _pDeferredLightingPass = std::make_unique<DeferredLightingPass>();
     _pSkyBoxPass = std::make_unique<SkyBoxPass>();
     _pRayTracingShadowPass = std::make_unique<RayTracingShadowPass>();
+    _pDenoiser = std::make_unique<Denoiser>();
     _pGBufferPass->OnCreate();
     _pPostProcessPass->OnCreate();
     _pDeferredLightingPass->OnCreate();
     _pSkyBoxPass->OnCreate();
     _pRayTracingShadowPass->OnCreate();
+    _pDenoiser->OnCreate();
 }
 
 void SoftShadow::CreateScene() {
@@ -352,4 +357,5 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     depthStencilSrv.Texture2D.PlaneSlice = 0;
     depthStencilSrv.Texture2D.ResourceMinLODClamp = 0.f;
     device->CreateShaderResourceView(_depthStencilTex.GetResource(), &depthStencilSrv, _depthStencilSRV.GetCpuHandle());
+
 }

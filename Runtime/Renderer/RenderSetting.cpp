@@ -20,6 +20,7 @@ RenderSetting::RenderSetting() {
 	_shadowRayTMin = 0.1f;
 	_shadowRayTMax = 10000.f;
 	_shadowSunAngularDiameter = 0.95f;
+	_shadowRayTraceMaxRecursiveDepth = 1;
 }
 
 void RenderSetting::OnUpdate() {

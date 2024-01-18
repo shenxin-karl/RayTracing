@@ -22,10 +22,10 @@ static const wchar_t *sShadowRayGenShaderName = L"ShadowRaygenShader";
 static const wchar_t *sShadowMissShaderName = L"ShadowMissShader";
 
 static const wchar_t *sOpaqueHitGroupName = L"ShadowOpaqueHitGroup";
-static const wchar_t *sOpaqueClosestHitShaderName = L"ShadowOpaqueAnyHitShader";
+static const wchar_t *sOpaqueClosestHitShaderName = L"ShadowOpaqueClosestHitShader";
 
 static const wchar_t *sAlphaTestHitGroupName = L"ShadowAlphaTestHitGroup";
-static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestAnyHitShader";
+static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestClosestHitShader";
 
 void RayTracingShadowPass::OnCreate() {
     RenderPass::OnCreate();
@@ -114,7 +114,7 @@ void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
 
     D3D12_CPU_DESCRIPTOR_HANDLE table0[2];
     table0[eDepthTex] = args.depthTexSRV;
-    table0[eOutputTex] = _shadowDataUAV.GetCpuHandle();
+    table0[eOutputShadowData] = _shadowDataUAV.GetCpuHandle();
     pComputeContext->SetDynamicViews(eTable0, table0);
     pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -144,15 +144,7 @@ void RayTracingShadowPass::OnResize(size_t width, size_t height) {
     }
 
     dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
-    srv.Format = _pShadowMaskTex->GetFormat();
-    srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srv.Texture2D.MipLevels = 1;
-    srv.Texture2D.MostDetailedMip = 0;
-    srv.Texture2D.ResourceMinLODClamp = 0.f;
-    srv.Texture2D.PlaneSlice = 0;
-    device->CreateShaderResourceView(_pShadowMaskTex->GetResource(), &srv, _shadowMaskSRV.GetCpuHandle());
+    device->CreateShaderResourceView(_pShadowMaskTex->GetResource(), nullptr, _shadowMaskSRV.GetCpuHandle());
 
     if (_shadowMaskUAV.IsNull()) {
         _shadowMaskUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
