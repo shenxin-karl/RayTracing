@@ -60,7 +60,7 @@ protected:
 
 #define Assert(cond)                                                                                                   \
     do {                                                                                                               \
-        bool _bValueFlag = bool(cond);                                                                                 \
+        bool _bValueFlag = static_cast<bool>(cond);                                                                    \
         ::Exception::CondThrow(_bValueFlag,                                                                            \
             fmt::format("In Function {}, Assert({}) Failed!", __FUNCTION_NAME__, #cond));                              \
     } while (false)

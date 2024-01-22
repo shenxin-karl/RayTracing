@@ -17,16 +17,20 @@ protected:
     friend class FrameResource;
     Context(Device *pDevice);
     virtual ~Context();
-    void Reset(NativeCommandList *pCommandList);
+    void Reset(NativeCommandList *pCommandList, ID3D12CommandAllocator *pCommandAllocator);
 public:
     void Transition(ID3D12Resource *pResource,
         D3D12_RESOURCE_STATES stateAfter,
         UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
+    // Calling other SDK methods may cause the bound descriptor heap to be modified.
+    // This method is to re-attach the dynamic descriptor heap
+    void BindDynamicDescriptorHeap();
     void FlushResourceBarriers();
     void CopyResource(ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource);
     auto GetCommandList() const -> NativeCommandList *;
+    auto GetCommandAllocator() const -> ID3D12CommandAllocator *;
 
     void SetPipelineState(ID3D12PipelineState *pPipelineState);
     void SetDynamicViews(size_t rootIndex, size_t numDescriptors, const DescriptorHandle &handle, size_t offset = 0);
@@ -51,6 +55,7 @@ public:
 protected:
     // clang-format off
 	NativeCommandList          *_pCommandList;
+    ID3D12CommandAllocator     *_pCommandAllocator;
 	ResourceStateTracker		_resourceStateTracker;
     DynamicBufferAllocator      _dynamicBufferAllocator;
     DynamicDescriptorHeap       _dynamicViewDescriptorHeap;
@@ -159,8 +164,9 @@ inline Context::~Context() {
     _dynamicBufferAllocator.OnDestroy();
 }
 
-inline void Context::Reset(NativeCommandList *pCommandList) {
+inline void Context::Reset(NativeCommandList *pCommandList, ID3D12CommandAllocator *pCommandAllocator) {
     _pCommandList = pCommandList;
+    _pCommandAllocator = pCommandAllocator;
     _resourceStateTracker.Reset();
     _dynamicBufferAllocator.Reset();
     _dynamicViewDescriptorHeap.Reset();
@@ -180,6 +186,11 @@ inline void Context::Transition(ID3D12Resource *pResource,
     _resourceStateTracker.ResourceBarrier(barrier);
 }
 
+inline void Context::BindDynamicDescriptorHeap() {
+    _dynamicViewDescriptorHeap.BindDescriptorHeap(_pCommandList);
+    _dynamicSampleDescriptorHeap.BindDescriptorHeap(_pCommandList);
+}
+
 inline void Context::FlushResourceBarriers() {
     _resourceStateTracker.FlushResourceBarriers(_pCommandList);
 }
@@ -192,6 +203,10 @@ inline void Context::CopyResource(ID3D12Resource *pDstResource, ID3D12Resource *
 inline auto Context::GetCommandList() const -> NativeCommandList * {
     return _pCommandList;
 }
+
+inline auto Context::GetCommandAllocator() const -> ID3D12CommandAllocator * {
+    return _pCommandAllocator;
+}   
 
 inline void Context::SetPipelineState(ID3D12PipelineState *pPipelineState) {
     _pCommandList->SetPipelineState(pPipelineState);

@@ -18,6 +18,7 @@ public:
     void OnDestroy() override;
     void OnResize(size_t width, size_t height);
     auto GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
+    auto GetGBufferTexture(size_t index) const -> dx::Texture *;
 
     // clang-format off
     struct DrawArgs {
@@ -35,6 +36,14 @@ public:
         eTextureList,
         eCbPrePass,
         eMaxNumRootParam
+    };
+
+    enum {
+	    eAlbedoMetallicTex,
+        ePackNormalRoughnessTex,
+        eEmissionTex,
+        eMotionVectorTex,
+        eViewDepthTex,
     };
 
     void PreDraw(const DrawArgs &args);

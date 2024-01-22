@@ -54,6 +54,7 @@ private:
     void OnPreRender() override;
     void OnResize(size_t width, size_t height);
 private:
+	friend struct CameraState;
     // clang-format off
 	float			_aspect;
 	float			_zNear;
@@ -70,4 +71,21 @@ private:
 	glm::mat4x4		_matPrevViewProj;
 	CallbackHandle	_resizeCallbackHandle;
     // clang-format on
+};
+
+struct CameraState {
+	float			aspect;
+	float			zNear;
+	float			zFar;
+	float			fov;
+	float			screenWidth;
+	float			screenHeight;
+	glm::mat4x4		matView;
+	glm::mat4x4		matProj;
+	glm::mat4x4		matViewProj;
+	glm::mat4x4		matInvView;
+	glm::mat4x4		matInvProj;
+	glm::mat4x4		matInvViewProj;
+public:
+	void Update(const Camera *pCamera);
 };

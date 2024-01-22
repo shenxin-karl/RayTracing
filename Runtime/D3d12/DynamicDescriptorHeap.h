@@ -19,6 +19,7 @@ public:
 	void EnsureCapacity(NativeCommandList *pCommandList, size_t numDescriptorToCommit);
 	auto CommitDescriptorHandleArray(const DescriptorHandleArray *pHandleArray) -> D3D12_GPU_DESCRIPTOR_HANDLE;
     auto ComputeStaleDescriptorCount() const -> size_t;
+	void BindDescriptorHeap(NativeCommandList *pCommandList);
 private:
 	struct DescriptorTableCache {
 	    void Reset(bool enableBindless, size_t capacity);

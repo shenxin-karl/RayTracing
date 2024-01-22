@@ -15,20 +15,36 @@
 namespace dx {
 class Texture;
 class ComputeContext;
-}
+}    // namespace dx
+
+class NRDTexture {
+public:
+    NRDTexture();
+    NRDTexture(nri::Texture *pNriTexture,
+        const dx::Texture *pTexture,
+        nri::AccessAndLayout prevState,
+        nri::AccessAndLayout nextState);
+    NRDTexture(const NRDTexture &other);
+    operator NrdIntegrationTexture() const {
+	    return texture;
+    }
+    operator bool() const {
+	    return state.texture;
+    }
+public:
+    const dx::Texture *pEngineTexture = nullptr;
+    nri::TextureTransitionBarrierDesc state = {};
+    NrdIntegrationTexture texture = {};
+};
 
 class NriInterface;
-class NrdIntegration;   
+class NrdIntegration;
 
 struct ShadowDenoiseDesc {
-	dx::ComputeContext *pComputeContext = nullptr;
-    dx::Texture *pMotionVectorTex = nullptr;
-    dx::Texture *pNormalRoughnessTex = nullptr;
-    dx::Texture *pViewZTex = nullptr;
-    // Optional
-    dx::Texture *pBaseColorMetallic = nullptr;
-    dx::Texture *pShadowDataTex = nullptr;
-    dx::Texture *pOutShadowMaskTex = nullptr;
+    dx::ComputeContext *pComputeContext = nullptr;
+    NRDTexture shadowDataTex;
+    NRDTexture outputShadowMaskTex;
+	nrd::SigmaSettings settings = {};
 };
 
 class Denoiser : private NonCopyable {
@@ -38,13 +54,15 @@ public:
     void OnCreate();
     void OnDestroy();
     void NewFrame();
+    void SetTexture(nrd::ResourceType resourceType, NRDTexture nrdTexture);
     void SetCommonSetting(const nrd::CommonSettings &settings);
     void ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc);
     void OnResize(size_t width, size_t height);
+    auto CreateNRDTexture(const dx::Texture *pTexture, nri::AccessAndLayout prevState, nri::AccessAndLayout nextState)
+        -> NRDTexture;
 private:
     auto GetNRITexture(const dx::Texture *pTexture) -> nri::Texture *;
     void ClearNRITextureMap();
-    auto GetNRDTexture(const dx::Texture *pTexture) -> NrdIntegrationTexture;
     void CreateNRD(size_t width, size_t height);
 private:
     using NRITextureMap = std::unordered_map<const dx::Texture *, nri::Texture *>;
@@ -53,5 +71,6 @@ private:
     std::unique_ptr<NrdIntegration> _pNrd;
     std::unique_ptr<NriInterface>   _pNriInterface;
      NRITextureMap                  _nriTextureMap;
+    std::vector<NRDTexture>         _textures;
     // clang-format on
 };

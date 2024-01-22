@@ -8,6 +8,7 @@
 #include "Foundation/GameTimer.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "Renderer/Denoiser/Denoiser.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Material.h"
@@ -76,6 +77,45 @@ void RayTracingShadowPass::OnDestroy() {
 }
 
 void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
+    GenerateShadowData(args);
+    ShadowDenoise(args);
+}
+
+auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE {
+    return _shadowMaskSRV.GetCpuHandle();
+}
+
+void RayTracingShadowPass::OnResize(size_t width, size_t height) {
+    _pShadowMaskTex->OnDestroy();
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, width, height);
+    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    _pShadowMaskTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+
+    if (_shadowMaskSRV.IsNull()) {
+        _shadowMaskSRV = pGfxDevice->GetDevice()->AllocDescriptor<dx::SRV>(1);
+    }
+
+    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
+    device->CreateShaderResourceView(_pShadowMaskTex->GetResource(), nullptr, _shadowMaskSRV.GetCpuHandle());
+
+    if (_shadowMaskUAV.IsNull()) {
+        _shadowMaskUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
+    }
+    device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
+
+    _pShadowDataTex->OnDestroy();
+    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, width, height);
+    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+    if (_shadowDataUAV.IsNull()) {
+        _shadowDataUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
+    }
+    device->CreateUnorderedAccessView(_pShadowDataTex->GetResource(), nullptr, nullptr, _shadowDataUAV.GetCpuHandle());
+}
+
+void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     dx::ComputeContext *pComputeContext = args.pComputeContext;
     UserMarker userMarker(pComputeContext, "RayTracingShadowPass");
 
@@ -124,41 +164,30 @@ void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
     dispatchRaysDesc.height = _pShadowDataTex->GetHeight();
     dispatchRaysDesc.depth = 1;
     pComputeContext->DispatchRays(dispatchRaysDesc);
-    pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 }
 
-auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE {
-    return _shadowMaskSRV.GetCpuHandle();
-}
+void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
+    dx::ComputeContext *pComputeContext = args.pComputeContext;
+    UserMarker userMarker(pComputeContext, "ShadowDenoise");
+    Denoiser *pDenoiser = args.pDenoiser;
+    ShadowDenoiseDesc denoiseDesc;
 
-void RayTracingShadowPass::OnResize(size_t width, size_t height) {
-    _pShadowMaskTex->OnDestroy();
+    pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->FlushResourceBarriers();
 
-    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, width, height);
-    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    _pShadowMaskTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+    NRDTexture nrdShadowDataTex = pDenoiser->CreateNRDTexture(_pShadowDataTex.get(),
+        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE},
+        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE});
 
-    if (_shadowMaskSRV.IsNull()) {
-        _shadowMaskSRV = pGfxDevice->GetDevice()->AllocDescriptor<dx::SRV>(1);
-    }
+    NRDTexture nrdShadowMaskTex = pDenoiser->CreateNRDTexture(_pShadowMaskTex.get(),
+        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE},
+        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE});
 
-    dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
-    device->CreateShaderResourceView(_pShadowMaskTex->GetResource(), nullptr, _shadowMaskSRV.GetCpuHandle());
-
-    if (_shadowMaskUAV.IsNull()) {
-        _shadowMaskUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
-    }
-    device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
-
-    _pShadowDataTex->OnDestroy();
-    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, width, height);
-    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
-    if (_shadowDataUAV.IsNull()) {
-        _shadowDataUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
-    }
-    device->CreateUnorderedAccessView(_pShadowDataTex->GetResource(), nullptr, nullptr, _shadowDataUAV.GetCpuHandle());
+    denoiseDesc.pComputeContext = pComputeContext;
+    denoiseDesc.shadowDataTex = nrdShadowDataTex;
+    denoiseDesc.outputShadowMaskTex = nrdShadowMaskTex;
+    pDenoiser->ShadowDenoise(denoiseDesc);
 }
 
 void RayTracingShadowPass::CreatePipelineState() {

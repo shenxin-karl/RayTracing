@@ -85,3 +85,18 @@ void Camera::OnResize(size_t width, size_t height) {
     _screenWidth = static_cast<float>(width);
     _screenHeight = static_cast<float>(height);
 }
+
+void CameraState::Update(const Camera *pCamera) {
+	aspect = pCamera->_aspect;
+	zNear = pCamera->_zNear;
+	zFar = pCamera->_zFar;
+	fov = pCamera->_fov;
+	screenWidth = pCamera->_screenWidth;
+	screenHeight = pCamera->_screenHeight;
+	matView = pCamera->_matView;
+	matProj = pCamera->_matProj;
+	matViewProj = pCamera->_matViewProj;
+	matInvView = pCamera->_matInvView;
+	matInvProj = pCamera->_matInvProj;
+	matInvViewProj = pCamera->_matInvViewProj;
+}

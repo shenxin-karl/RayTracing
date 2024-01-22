@@ -56,4 +56,7 @@ auto CommandListPool::AllocCommandList() -> NativeCommandList * {
     return _cmdList[i].Get();
 }
 
+auto CommandListPool::GetCommandAllocator() const -> ID3D12CommandAllocator * {
+    return _pCommandAllocator.Get();
+}
 }    // namespace dx

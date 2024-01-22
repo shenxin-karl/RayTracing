@@ -5,6 +5,8 @@
 #include "SceneObject/RayTracingGeometry.h"
 #include "Utils/GlobalCallbacks.h"
 
+class Denoiser;
+
 namespace dx {
 struct DispatchRaysDesc;
 }
@@ -36,11 +38,14 @@ public:
         glm::vec4 zBufferParams;
         glm::mat4x4 matInvViewProj;
         dx::ComputeContext *pComputeContext;
+        Denoiser *pDenoiser = nullptr;
     };
     void GenerateShadowMap(const DrawArgs &args);
     auto GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     void OnResize(size_t width, size_t height);
 private:
+    void GenerateShadowData(const DrawArgs &args);
+    void ShadowDenoise(const DrawArgs &args);
     void CreatePipelineState();
     void BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometry> geometries,
         dx::ComputeContext *pComputeContext,

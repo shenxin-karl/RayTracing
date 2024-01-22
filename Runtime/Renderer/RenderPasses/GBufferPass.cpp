@@ -92,6 +92,10 @@ auto GBufferPass::GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HAND
     return _gBufferSRV[index];
 }
 
+auto GBufferPass::GetGBufferTexture(size_t index) const -> dx::Texture * {
+    return _gBufferTextures[index].get();
+}
+
 void GBufferPass::PreDraw(const DrawArgs &args) {
 	UserMarker marker(args.pGfxCtx, "GBufferPreDrawPass");
     for (size_t i = 0; i < _gBufferTextures.size(); ++i) {

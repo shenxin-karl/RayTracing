@@ -29,6 +29,7 @@
 #include "Utils/AssetProjectSetting.h"
 #include "imgui.h"
 #include "Denoiser/Denoiser.h"
+#include "Foundation/GameTimer.h"
 #include "RenderUtils/GUI.h"
 
 SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
@@ -69,6 +70,17 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
     _cbPrePass = cbuffer::MakeCbPrePass(_pCameraGO);
     _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
 
+    Camera *pCamera = _pCameraGO->GetComponent<Camera>();
+    if (_pPreviousCameraState == nullptr) {
+        _pPreviousCameraState = std::make_unique<CameraState>();
+        _pCurrentCameraState = std::make_unique<CameraState>();
+        _pCurrentCameraState->Update(pCamera);
+        *_pPreviousCameraState = *_pCurrentCameraState;
+    } else {
+        *_pPreviousCameraState = *_pCurrentCameraState;
+        _pCurrentCameraState->Update(pCamera);
+    }
+
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     pRenderObjectMgr->ClassifyRenderObjects(_pCameraGO->GetTransform()->GetWorldPosition());
 }
@@ -101,11 +113,31 @@ void SoftShadow::OnResize(uint32_t width, uint32_t height) {
 }
 
 void SoftShadow::PrepareFrame() {
+    _pDenoiser->NewFrame();
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
     D3D12_GPU_VIRTUAL_ADDRESS cbPrePass = pGfxCxt->AllocConstantBuffer(_cbPrePass);
     D3D12_GPU_VIRTUAL_ADDRESS cbLighting = pGfxCxt->AllocConstantBuffer(_cbLighting);
+
+    Camera *pCamera = _pCameraGO->GetComponent<Camera>();
+    nrd::CommonSettings denoiseCommandSetting = {};
+    constexpr size_t kMatrixSize = sizeof(float) * 16;
+    std::memcpy(denoiseCommandSetting.viewToClipMatrix, value_ptr(_pCurrentCameraState->matProj), kMatrixSize);
+    std::memcpy(denoiseCommandSetting.viewToClipMatrixPrev, value_ptr(_pPreviousCameraState->matProj), kMatrixSize);
+    std::memcpy(denoiseCommandSetting.worldToViewMatrix, value_ptr(_pCurrentCameraState->matView), kMatrixSize);
+    std::memcpy(denoiseCommandSetting.worldToViewMatrixPrev, value_ptr(_pPreviousCameraState->matView), kMatrixSize);
+    denoiseCommandSetting.resourceSize[0] = static_cast<uint16_t>(_width);
+    denoiseCommandSetting.resourceSize[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.resourceSizePrev[0] = static_cast<uint16_t>(_width);
+    denoiseCommandSetting.resourceSizePrev[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.rectSize[0] = static_cast<uint16_t>(_width);
+    denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(_width);
+    denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.frameIndex = GameTimer::Get().GetFrameCount();
+    denoiseCommandSetting.isBaseColorMetalnessAvailable = true;
+    _pDenoiser->SetCommonSetting(denoiseCommandSetting);
 
     GBufferPass::DrawArgs gbufferDrawArgs = {};
     gbufferDrawArgs.pGfxCtx = pGfxCxt.get();
@@ -119,6 +151,30 @@ void SoftShadow::PrepareFrame() {
     _pGBufferPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), gbufferDrawArgs);
     _pGBufferPass->PostDraw(gbufferDrawArgs);
 
+    auto nrdMotionVectorTex = _pDenoiser->CreateNRDTexture(
+        _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex),
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
+
+    auto normalRoughnessTex = _pDenoiser->CreateNRDTexture(
+        _pGBufferPass->GetGBufferTexture(GBufferPass::ePackNormalRoughnessTex),
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
+
+    auto baseColorMetallicTex = _pDenoiser->CreateNRDTexture(
+        _pGBufferPass->GetGBufferTexture(GBufferPass::eAlbedoMetallicTex),
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
+
+    auto viewDepthTex = _pDenoiser->CreateNRDTexture(_pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex),
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
+        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
+
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_MV, nrdMotionVectorTex);
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_NORMAL_ROUGHNESS, normalRoughnessTex);
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_BASECOLOR_METALNESS, baseColorMetallicTex);
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, viewDepthTex);
+
     // shadow map
     SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
     RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
@@ -129,6 +185,7 @@ void SoftShadow::PrepareFrame() {
     shadowPassDrawArgs.zBufferParams = _cbPrePass.zBufferParams;
     shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
     shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
+    shadowPassDrawArgs.pDenoiser = _pDenoiser.get();
     _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
 
     //// deferred lighting pass
@@ -150,10 +207,8 @@ void SoftShadow::PrepareFrame() {
     // todo, debug flush
     pGfxCxt->FlushResourceBarriers();
 
-
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->ClearRenderTargetView(_renderTargetRTV.GetCpuHandle(), Colors::Black);
-
 
     pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
@@ -357,5 +412,4 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     depthStencilSrv.Texture2D.PlaneSlice = 0;
     depthStencilSrv.Texture2D.ResourceMinLODClamp = 0.f;
     device->CreateShaderResourceView(_depthStencilTex.GetResource(), &depthStencilSrv, _depthStencilSRV.GetCpuHandle());
-
 }

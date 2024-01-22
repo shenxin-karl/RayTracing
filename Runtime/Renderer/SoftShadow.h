@@ -12,6 +12,8 @@ class PostProcessPass;
 class GameObject;
 class Scene;
 class GBufferPass;
+struct CameraState;
+
 class SoftShadow : public Renderer {
 public:
 	SoftShadow();
@@ -46,6 +48,8 @@ private:
 
 	cbuffer::CbPrePass				_cbPrePass;
 	cbuffer::CbLighting				_cbLighting;
+	std::unique_ptr<CameraState>	_pPreviousCameraState;
+	std::unique_ptr<CameraState>	_pCurrentCameraState;
 
 	Scene							*_pScene;
 	GameObject						*_pCameraGO;

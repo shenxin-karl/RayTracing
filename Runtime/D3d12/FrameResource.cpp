@@ -64,7 +64,7 @@ void FrameResource::OnBeginFrame(uint64_t newFenceValue) {
 auto FrameResource::AllocGraphicsContext() -> std::shared_ptr<GraphicsContext> {
     Assert(_graphicsContextIndex < _graphicsContextList.size());
     auto pContext = _graphicsContextList[_graphicsContextIndex++];
-    pContext->Reset(_pGraphicsCmdListPool->AllocCommandList());
+    pContext->Reset(_pGraphicsCmdListPool->AllocCommandList(), _pGraphicsCmdListPool->GetCommandAllocator());
     return pContext;
 }
 
@@ -185,6 +185,9 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         _pDevice->GetComputeQueue()->ExecuteCommandLists(computeCmdList.size(), computeCmdList.data());
     }
 #endif
+
+
+
     GlobalResourceState::UnLock();
 }
 

@@ -137,6 +137,12 @@ auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
     return numStaleDescriptors;
 }
 
+void DynamicDescriptorHeap::BindDescriptorHeap(NativeCommandList *pCommandList) {
+    if (_pCurrentDescriptorHeap != nullptr) {
+		pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
+    }
+}
+
 void DynamicDescriptorHeap::DescriptorTableCache::Reset(bool enableBindless, size_t capacity) {
     this->enableBindless = enableBindless;
     this->capacity = capacity;

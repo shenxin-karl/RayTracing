@@ -9,6 +9,7 @@ public:
 	void OnDestroy();
 	void OnBeginFrame();
 	auto AllocCommandList() -> NativeCommandList *;
+	auto GetCommandAllocator() const -> ID3D12CommandAllocator *;
 private:
 	using CommandListContainer = std::vector<WRL::ComPtr<NativeCommandList>>;
 	using CommandAllocatorContainer = std::vector<WRL::ComPtr<ID3D12CommandAllocator>>;

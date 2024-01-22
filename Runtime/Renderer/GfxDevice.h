@@ -1,5 +1,4 @@
 #pragma once
-#include "Foundation/ITick.hpp"
 #include "Foundation/Singleton.hpp"
 #include <Windows.h>
 #include <dxgiformat.h>
