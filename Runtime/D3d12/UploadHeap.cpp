@@ -118,7 +118,7 @@ void UploadHeap::FlushAndFinish() {
             if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
                 if (pResourceState->subResourceStateMap.empty() &&
                     pResourceState->state == D3D12_RESOURCE_STATE_COMMON &&
-                    ResourceStateTracker::OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
+                    StateHelper::AllowSkippingTransition(pResourceState->state, barrier.Transition.StateAfter)) {
                     resourceStateMap[pResource].SetSubResourceState(barrier.Transition.Subresource,
                         barrier.Transition.StateAfter);
                     continue;
@@ -185,21 +185,21 @@ void UploadHeap::FlushAndFinish() {
 
     // update resource state
     for (auto &&[pResource, resourceState] : resourceStateMap) {
-        auto pResourceState = GlobalResourceState::FindResourceState(pResource);
+        auto pGlobalResourceStateRecode = GlobalResourceState::FindResourceState(pResource);
         if (resourceState.subResourceStateMap.empty()) {
             D3D12_RESOURCE_STATES state = resourceState.state;
-            if (ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+            if (StateHelper::AllowStateDecayToCommon(resourceState.state)) {
                 state = D3D12_RESOURCE_STATE_COMMON;
             }
-            pResourceState->SetSubResourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
+            pGlobalResourceStateRecode->SetSubResourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
             continue;
         }
 
         for (auto &&[subResource, subResourceState] : resourceState.subResourceStateMap) {
-            if (ResourceStateTracker::OptimizeResourceBarrierState(resourceState.state)) {
+            if (StateHelper::AllowStateDecayToCommon(resourceState.state)) {
                 subResourceState = D3D12_RESOURCE_STATE_COMMON;
             }
-            pResourceState->SetSubResourceState(subResource, subResourceState);
+            pGlobalResourceStateRecode->SetSubResourceState(subResource, subResourceState);
         }
     }
     GlobalResourceState::UnLock();

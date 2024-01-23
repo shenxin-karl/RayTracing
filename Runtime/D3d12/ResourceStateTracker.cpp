@@ -15,23 +15,6 @@ void ResourceStateTracker::Transition(ID3D12Resource *pResource,
 	ResourceBarrier(barrier);
 }
 
-// 下面这些状态,能够被 D3D12_RESOURCE_STATE_COMMON 隐式转换, 在 ExecuteCommandLists 后, 也能够自动转化为 D3D12_RESOURCE_STATE_COMMON
-bool ResourceStateTracker::OptimizeResourceBarrierState(D3D12_RESOURCE_STATES state) {
-	switch (state) {
-    case D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE:
-    case D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE:
-    case D3D12_RESOURCE_STATE_COPY_DEST:
-    case D3D12_RESOURCE_STATE_COPY_SOURCE:
-    case D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER:
-    case D3D12_RESOURCE_STATE_INDEX_BUFFER:
-    case D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT:
-    case D3D12_RESOURCE_STATE_GENERIC_READ:
-        return true;
-    default:
-        return false;
-    }
-}
-
 void ResourceStateTracker::ResourceBarrier(D3D12_RESOURCE_BARRIER barrier) {
 	if (barrier.Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION) {
 		_resourceBarriers.push_back(barrier);

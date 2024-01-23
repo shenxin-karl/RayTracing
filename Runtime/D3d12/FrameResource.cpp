@@ -93,30 +93,30 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
         ResourceBarriers &pendingResourceBarriers = resourceStateTracker.GetPendingResourceBarriers();
         for (D3D12_RESOURCE_BARRIER barrier : pendingResourceBarriers) {
             ID3D12Resource *pResource = barrier.Transition.pResource;
-            ResourceState *pResourceState = GlobalResourceState::FindResourceState(pResource);
-            assert(pResourceState != nullptr);
+            ResourceState *pGlobalResourceStateRecode = GlobalResourceState::FindResourceState(pResource);
+            assert(pGlobalResourceStateRecode != nullptr);
 
             // translation all sub resource to after state
             if (barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
-                if (pResourceState->subResourceStateMap.empty() &&
-                    barrier.Transition.StateAfter == pResourceState->state) {
+                if (pGlobalResourceStateRecode->subResourceStateMap.empty() &&
+                    barrier.Transition.StateAfter == pGlobalResourceStateRecode->state) {
                     continue;
                 }
 
-                D3D12_RESOURCE_STATES currentState = pResourceState->state;
-                pResourceState->state = barrier.Transition.StateAfter;
-                if (pResourceState->subResourceStateMap.empty() && currentState == D3D12_RESOURCE_STATE_COMMON &&
-                    ResourceStateTracker::OptimizeResourceBarrierState(barrier.Transition.StateAfter)) {
+                D3D12_RESOURCE_STATES currentState = pGlobalResourceStateRecode->state;
+                pGlobalResourceStateRecode->state = barrier.Transition.StateAfter;
+                if (pGlobalResourceStateRecode->subResourceStateMap.empty() && currentState == D3D12_RESOURCE_STATE_COMMON &&
+                    StateHelper::AllowSkippingTransition(currentState, barrier.Transition.StateAfter)) {
                     continue;
                 }
 
-                if (pResourceState->subResourceStateMap.empty()) {
+                if (pGlobalResourceStateRecode->subResourceStateMap.empty()) {
                     barrier.Transition.StateBefore = currentState;
                     linkCommandListStateBarriers.push_back(barrier);
                     continue;
                 }
 
-                for (auto &&[subResource, subResourceState] : pResourceState->subResourceStateMap) {
+                for (auto &&[subResource, subResourceState] : pGlobalResourceStateRecode->subResourceStateMap) {
                     if (barrier.Transition.StateAfter != subResourceState) {
                         barrier.Transition.Subresource = subResource;
                         barrier.Transition.StateBefore = subResourceState;
@@ -126,10 +126,10 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
                 continue;
             }
 
-            D3D12_RESOURCE_STATES currentState = pResourceState->GetSubResourceState(barrier.Transition.Subresource);
+            D3D12_RESOURCE_STATES currentState = pGlobalResourceStateRecode->GetSubResourceState(barrier.Transition.Subresource);
             if (currentState != barrier.Transition.StateAfter) {
                 barrier.Transition.StateBefore = currentState;
-                pResourceState->state = barrier.Transition.StateAfter;
+                pGlobalResourceStateRecode->state = barrier.Transition.StateAfter;
                 linkCommandListStateBarriers.push_back(barrier);
             }
         }
@@ -186,7 +186,27 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     }
 #endif
 
-
+    // After command list is executed, the resource state is implicitly transformed
+    for (Context *pContext : contexts) {
+	    const auto &finalResourceStateMap = pContext->_resourceStateTracker.GetFinalResourceStateMap();
+        for (auto &&[pResource, resourceState] : finalResourceStateMap) {
+            ResourceState *pGlobalResourceStateRecode = GlobalResourceState::FindResourceState(pResource);
+		    if (resourceState.subResourceStateMap.empty()) {
+	            D3D12_RESOURCE_STATES state = resourceState.state;
+	            if (StateHelper::AllowStateDecayToCommon(resourceState.state)) {
+	                state = D3D12_RESOURCE_STATE_COMMON;
+	            }
+	            pGlobalResourceStateRecode->SetSubResourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
+	            continue;
+	        }
+	        for (auto [subResource, subResourceState] : resourceState.subResourceStateMap) {
+	            if (StateHelper::AllowStateDecayToCommon(resourceState.state)) {
+	                subResourceState = D3D12_RESOURCE_STATE_COMMON;
+	            }
+	            pGlobalResourceStateRecode->SetSubResourceState(subResource, subResourceState);
+	        }
+        }
+    }
 
     GlobalResourceState::UnLock();
 }
