@@ -31,7 +31,6 @@ includes("xmake/stduuid.lua")
 includes("xmake/renderdoc.lua")
 includes("xmake/pix.lua")
 includes("xmake/RayTracingDenoiser.lua")
-includes("xmake/NRI.lua")
 
 add_requires("fmt 9.1.0")
 add_requires("spdlog v1.9.2") 
@@ -49,7 +48,6 @@ add_requires("stduuid", {debug = isDebug})
 add_requires("renderdoc")
 add_requires("pix")
 add_requires("RayTracingDenoiser", {debug = isDebug, configs = {shared = false}})
-add_requires("NRI", {debug = isDebug, configs = {shared = false}})
 
 target("RayTracing")
     add_headerfiles("**.natvis")
@@ -101,11 +99,6 @@ target("RayTracing")
     add_headerfiles("ThirdParty/RayTracingDenoiser/**.c")
     add_headerfiles("ThirdParty/RayTracingDenoiser/**.cpp")
     add_headerfiles("ThirdParty/RayTracingDenoiser/_NRD_SDK/Shaders/Include/**.hlsli")
-
-    add_packages("NRI")
-    add_headerfiles("ThirdParty/NRI/_NRI_SDK/Include/**.h")
-    add_headerfiles("ThirdParty/NRI/_NRI_SDK/**.c")
-    add_headerfiles("ThirdParty/NRI/_NRI_SDK/**.cpp")
 
     set_targetdir(BINARY_DIR)
 

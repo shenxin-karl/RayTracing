@@ -133,7 +133,6 @@ void SoftShadow::PrepareFrame() {
     denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(_height);
     denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(_width);
     denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(_height);
-    denoiseCommandSetting.accumulationMode = nrd::AccumulationMode::CONTINUE;
     denoiseCommandSetting.frameIndex = GameTimer::Get().GetFrameCount();
     denoiseCommandSetting.isBaseColorMetalnessAvailable = true;
     _pDenoiser->SetCommonSetting(denoiseCommandSetting);

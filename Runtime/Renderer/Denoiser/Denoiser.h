@@ -2,13 +2,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "NRI.h"
-#include "NRIMacro.h"
-#include "Extensions/NRIHelper.h"
-#include "Extensions/NRIWrapperD3D12.h"
-
 #include "NRD.h"
-#include "NRDIntegration.h"
 #include "NRDSettings.h"
 #include "Foundation/NonCopyable.h"
 

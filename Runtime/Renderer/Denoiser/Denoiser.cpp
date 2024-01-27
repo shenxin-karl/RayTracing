@@ -1,12 +1,8 @@
 #include "Denoiser.h"
-#include "NRDIntegration.hpp"
 #include "NRDIntegrationD3D12.h"
 #include "D3d12/Context.h"
-#include "D3d12/Device.h"
-#include "D3d12/ResourceStateTracker.h"
 #include "D3d12/Texture.h"
 #include "Renderer/GfxDevice.h"
-#include "Foundation/CompileEnvInfo.hpp"
 
 #define NRD_ID(x) static_cast<nrd::Identifier>(nrd::Denoiser::x)
 
@@ -18,8 +14,6 @@ Denoiser::~Denoiser() {
 }
 
 void Denoiser::OnCreate() {
-    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-
     const nrd::DenoiserDesc denoiserDescs[] = {
         {NRD_ID(SIGMA_SHADOW), nrd::Denoiser::SIGMA_SHADOW},
     };

@@ -139,18 +139,20 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     };
     // clang-format on
 
-    float angularDiameter = RenderSetting::Get().GetShadowSunAngularDiameter();
+    const ShadowConfig &shadowConfig = RenderSetting::Get().GetShadowConfig();
+
+    float angularDiameter = glm::radians(static_cast<float>(shadowConfig.sunAngularDiameter));
     RayGenCB rayGenCb;
     rayGenCb.matInvViewProj = args.matInvViewProj;
     rayGenCb.lightDirection = args.lightDirection;
     rayGenCb.enableSoftShadow = angularDiameter != 0.f;
     rayGenCb.zBufferParams = args.zBufferParams;
-    rayGenCb.cosSunAngularRadius = std::cos(glm::radians(angularDiameter * 0.5f));
-    rayGenCb.tanSunAngularRadius = std::tan(glm::radians(angularDiameter * 0.5f));
+    rayGenCb.cosSunAngularRadius = std::cos(angularDiameter * 0.5f);
+    rayGenCb.tanSunAngularRadius = std::tan(angularDiameter * 0.5f);
     rayGenCb.frameCount = GameTimer::Get().GetFrameCount();
-    rayGenCb.maxT = RenderSetting::Get().GetShadowRayTMax();
-    rayGenCb.minT = RenderSetting::Get().GetShadowRayTMin();
-    rayGenCb.maxRecursiveDepth = RenderSetting::Get().GetShadowRayTraceMaxRecursiveDepth();
+    rayGenCb.maxT = shadowConfig.rayTMax;
+    rayGenCb.minT = shadowConfig.rayTMin;
+    rayGenCb.maxRecursiveDepth = shadowConfig.rayTraceMaxRecursiveDepth;
     rayGenCb.backgroundNDCDepth = RenderSetting::Get().GetDepthClearValue();
     pComputeContext->SetComputeRootDynamicConstantBuffer(eRayGenCb, rayGenCb);
 
@@ -173,7 +175,10 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     UserMarker userMarker(pComputeContext, "ShadowDenoise");
     Denoiser *pDenoiser = args.pDenoiser;
     ShadowDenoiseDesc denoiseDesc;
-    denoiseDesc.settings.blurRadiusScale = 1.f;
+
+    const ShadowConfig &shadowConfig = RenderSetting::Get().GetShadowConfig();
+    denoiseDesc.settings.blurRadiusScale = shadowConfig.denoiseBlurRadiusScale;
+    denoiseDesc.settings.planeDistanceSensitivity = shadowConfig.planeDistanceSensitivity;
 
     denoiseDesc.pComputeContext = pComputeContext;
     denoiseDesc.pShadowDataTex = _pShadowDataTex.get();
@@ -224,7 +229,7 @@ void RayTracingShadowPass::CreatePipelineState() {
     pGlobalRootSignature->SetRootSignature(_pGlobalRootSignature->GetRootSignature());
 
     auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-    pPipelineConfig->Config(RenderSetting::Get().GetShadowRayTraceMaxRecursiveDepth());
+    pPipelineConfig->Config(RenderSetting::Get().GetShadowConfig().rayTraceMaxRecursiveDepth);
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     dx::NativeDevice *device = pGfxDevice->GetDevice()->GetNativeDevice();
@@ -316,27 +321,19 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
         return;
     }
     RenderSetting &renderSetting = RenderSetting::Get();
-    float tMin = renderSetting.GetShadowRayTMin();
-    if (ImGui::DragFloat("RayTMin", &tMin, 0.1f, 0.f, 5.f)) {
-        renderSetting.SetShadowRayTMin(tMin);
-    }
+    ShadowConfig &shadowConfig = renderSetting.GetShadowConfig();
 
-    float tMax = renderSetting.GetShadowRayTMax();
-    if (ImGui::InputFloat("RayTMax", &tMax)) {
-        renderSetting.SetShadowRayTMax(tMax);
-    }
+    ImGui::DragFloat("RayTMin", &shadowConfig.rayTMin, 0.1f, 0.f, 5.f);
+    ImGui::InputFloat("RayTMax", &shadowConfig.rayTMax);
 
-    float angularDiameter = renderSetting.GetShadowSunAngularDiameter();
-    if (ImGui::DragFloat("SunAngularDiameter(degrees)", &angularDiameter, 0.1f, 0.f, 5.f)) {
-        renderSetting.SetShadowSunAngularDiameter(angularDiameter);
-    }
-
-    int recursiveDepth = renderSetting.GetShadowRayTraceMaxRecursiveDepth();
-    if (ImGui::SliderInt("RayTraceMaxRecursiveDepth", &recursiveDepth, 1, 5)) {
-        renderSetting.SetShadowRayTraceMaxRecursiveDepth(recursiveDepth);
+    ImGui::SliderFloat("SunAngularDiameter", &shadowConfig.sunAngularDiameter, 0.f, 5.f);
+    if (ImGui::SliderInt("RayTraceMaxRecursiveDepth", &shadowConfig.rayTraceMaxRecursiveDepth, 1, 5)) {
+        GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
         _pRayTracingPSO = nullptr;
         CreatePipelineState();
     }
+    ImGui::SliderFloat("BlurRadiusScale", &shadowConfig.denoiseBlurRadiusScale, 0.f, 3.f);
+    ImGui::SliderFloat("PlaneDistanceSensitivity", &shadowConfig.planeDistanceSensitivity, 0.f, 5.f);
 
     ImGui::TreePop();
 }
