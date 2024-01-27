@@ -19,8 +19,7 @@ SkyBoxPass::SkyBoxPass() {
 SkyBoxPass::~SkyBoxPass() {
 }
 
-void SkyBoxPass::OnCreate() {
-    RenderPass::OnCreate();
+void SkyBoxPass::OnCreate(DXGI_FORMAT renderTargetFormat) {
     dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
     _pRootSignature = std::make_unique<dx::RootSignature>();
     _pRootSignature->OnCreate(eNumRootParam, 1);
@@ -30,7 +29,7 @@ void SkyBoxPass::OnCreate() {
     }, D3D12_SHADER_VISIBILITY_PIXEL);
     _pRootSignature->SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
     _pRootSignature->Generate(pDevice);
-    CreatePipelineState();
+    CreatePipelineState(renderTargetFormat);
 }
 
 void SkyBoxPass::OnDestroy() {
@@ -69,7 +68,7 @@ void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
     pGfxCtx->DrawInstanced(pSkyBoxCubeMesh->GetVertexCount(), 1, 0, 0);
 }
 
-void SkyBoxPass::CreatePipelineState() {
+void SkyBoxPass::CreatePipelineState(DXGI_FORMAT renderTargetFormat) {
     dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
     ShaderLoadInfo shaderLoadInfo;
     shaderLoadInfo.sourcePath = AssetProjectSetting::ToAssetPath("Shaders/SkyBox.hlsl");
@@ -122,7 +121,7 @@ void SkyBoxPass::CreatePipelineState() {
     pipelineDesc.DepthStencilFormat = pGfxDevice->GetDepthStencilFormat();
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-    rtvFormats.RTFormats[0] = pGfxDevice->GetRenderTargetFormat();
+    rtvFormats.RTFormats[0] = renderTargetFormat;
     rtvFormats.NumRenderTargets = 1;
     pipelineDesc.RTVFormats = rtvFormats;
 

@@ -7,7 +7,7 @@ class SkyBoxPass : public RenderPass {
 public:
 	SkyBoxPass();
 	~SkyBoxPass() override;
-	void OnCreate() override;
+	void OnCreate(DXGI_FORMAT renderTargetFormat);
 	void OnDestroy() override;
 
 	// clang-format off
@@ -27,7 +27,7 @@ public:
 
 	void Draw(const DrawArgs &drawArgs);
 private:
-	void CreatePipelineState();
+	void CreatePipelineState(DXGI_FORMAT renderTargetFormat);
 private:
 	// clang-format off
 	std::unique_ptr<dx::RootSignature>		_pRootSignature;

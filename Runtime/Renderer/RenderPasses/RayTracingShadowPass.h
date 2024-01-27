@@ -13,7 +13,7 @@ struct DispatchRaysDesc;
 
 class RayTracingShadowPass : public RenderPass {
 public:
-    void OnCreate() override;
+    void OnCreate();
     void OnDestroy() override;
 
     enum GlobalParam { eScene, eRayGenCb, eTable0 };

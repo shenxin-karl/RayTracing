@@ -105,10 +105,12 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 
                 D3D12_RESOURCE_STATES currentState = pGlobalResourceStateRecode->state;
                 pGlobalResourceStateRecode->state = barrier.Transition.StateAfter;
+#if 0
                 if (pGlobalResourceStateRecode->subResourceStateMap.empty() && currentState == D3D12_RESOURCE_STATE_COMMON &&
                     StateHelper::AllowSkippingTransition(currentState, barrier.Transition.StateAfter)) {
                     continue;
                 }
+#endif
 
                 if (pGlobalResourceStateRecode->subResourceStateMap.empty()) {
                     barrier.Transition.StateBefore = currentState;
@@ -186,6 +188,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
     }
 #endif
 
+#if 0
     // After command list is executed, the resource state is implicitly transformed
     for (Context *pContext : contexts) {
 	    const auto &finalResourceStateMap = pContext->_resourceStateTracker.GetFinalResourceStateMap();
@@ -207,6 +210,7 @@ void FrameResource::ExecuteContexts(ReadonlyArraySpan<Context *> contexts) {
 	        }
         }
     }
+#endif
 
     GlobalResourceState::UnLock();
 }

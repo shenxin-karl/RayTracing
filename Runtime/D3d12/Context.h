@@ -24,6 +24,9 @@ public:
         UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
         D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
+    void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, ID3D12DescriptorHeap *pDescriptorHeap);
+    void BindDescriptorHeaps();
+
     // Calling other SDK methods may cause the bound descriptor heap to be modified.
     // This method is to re-attach the dynamic descriptor heap
     void BindDynamicDescriptorHeap();
@@ -60,6 +63,7 @@ protected:
     DynamicBufferAllocator      _dynamicBufferAllocator;
     DynamicDescriptorHeap       _dynamicViewDescriptorHeap;
     DynamicDescriptorHeap       _dynamicSampleDescriptorHeap;
+    ID3D12DescriptorHeap       *_bindDescriptorHeap[2];
     // clang-format on
 };
 
@@ -171,6 +175,8 @@ inline void Context::Reset(NativeCommandList *pCommandList, ID3D12CommandAllocat
     _dynamicBufferAllocator.Reset();
     _dynamicViewDescriptorHeap.Reset();
     _dynamicSampleDescriptorHeap.Reset();
+    _bindDescriptorHeap[0] = nullptr;
+    _bindDescriptorHeap[1] = nullptr;
 }
 
 inline void Context::Transition(ID3D12Resource *pResource,
@@ -184,6 +190,24 @@ inline void Context::Transition(ID3D12Resource *pResource,
         subResource,
         flags);
     _resourceStateTracker.ResourceBarrier(barrier);
+}
+
+inline void Context::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, ID3D12DescriptorHeap *pDescriptorHeap) {
+    Assert(type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    _bindDescriptorHeap[type] = pDescriptorHeap;
+}
+
+inline void Context::BindDescriptorHeaps() {
+    ID3D12DescriptorHeap *heaps[2];
+    size_t count = 0;
+    for (size_t i = 0; i < 2; ++i) {
+	    if (_bindDescriptorHeap[i] != nullptr) {
+		    heaps[count++] = _bindDescriptorHeap[i];
+	    }
+    }
+    if (count > 0) {
+	    _pCommandList->SetDescriptorHeaps(count, heaps);
+    }
 }
 
 inline void Context::BindDynamicDescriptorHeap() {
@@ -308,8 +332,8 @@ inline void ComputeContext::SetComputeRootUnorderedAccessView(UINT rootIndex,
 
 inline void ComputeContext::Dispatch(UINT groupX, UINT groupY, UINT groupZ) {
     FlushResourceBarriers();
-    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(this);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(this);
     _pCommandList->Dispatch(groupX, groupY, groupZ);
 }
 
@@ -389,8 +413,8 @@ inline void GraphicsContext::DrawInstanced(UINT vertexCountPreInstance,
     UINT startVertexLocation,
     UINT startInstanceLocation) {
     FlushResourceBarriers();
-    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
-    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(this);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(this);
     _pCommandList->DrawInstanced(vertexCountPreInstance, instanceCount, startVertexLocation, startInstanceLocation);
 }
 
@@ -400,8 +424,8 @@ inline void GraphicsContext::DrawIndexedInstanced(UINT indexCountPreInstance,
     UINT baseVertexLocation,
     UINT startInstanceLocation) {
     FlushResourceBarriers();
-    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
-    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(_pCommandList);
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDraw(this);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDraw(this);
     _pCommandList->DrawIndexedInstanced(indexCountPreInstance,
         instanceCount,
         startIndexLocation,

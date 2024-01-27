@@ -9,8 +9,6 @@
 #include "Renderer/RenderUtils/UserMarker.h"
 
 void DeferredLightingPass::OnCreate() {
-	RenderPass::OnCreate();
-
 	GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 	_pRootSignature = std::make_unique<dx::RootSignature>();
 	_pRootSignature->OnCreate(eNumRootParam);

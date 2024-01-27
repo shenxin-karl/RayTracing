@@ -99,7 +99,7 @@ auto ShaderManager::LoadShaderByteCode(const ShaderLoadInfo &loadInfo) -> D3D12_
         loadInfo.entryPoint,
         loadInfo.shaderType,
         loadInfo.pDefineList,
-        !CompileEnvInfo::IsModeRelease(),
+        CompileEnvInfo::IsModeDebug(),
         &ShaderIncludeCallBack};
 
     // In release mode, the pdb file is also generated

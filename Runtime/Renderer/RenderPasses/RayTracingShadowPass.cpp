@@ -29,7 +29,6 @@ static const wchar_t *sAlphaTestHitGroupName = L"ShadowAlphaTestHitGroup";
 static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestClosestHitShader";
 
 void RayTracingShadowPass::OnCreate() {
-    RenderPass::OnCreate();
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     _pShadowMaskTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowMaskTex");
     _pShadowDataTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowDataTex");
@@ -77,6 +76,7 @@ void RayTracingShadowPass::OnDestroy() {
 }
 
 void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
+    UserMarker userMarker(args.pComputeContext, "GenerateShadowMaskMap");
     GenerateShadowData(args);
     ShadowDenoise(args);
 }
@@ -117,7 +117,7 @@ void RayTracingShadowPass::OnResize(size_t width, size_t height) {
 
 void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     dx::ComputeContext *pComputeContext = args.pComputeContext;
-    UserMarker userMarker(pComputeContext, "RayTracingShadowPass");
+    UserMarker userMarker(pComputeContext, "RayTracingShadowData");
 
     pComputeContext->SetComputeRootSignature(_pGlobalRootSignature.get());
     pComputeContext->SetRayTracingPipelineState(_pRayTracingPSO.Get());
@@ -135,6 +135,7 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
         float       maxT;
         float       minT;
 		uint        maxRecursiveDepth;
+        float       backgroundNDCDepth;
     };
     // clang-format on
 
@@ -150,6 +151,7 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     rayGenCb.maxT = RenderSetting::Get().GetShadowRayTMax();
     rayGenCb.minT = RenderSetting::Get().GetShadowRayTMin();
     rayGenCb.maxRecursiveDepth = RenderSetting::Get().GetShadowRayTraceMaxRecursiveDepth();
+    rayGenCb.backgroundNDCDepth = RenderSetting::Get().GetDepthClearValue();
     pComputeContext->SetComputeRootDynamicConstantBuffer(eRayGenCb, rayGenCb);
 
     D3D12_CPU_DESCRIPTOR_HANDLE table0[2];
@@ -171,22 +173,11 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     UserMarker userMarker(pComputeContext, "ShadowDenoise");
     Denoiser *pDenoiser = args.pDenoiser;
     ShadowDenoiseDesc denoiseDesc;
-
-    pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    pComputeContext->FlushResourceBarriers();
-
-    NRDTexture nrdShadowDataTex = pDenoiser->CreateNRDTexture(_pShadowDataTex.get(),
-        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE},
-        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE});
-
-    NRDTexture nrdShadowMaskTex = pDenoiser->CreateNRDTexture(_pShadowMaskTex.get(),
-        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE},
-        {nri::AccessBits::SHADER_RESOURCE_STORAGE, nri::TextureLayout::SHADER_RESOURCE});
+    denoiseDesc.settings.blurRadiusScale = 1.f;
 
     denoiseDesc.pComputeContext = pComputeContext;
-    denoiseDesc.shadowDataTex = nrdShadowDataTex;
-    denoiseDesc.outputShadowMaskTex = nrdShadowMaskTex;
+    denoiseDesc.pShadowDataTex = _pShadowDataTex.get();
+    denoiseDesc.pOutputShadowMaskTex = _pShadowMaskTex.get();
     pDenoiser->ShadowDenoise(denoiseDesc);
 }
 
@@ -326,7 +317,7 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
     }
     RenderSetting &renderSetting = RenderSetting::Get();
     float tMin = renderSetting.GetShadowRayTMin();
-    if (ImGui::DragFloat("RayTMin", &tMin, 0.1f, 0.f, 1.f)) {
+    if (ImGui::DragFloat("RayTMin", &tMin, 0.1f, 0.f, 5.f)) {
         renderSetting.SetShadowRayTMin(tMin);
     }
 
@@ -336,7 +327,7 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
     }
 
     float angularDiameter = renderSetting.GetShadowSunAngularDiameter();
-    if (ImGui::DragFloat("SunAngularDiameter(degrees)", &angularDiameter, 0.1f, 0.f, 10.f)) {
+    if (ImGui::DragFloat("SunAngularDiameter(degrees)", &angularDiameter, 0.1f, 0.f, 5.f)) {
         renderSetting.SetShadowSunAngularDiameter(angularDiameter);
     }
 

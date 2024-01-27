@@ -17,7 +17,7 @@ RenderSetting::RenderSetting() {
 	_exposure = 1.f;
 	_gamma = 2.2f;
 	_reversedZ = true;
-	_shadowRayTMin = 0.1f;
+	_shadowRayTMin = 0.5f;
 	_shadowRayTMax = 10000.f;
 	_shadowSunAngularDiameter = 0.95f;
 	_shadowRayTraceMaxRecursiveDepth = 1;

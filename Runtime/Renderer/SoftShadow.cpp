@@ -113,14 +113,12 @@ void SoftShadow::OnResize(uint32_t width, uint32_t height) {
 }
 
 void SoftShadow::PrepareFrame() {
-    _pDenoiser->NewFrame();
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
     D3D12_GPU_VIRTUAL_ADDRESS cbPrePass = pGfxCxt->AllocConstantBuffer(_cbPrePass);
     D3D12_GPU_VIRTUAL_ADDRESS cbLighting = pGfxCxt->AllocConstantBuffer(_cbLighting);
 
-    Camera *pCamera = _pCameraGO->GetComponent<Camera>();
     nrd::CommonSettings denoiseCommandSetting = {};
     constexpr size_t kMatrixSize = sizeof(float) * 16;
     std::memcpy(denoiseCommandSetting.viewToClipMatrix, value_ptr(_pCurrentCameraState->matProj), kMatrixSize);
@@ -135,6 +133,7 @@ void SoftShadow::PrepareFrame() {
     denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(_height);
     denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(_width);
     denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.accumulationMode = nrd::AccumulationMode::CONTINUE;
     denoiseCommandSetting.frameIndex = GameTimer::Get().GetFrameCount();
     denoiseCommandSetting.isBaseColorMetalnessAvailable = true;
     _pDenoiser->SetCommonSetting(denoiseCommandSetting);
@@ -151,29 +150,12 @@ void SoftShadow::PrepareFrame() {
     _pGBufferPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), gbufferDrawArgs);
     _pGBufferPass->PostDraw(gbufferDrawArgs);
 
-    auto nrdMotionVectorTex = _pDenoiser->CreateNRDTexture(
-        _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex),
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
-
-    auto normalRoughnessTex = _pDenoiser->CreateNRDTexture(
-        _pGBufferPass->GetGBufferTexture(GBufferPass::ePackNormalRoughnessTex),
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
-
-    auto baseColorMetallicTex = _pDenoiser->CreateNRDTexture(
-        _pGBufferPass->GetGBufferTexture(GBufferPass::eAlbedoMetallicTex),
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
-
-    auto viewDepthTex = _pDenoiser->CreateNRDTexture(_pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex),
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE},
-        nri::AccessAndLayout{nri::AccessBits::SHADER_RESOURCE, nri::TextureLayout::SHADER_RESOURCE});
-
-    _pDenoiser->SetTexture(nrd::ResourceType::IN_MV, nrdMotionVectorTex);
-    _pDenoiser->SetTexture(nrd::ResourceType::IN_NORMAL_ROUGHNESS, normalRoughnessTex);
-    _pDenoiser->SetTexture(nrd::ResourceType::IN_BASECOLOR_METALNESS, baseColorMetallicTex);
-    _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, viewDepthTex);
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_MV, _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex));
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_NORMAL_ROUGHNESS,
+        _pGBufferPass->GetGBufferTexture(GBufferPass::ePackNormalRoughnessTex));
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_BASECOLOR_METALNESS,
+        _pGBufferPass->GetGBufferTexture(GBufferPass::eAlbedoMetallicTex));
+    _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, _pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex));
 
     // shadow map
     SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
@@ -188,30 +170,31 @@ void SoftShadow::PrepareFrame() {
     shadowPassDrawArgs.pDenoiser = _pDenoiser.get();
     _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
 
-    //// deferred lighting pass
-    //pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    //DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
-    //deferredLightingPassDrawArgs.width = _width;
-    //deferredLightingPassDrawArgs.height = _height;
-    //deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePass;
-    //deferredLightingPassDrawArgs.cbLightingAddress = cbLighting;
-    //deferredLightingPassDrawArgs.gBufferSRV[0] = _pGBufferPass->GetGBufferSRV(0);
-    //deferredLightingPassDrawArgs.gBufferSRV[1] = _pGBufferPass->GetGBufferSRV(1);
-    //deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
-    //deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
-    //deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
-    //deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
-    //deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
-    //_pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
+    // deferred lighting pass
+    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
+    deferredLightingPassDrawArgs.width = _width;
+    deferredLightingPassDrawArgs.height = _height;
+    deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePass;
+    deferredLightingPassDrawArgs.cbLightingAddress = cbLighting;
+    deferredLightingPassDrawArgs.gBufferSRV[0] = _pGBufferPass->GetGBufferSRV(0);
+    deferredLightingPassDrawArgs.gBufferSRV[1] = _pGBufferPass->GetGBufferSRV(1);
+    deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
+    deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
+    deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
+    deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
+    deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
+    _pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
 
-    // todo, debug flush
-    pGfxCxt->FlushResourceBarriers();
-
+    // skybox pass
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    pGfxCxt->ClearRenderTargetView(_renderTargetRTV.GetCpuHandle(), Colors::Black);
-
     pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
+
+    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
+    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
+    pGfxCxt->SetViewport(viewport);
+    pGfxCxt->SetScissor(scissor);
 
     SkyBoxPass::DrawArgs skyBoxDrawArgs = {};
     skyBoxDrawArgs.cubeMapSRV = _skyBoxCubeSRV.GetCpuHandle();
@@ -253,10 +236,11 @@ void SoftShadow::CreateRenderPass() {
     _pSkyBoxPass = std::make_unique<SkyBoxPass>();
     _pRayTracingShadowPass = std::make_unique<RayTracingShadowPass>();
     _pDenoiser = std::make_unique<Denoiser>();
+
     _pGBufferPass->OnCreate();
     _pPostProcessPass->OnCreate();
     _pDeferredLightingPass->OnCreate();
-    _pSkyBoxPass->OnCreate();
+    _pSkyBoxPass->OnCreate(GfxDevice::GetInstance()->GetRenderTargetFormat());
     _pRayTracingShadowPass->OnCreate();
     _pDenoiser->OnCreate();
 }

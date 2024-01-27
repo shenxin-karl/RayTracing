@@ -13,7 +13,7 @@ public:
 	    D3D12_GPU_VIRTUAL_ADDRESS        cbLightBuffer      = 0;
     };
 public:
-    void OnCreate() override;
+    void OnCreate();
     void OnDestroy() override;
     void DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &globalShaderParam);
 private:

@@ -3,6 +3,8 @@
 #include "CookTorrance.hlsli"
 #include "NormalUtil.hlsli"
 #include "DepthUtil.hlsli"
+#include "NRDEncoding.hlsli"
+#include "NRD.hlsli"
 
 Texture2D<float4>			gBuffer0	: register(t0);
 Texture2D<float4>			gBuffer1	: register(t1);
@@ -21,17 +23,17 @@ struct ComputeIn {
     uint  GroupIndex        : SV_GroupIndex;        
 };
 
-void UnpackGBuffer0(ComputeIn cin, out float3 albedo, out float ao) {
+void UnpackGBuffer0(ComputeIn cin, out float3 albedo, out float metallic) {
 	float4 sampleColor = gBuffer0[cin.DispatchThreadID.xy];
     albedo = sampleColor.rgb;
-    ao = sampleColor.a;
+    metallic = sampleColor.a;
 }
 
-void UnpackGBuffer1(ComputeIn cin, out float3 normal, out float metallic, out float roughness) {
+void UnpackGBuffer1(ComputeIn cin, out float3 normal, out float roughness) {
 	float4 sampleColor = gBuffer1[cin.DispatchThreadID.xy];
-	normal = NormalDecode(sampleColor.xy);
-    metallic = sampleColor.z;
-    roughness = sampleColor.w;
+	float4 unpackData = NRD_FrontEnd_UnpackNormalAndRoughness(sampleColor);
+    normal = unpackData.xyz;
+    roughness = unpackData.w;
 }
 
 void UnpackGBuffer2(ComputeIn cin, out float3 emission) {
@@ -45,19 +47,20 @@ float3 GetWorldPosition(ComputeIn cin) {
 }
 
 float GetShadow(ComputeIn cin) {
-	return gShadowMask[cin.DispatchThreadID.xy];
+    float shadowData = gShadowMask[cin.DispatchThreadID.xy];
+    float shadow = SIGMA_BackEnd_UnpackShadow(shadowData);
+    return shadow;
 }
 
 [numthreads(THREAD_WRAP_SIZE, 16, 1)]
 void CSMain(ComputeIn cin) {
-	float3 albedo;
-    float ao;
-    UnpackGBuffer0(cin, albedo, ao);
+    float3 albedo;
+    float metallic;
+    UnpackGBuffer0(cin, albedo, metallic);
 
     float3 N;
-    float metallic;
     float roughness;
-	UnpackGBuffer1(cin, N, metallic, roughness);
+	UnpackGBuffer1(cin, N, roughness);
 
     float3 worldPosition = GetWorldPosition(cin);
     float3 V = normalize(gCbPrePass.cameraPos - worldPosition);
@@ -66,10 +69,12 @@ void CSMain(ComputeIn cin) {
     UnpackGBuffer2(cin, emission);
 
     float shadow = GetShadow(cin);
+    gOutput[cin.DispatchThreadID.xy] = float4(shadow, shadow, shadow, 0.f);
+    //return;
 
     MaterialData materialData = CalcMaterialData(albedo.rgb, roughness, metallic);
     float3 finalColor = shadow * ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
-    finalColor += ao * ComputeAmbientLight(gCbLighting.ambientLight, materialData, ao);
+    finalColor += ComputeAmbientLight(gCbLighting.ambientLight, materialData, 1.f);
     finalColor += emission;
     gOutput[cin.DispatchThreadID.xy] = float4(finalColor, 1.0);
 }

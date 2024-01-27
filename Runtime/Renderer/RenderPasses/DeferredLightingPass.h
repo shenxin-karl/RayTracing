@@ -5,7 +5,7 @@
 
 class DeferredLightingPass : public RenderPass {
 public:
-    void OnCreate() override;
+    void OnCreate();
     void OnDestroy() override;
 
     // clang-format off

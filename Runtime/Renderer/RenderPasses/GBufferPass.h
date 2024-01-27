@@ -14,7 +14,7 @@ struct CbPrePass;
 class GBufferPass : public RenderPass {
 public:
     GBufferPass();
-    void OnCreate() override;
+    void OnCreate();
     void OnDestroy() override;
     void OnResize(size_t width, size_t height);
     auto GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;

@@ -1,5 +1,6 @@
 #include "DynamicDescriptorHeap.h"
 
+#include "Context.h"
 #include "DescriptorHandleArray.hpp"
 #include "Device.h"
 #include "RootSignature.h"
@@ -78,15 +79,15 @@ void DynamicDescriptorHeap::StageDescriptors(size_t rootParameterIndex,
     _staleDescriptorTableBitMask.set(rootParameterIndex, true);
 }
 
-void DynamicDescriptorHeap::CommitStagedDescriptorForDraw(NativeCommandList *pCommandList) {
-    CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+void DynamicDescriptorHeap::CommitStagedDescriptorForDraw(Context *pContext) {
+    CommitDescriptorTables(pContext, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
 }
 
-void DynamicDescriptorHeap::CommitStagedDescriptorForDispatch(NativeCommandList *pCommandList) {
-    CommitDescriptorTables(pCommandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+void DynamicDescriptorHeap::CommitStagedDescriptorForDispatch(Context *pContext) {
+    CommitDescriptorTables(pContext, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
 }
 
-void DynamicDescriptorHeap::EnsureCapacity(NativeCommandList *pCommandList, size_t numDescriptorToCommit) {
+void DynamicDescriptorHeap::EnsureCapacity(Context *pContext, size_t numDescriptorToCommit) {
     Assert(numDescriptorToCommit <= _numDescriptorsPreHeap);
     if (_pCurrentDescriptorHeap == nullptr || _numFreeHandles < numDescriptorToCommit) {
         _staleDescriptorTableBitMask = _pRootSignature->GetDescriptorTableBitMask(_heapType);
@@ -94,7 +95,8 @@ void DynamicDescriptorHeap::EnsureCapacity(NativeCommandList *pCommandList, size
         _currentCPUDescriptorHandle = _pCurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         _currentGPUDescriptorHandle = _pCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         _numFreeHandles = _numDescriptorsPreHeap;
-        pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
+        pContext->SetDescriptorHeap(_heapType, _pCurrentDescriptorHeap.Get());
+        pContext->BindDescriptorHeaps();
     }
 }
 
@@ -139,7 +141,7 @@ auto DynamicDescriptorHeap::ComputeStaleDescriptorCount() const -> size_t {
 
 void DynamicDescriptorHeap::BindDescriptorHeap(NativeCommandList *pCommandList) {
     if (_pCurrentDescriptorHeap != nullptr) {
-		pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
+        pCommandList->SetDescriptorHeaps(1, RVPtr(_pCurrentDescriptorHeap.Get()));
     }
 }
 
@@ -165,13 +167,14 @@ void DynamicDescriptorHeap::DescriptorTableCache::Fill(size_t offset,
     count = std::max(count, offset + handles.Count());
 }
 
-void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandList, CommitFunc commitFunc) {
+void DynamicDescriptorHeap::CommitDescriptorTables(Context *pContext, CommitFunc commitFunc) {
     size_t numStaleDescriptors = ComputeStaleDescriptorCount();
     if (numStaleDescriptors == 0) {
         return;
     }
 
-    EnsureCapacity(pCommandList, numStaleDescriptors);
+    NativeCommandList *pCmdList = pContext->GetCommandList();
+    EnsureCapacity(pContext, numStaleDescriptors);
 
     ID3D12Device *device = _pDevice->GetNativeDevice();
     for (std::size_t rootIndex = 0; rootIndex < kMaxRootParameter; ++rootIndex) {
@@ -194,7 +197,7 @@ void DynamicDescriptorHeap::CommitDescriptorTables(NativeCommandList *pCommandLi
 
         // Bind to the Command list
         _numFreeHandles -= numDescriptors;
-        (pCommandList->*commitFunc)(static_cast<UINT>(rootIndex), _currentGPUDescriptorHandle);
+        (pCmdList->*commitFunc)(static_cast<UINT>(rootIndex), _currentGPUDescriptorHandle);
         _currentCPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),
             static_cast<UINT>(_descriptorHandleIncrementSize));
         _currentGPUDescriptorHandle.Offset(static_cast<INT>(numDescriptors),

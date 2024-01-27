@@ -15,6 +15,7 @@ struct RayGenCB {
     float       maxT;           // Max distance to start a ray to avoid self-occlusion
 	float       minT;           // Min distance to start a ray to avoid self-occlusion
     uint        maxRecursiveDepth;
+    float       backgroundNDCDepth;
 };
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
@@ -92,6 +93,11 @@ void ShadowRaygenShader() {
     float2 uv = (index + 0.5f) / DispatchRaysDimensions().xy;
     SamplerState linearClamp = gStaticSamplerState[3];
     float zNdc = gDepthTex.SampleLevel(linearClamp, uv, 0);
+    float viewSpaceDepth = ViewSpaceDepth(zNdc, gRayGenCB.zBufferParams);
+    if (zNdc == gRayGenCB.backgroundNDCDepth) {
+		gShadowDataTex[index] = SIGMA_FrontEnd_PackShadow(viewSpaceDepth, NRD_FP16_MAX, gRayGenCB.tanSunAngularRadius);
+        return;
+    }
 
     float3 direction = gRayGenCB.lightDirection;
     if (gRayGenCB.enableSoftShadow != 0) {
@@ -106,7 +112,6 @@ void ShadowRaygenShader() {
     rayDesc.TMax = gRayGenCB.maxT;
 
     RayCast(rayDesc, payload);
-    float viewSpaceDepth = ViewSpaceDepth(zNdc, gRayGenCB.zBufferParams);
     gShadowDataTex[index] = SIGMA_FrontEnd_PackShadow(viewSpaceDepth, payload.occlusionDistance, gRayGenCB.tanSunAngularRadius);
 }
 

@@ -4,6 +4,7 @@
 
 namespace dx {
 
+
 void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 #if ENABLE_RAY_TRACING
     Assert(!dispatchRaysDesc.missShaderTable.empty());
@@ -31,7 +32,7 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 
     auto AllocDescriptorTableHandle = [&]() {
         size_t staleCount = _dynamicViewDescriptorHeap.ComputeStaleDescriptorCount();
-        _dynamicViewDescriptorHeap.EnsureCapacity(_pCommandList, staleCount + handleCount);
+        _dynamicViewDescriptorHeap.EnsureCapacity(this, staleCount + handleCount);
         for (auto &&[pDescriptorHandleArray, baseHandle] : gpuDescriptorHandleMap) {
             baseHandle = _dynamicViewDescriptorHeap.CommitDescriptorHandleArray(pDescriptorHandleArray);
         }
@@ -133,8 +134,8 @@ void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
     desc.CallableShaderTable = SerializeShaderRecodeTable(dispatchRaysDesc.callShaderTable);
 
     FlushResourceBarriers();
-    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
-    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(_pCommandList);
+    _dynamicViewDescriptorHeap.CommitStagedDescriptorForDispatch(this);
+    _dynamicSampleDescriptorHeap.CommitStagedDescriptorForDispatch(this);
     _pCommandList->DispatchRays(&desc);
 #endif
 }

@@ -7,7 +7,6 @@
 struct RenderObject;
 class RenderPass : private NonCopyable {
 public:
-	virtual void OnCreate() {}
 	virtual void OnDestroy() {}
 	virtual ~RenderPass() {}
 public:
