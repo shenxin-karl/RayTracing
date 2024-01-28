@@ -69,9 +69,6 @@ void CSMain(ComputeIn cin) {
     UnpackGBuffer2(cin, emission);
 
     float shadow = GetShadow(cin);
-    gOutput[cin.DispatchThreadID.xy] = float4(shadow, shadow, shadow, 0.f);
-    //return;
-
     MaterialData materialData = CalcMaterialData(albedo.rgb, roughness, metallic);
     float3 finalColor = shadow * ComputeDirectionLight(gCbLighting.directionalLight, materialData, N, V);
     finalColor += ComputeAmbientLight(gCbLighting.ambientLight, materialData, 1.f);

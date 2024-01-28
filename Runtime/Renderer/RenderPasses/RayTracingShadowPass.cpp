@@ -141,14 +141,14 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
 
     const ShadowConfig &shadowConfig = RenderSetting::Get().GetShadowConfig();
 
-    float angularDiameter = glm::radians(static_cast<float>(shadowConfig.sunAngularDiameter));
+    float angularDiameter = glm::radians(shadowConfig.sunAngularDiameter * 0.5f);
     RayGenCB rayGenCb;
     rayGenCb.matInvViewProj = args.matInvViewProj;
     rayGenCb.lightDirection = args.lightDirection;
     rayGenCb.enableSoftShadow = angularDiameter != 0.f;
     rayGenCb.zBufferParams = args.zBufferParams;
-    rayGenCb.cosSunAngularRadius = std::cos(angularDiameter * 0.5f);
-    rayGenCb.tanSunAngularRadius = std::tan(angularDiameter * 0.5f);
+    rayGenCb.cosSunAngularRadius = std::cos(angularDiameter);
+    rayGenCb.tanSunAngularRadius = std::tan(angularDiameter);
     rayGenCb.frameCount = GameTimer::Get().GetFrameCount();
     rayGenCb.maxT = shadowConfig.rayTMax;
     rayGenCb.minT = shadowConfig.rayTMin;

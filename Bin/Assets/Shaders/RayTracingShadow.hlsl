@@ -76,7 +76,7 @@ float3 GetConeSample(inout uint randSeed, float3 hitNorm, float cosThetaMax) {
 
 void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
 	TraceRay(gScene, 
-        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_CULL_NON_OPAQUE,
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH  | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_CULL_NON_OPAQUE,
         ~0,
         0,          // RayContributionToHitGroupIndex
         1,          // MultiplierForGeometryContributionToShaderIndex
@@ -90,9 +90,9 @@ void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
 void ShadowRaygenShader() {
     ShadowRayPayload payload = { NRD_FP16_MAX, 0 };
     uint2 index = DispatchRaysIndex().xy;
-    float2 uv = (index + 0.5f) / DispatchRaysDimensions().xy;
-    SamplerState linearClamp = gStaticSamplerState[3];
-    float zNdc = gDepthTex.SampleLevel(linearClamp, uv, 0);
+    float2 uv = (float2(index) + 0.5f) / DispatchRaysDimensions().xy;
+    // SamplerState linearClamp = gStaticSamplerState[3];
+    float zNdc = gDepthTex[index.xy];
     float viewSpaceDepth = ViewSpaceDepth(zNdc, gRayGenCB.zBufferParams);
     if (zNdc == gRayGenCB.backgroundNDCDepth) {
 		gShadowDataTex[index] = SIGMA_FrontEnd_PackShadow(viewSpaceDepth, NRD_FP16_MAX, gRayGenCB.tanSunAngularRadius);

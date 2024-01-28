@@ -182,6 +182,7 @@ bool ShaderCompiler::Compile(const ShaderCompilerDesc &desc) {
     std::vector<LPCWSTR> arguments = {fileName.c_str(), L"-T", target.data()};
     std::vector<std::wstring> macros;
 
+    arguments.push_back(L"-HV 2021");
     if (type != ShaderType::eLib) {
 	    Assert(!entryPointStr.empty());
         arguments.push_back(L"-E");

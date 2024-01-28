@@ -177,7 +177,7 @@ float2 GetScreenUV(float4 clipPos) {
 float2 CalcMotionVector(float4 currentClipPos, float4 previousClipPos) {
 	float2 prevSampleUV = GetScreenUV(previousClipPos);
     float2 currSampleUV = GetScreenUV(currentClipPos);
-    float motionVector = (prevSampleUV - currSampleUV) * gCbPrePass.renderTargetSize;
+    float2 motionVector = (prevSampleUV - currSampleUV);
     return motionVector;
 }
 
