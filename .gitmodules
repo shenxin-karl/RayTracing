@@ -4,3 +4,6 @@
 [submodule "ThirdParty/RayTracingDenoiser"]
 	path = ThirdParty/RayTracingDenoiser
 	url = https://github.com/NVIDIAGameWorks/RayTracingDenoiser.git
+[submodule "ThirdParty/FidelityFX-SDK"]
+	path = ThirdParty/FidelityFX-SDK
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK.git

@@ -19,24 +19,23 @@ package("RayTracingDenoiser")
         table.insert(configs, "-DNRD_STATIC_LIBRARY=" .. (package:config("shared") and "ON" or "OFF"))
         table.insert(configs, "-DNRD_NORMAL_ENCODING=0")
         import("package.tools.cmake").install(package, configs)
-        -- os.exec(path.join(sourceDir, "3-Prepare NRD SDK.bat"));
 
         local binDir = path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser", "_Bin");
-        local linkDir = path.join(binDir, "Lib", "Release")
+        local libDir = path.join(binDir, "Release")
         if package:debug() then
-            linkDir = path.join(binDir, "Lib", "Debug")
+            libDir = path.join(binDir, "Debug")
         end
 
         local destDir = package:config("shared") and package:installdir("bin") or package:installdir("lib")
-        os.trycp(path.join(linkDir, "**.lib"), destDir)
-        os.trycp(path.join(linkDir, "**.dll"), destDir)
-        os.trycp(path.join(linkDir, "**.pdb"), destDir)
+        os.trycp(path.join(libDir, "**.lib"), destDir)
+        os.trycp(path.join(libDir, "**.dll"), destDir)
+        os.trycp(path.join(libDir, "**.pdb"), destDir)
     end)
 
     on_fetch(function (package) 
-        package:addenv("PATH", package:installdir(linkDir))
         local linkDir = package:config("shared") and package:installdir("bin") or package:installdir("lib")
         local includeDir = path.join(os.projectdir(), "ThirdParty", "RayTracingDenoiser", "Include");
+        package:addenv("PATH", package:installdir(linkDir))
         local result = {}
         result.links = { "NRD" }
         result.includedirs = { includeDir }
