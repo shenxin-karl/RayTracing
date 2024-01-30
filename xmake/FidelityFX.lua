@@ -22,8 +22,6 @@ package("FidelityFX")
         os.trycp(path.join(outputDir, "**.lib"), destDir)
         os.trycp(path.join(outputDir, "**.dll"), destDir)
         os.trycp(path.join(outputDir, "**.pdb"), destDir)
-        print("outputDir: "..outputDir)
-        print("destDir: "..destDir)
     end)
 
 

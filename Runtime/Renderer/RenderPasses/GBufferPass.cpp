@@ -52,9 +52,9 @@ void GBufferPass::OnDestroy() {
     _pipelineStateMap.clear();
 }
 
-void GBufferPass::OnResize(size_t width, size_t height) {
-    _width = width;
-    _height = height;
+void GBufferPass::OnResize(const ResolutionInfo &resolutio) {
+    _width = resolutio.renderWidth;
+    _height = resolutio.renderHeight;
 
     GfxDevice *pDevice = GfxDevice::GetInstance();
 
@@ -76,7 +76,7 @@ void GBufferPass::OnResize(size_t width, size_t height) {
     _gBufferTextures.resize(5);
 
     for (size_t i = 0; i < 5; ++i) {
-	    D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(gBufferFormats[i], width, height);
+	    D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(gBufferFormats[i], _width, _height);
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		clearValue.Format = desc.Format;
         _gBufferTextures[i] = std::make_unique<dx::Texture>();

@@ -4,8 +4,6 @@
 #include "Utils/GlobalCallbacks.h"
 
 struct PostProcessPassDrawArgs {
-	size_t width;
-	size_t height;
 	D3D12_CPU_DESCRIPTOR_HANDLE inputSRV;
 	dx::GraphicsContext *pGfxCtx;
 };

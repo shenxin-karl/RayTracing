@@ -19,9 +19,11 @@ public:
 	}
 private:
 	void BuildSkyBoxCubeMesh();
+	void BuildCubeMesh();
 private:
 	CallbackHandle						_onCreateCallbackHandle;
 	CallbackHandle						_onDestroyCallbackHandle;
 	std::shared_ptr<Mesh>				_pSkyBoxCubeMesh;
+	std::shared_ptr<Mesh>				_pCubeMesh;
 	std::shared_ptr<dx::RootSignature>	_pEmptyLocalRootSignature;
 };

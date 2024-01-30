@@ -34,7 +34,6 @@ void Pix::Free() {
 }
 
 void Pix::BeginFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
-    pDevice->WaitForGPUFlush();
     dx::ThrowIfFailed(PIXSetTargetWindow(static_cast<HWND>(pNativeWindowHandle)));
 
     PIXCaptureParameters captureParameters = {};
@@ -48,7 +47,6 @@ void Pix::BeginFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
 }
 
 void Pix::EndFrameCapture(void *pNativeWindowHandle, dx::Device *pDevice) {
-    pDevice->WaitForGPUFlush();
     while(PIXEndCapture(false) == E_PENDING) {
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }

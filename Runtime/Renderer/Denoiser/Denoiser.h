@@ -5,6 +5,7 @@
 #include "NRD.h"
 #include "NRDSettings.h"
 #include "Foundation/NonCopyable.h"
+#include "Renderer/RenderUtils/ResolutionInfo.hpp"
 
 namespace dx {
 class Texture;
@@ -28,7 +29,7 @@ public:
     void OnDestroy();
     void SetCommonSetting(const nrd::CommonSettings &settings);
     void ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc);
-    void OnResize(size_t width, size_t height);
+    void OnResize(const ResolutionInfo &resolution);
     void SetTexture(nrd::ResourceType slot, dx::Texture *pTexture);
 private:
     std::unique_ptr<NrdIntegrationD3D12> _pNrd;

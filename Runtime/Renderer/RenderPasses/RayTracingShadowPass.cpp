@@ -85,11 +85,11 @@ auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HAND
     return _shadowMaskSRV.GetCpuHandle();
 }
 
-void RayTracingShadowPass::OnResize(size_t width, size_t height) {
+void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
     _pShadowMaskTex->OnDestroy();
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, width, height);
+    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, resolution.renderWidth, resolution.renderHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     _pShadowMaskTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
 
@@ -106,7 +106,7 @@ void RayTracingShadowPass::OnResize(size_t width, size_t height) {
     device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
 
     _pShadowDataTex->OnDestroy();
-    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, width, height);
+    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, resolution.renderWidth, resolution.renderHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
     if (_shadowDataUAV.IsNull()) {

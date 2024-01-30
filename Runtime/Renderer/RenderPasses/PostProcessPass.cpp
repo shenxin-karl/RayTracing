@@ -35,9 +35,6 @@ void PostProcessPass::OnDestroy() {
 
 void PostProcessPass::Draw(const PostProcessPassDrawArgs &args) {
     UserMarker userMarker(args.pGfxCtx, "PostProcessPass");
-    Assert(args.width > 0);
-    Assert(args.height > 0);
-
     args.pGfxCtx->SetGraphicsRootSignature(&_rootSignature);
     args.pGfxCtx->SetPipelineState(_pPipelineState.Get());
     args.pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

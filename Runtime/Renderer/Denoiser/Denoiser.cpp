@@ -55,8 +55,8 @@ void Denoiser::ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc) {
     _pNrd->Denoise(&identifier, 1, denoiseDesc.pComputeContext, userPool);
 }
 
-void Denoiser::OnResize(size_t width, size_t height) {
-    _pNrd->Resize(width, height);
+void Denoiser::OnResize(const ResolutionInfo &resolution) {
+    _pNrd->Resize(resolution.renderWidth, resolution.renderHeight);
 }
 
 void Denoiser::SetTexture(nrd::ResourceType slot, dx::Texture *pTexture) {

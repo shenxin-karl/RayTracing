@@ -106,9 +106,11 @@ void SoftShadow::OnRender(GameTimer &timer) {
 
 void SoftShadow::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
-    _pGBufferPass->OnResize(width, height);
-    _pRayTracingShadowPass->OnResize(width, height);
-    _pDenoiser->OnResize(width, height);
+    ResolutionInfo resolutionInfo = {width, height, width, height};
+
+    _pGBufferPass->OnResize(resolutionInfo);
+    _pRayTracingShadowPass->OnResize(resolutionInfo);
+    _pDenoiser->OnResize(resolutionInfo);
     RecreateWindowSizeDependentResources();
 }
 
@@ -219,8 +221,6 @@ void SoftShadow::RenderFrame() {
     pGfxCxt->SetScissor(scissor);
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {};
-    postProcessPassDrawArgs.width = _width;
-    postProcessPassDrawArgs.height = _height;
     postProcessPassDrawArgs.inputSRV = _renderTargetSRV.GetCpuHandle();
     postProcessPassDrawArgs.pGfxCtx = pGfxCxt.get();
     _pPostProcessPass->Draw(postProcessPassDrawArgs);

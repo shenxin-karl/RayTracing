@@ -42,7 +42,7 @@ public:
     };
     void GenerateShadowMap(const DrawArgs &args);
     auto GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE;
-    void OnResize(size_t width, size_t height);
+    void OnResize(const ResolutionInfo &resolution) override;
 private:
     void GenerateShadowData(const DrawArgs &args);
     void ShadowDenoise(const DrawArgs &args);

@@ -13,8 +13,8 @@ BuildInResource::BuildInResource() {
 
 void BuildInResource::OnCreate() {
 	BuildSkyBoxCubeMesh();
-
-#if !ENABLE_D3D_11
+	BuildCubeMesh();
+#if ENABLE_RAY_TRACING
 	_pEmptyLocalRootSignature = std::make_shared<dx::RootSignature>();
 	_pEmptyLocalRootSignature->OnCreate(0);
 	_pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(), D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
@@ -52,4 +52,22 @@ void BuildInResource::BuildSkyBoxCubeMesh() {
 
 	_pSkyBoxCubeMesh->SetVertices(skyBoxVertices);
 	_pSkyBoxCubeMesh->UploadMeshData();
+}
+
+void BuildInResource::BuildCubeMesh() {
+
+	struct CubeVertex {
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec4 tangent;
+		glm::vec2 uv0;
+	};
+
+	CubeVertex vertices[] = {
+
+	};
+
+	_pCubeMesh = std::make_shared<Mesh>();
+	_pCubeMesh->SetName("BuildInResource::CubeMesh");
+
 }
