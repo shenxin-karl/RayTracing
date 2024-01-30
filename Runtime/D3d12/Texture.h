@@ -37,6 +37,9 @@ public:
     auto GetResource() const -> ID3D12Resource * {
         return _pResource.Get();
     }
+    auto GetFlags() const -> D3D12_RESOURCE_FLAGS {
+	    return _textureDesc.Flags;
+    }
 private:
     // clang-format off
     std::string                         _name;

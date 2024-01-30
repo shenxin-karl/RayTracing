@@ -1,6 +1,5 @@
 #pragma once
 #include <FidelityFX/host/ffx_fsr2.h>
-
 #include "D3d12/Context.h"
 #include "Foundation/NonCopyable.h"
 #include "Renderer/RenderUtils/ResolutionInfo.hpp"
@@ -72,15 +71,19 @@ public:
     auto GetResolutionInfo(size_t width, size_t height) const -> ResolutionInfo;
     void GetJitterOffset(const ResolutionInfo &resolution, float &jitterX, float &jitterY) const;
 private:
+    static void FfxMsgCallback(FfxMsgType type, const wchar_t *pMsg);
+    void DestroyContext();
+    void CreateContext(const ResolutionInfo &resolution);
+private:
     // clang-format off
-    FSR2ScalePreset             _scalePreset;
-    float                       _upscaleRatio;
-    float                       _mipBias;
-    float                       _sharpness;
-    uint32_t                    _jitterIndex;
-    bool                        _useMask;
-    bool                        _RCASSharpen;
-    FfxFsr2ContextDescription   _contextDest;
-    FfxFsr2Context              _context;
+    FSR2ScalePreset                 _scalePreset;
+    float                           _upscaleRatio;
+    float                           _mipBias;
+    float                           _sharpness;
+    uint32_t                        _jitterIndex;
+    bool                            _useMask;
+    bool                            _RCASSharpen;
+    FfxFsr2ContextDescription       _contextDest;
+    std::unique_ptr<FfxFsr2Context> _pContext;
     // clang-format on
 };
