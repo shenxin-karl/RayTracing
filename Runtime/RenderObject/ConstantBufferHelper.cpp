@@ -10,25 +10,17 @@
 
 namespace cbuffer {
 
-auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
-    if (pCameraGO->GetComponent<Camera>() == nullptr) {
-        Exception::Throw("the pCameraGo not Camera Component!");
-    }
-
-    const Camera *pCamera = pCameraGO->GetComponent<Camera>();
-    const Transform *pTransform = pCameraGO->GetTransform();
-    glm::quat rotation = pTransform->GetWorldRotation();
-
-    CbPrePass cbuffer;
-    cbuffer.matView = pCamera->GetViewMatrix();
-    cbuffer.matInvView = pCamera->GetInverseViewMatrix();
-    cbuffer.matProj = pCamera->GetProjectionMatrix();
-    cbuffer.matInvProj = pCamera->GetInverseProjectionMatrix();
-    cbuffer.matViewProj = pCamera->GetViewProjectionMatrix();
-    cbuffer.matInvViewProj = pCamera->GetInverseViewProjectionMatrix();
-    cbuffer.matPrevViewProj = pCamera->GetPreviousViewProjectionMatrix();
-    cbuffer.nearClip = pCamera->GetNearClip();
-    cbuffer.farClip = pCamera->GetFarClip();
+auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pPreviousCameraState) -> CbPrePass {
+    CbPrePass cbuffer = {};
+    cbuffer.matView = pCurrentCameraState->matView;
+    cbuffer.matInvView = pCurrentCameraState->matInvView;
+    cbuffer.matProj = pCurrentCameraState->matProj;
+    cbuffer.matInvProj = pCurrentCameraState->matInvProj;
+    cbuffer.matViewProj = pCurrentCameraState->matViewProj;
+    cbuffer.matInvViewProj = pCurrentCameraState->matInvViewProj;
+    cbuffer.matPrevViewProj = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matViewProj : cbuffer.matViewProj;
+    cbuffer.nearClip = pCurrentCameraState->zNear;
+    cbuffer.farClip = pCurrentCameraState->zFar;
 
     if (RenderSetting::Get().GetReversedZ()) {
         cbuffer.zBufferParams.x = -1.0 + cbuffer.farClip / cbuffer.nearClip;
@@ -43,12 +35,14 @@ auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass {
     glm::vec3 right;
     glm::vec3 up;
     glm::vec3 forward;
+    glm::quat rotation = glm::quat_cast(cbuffer.matView);
     glm::Quaternion2BasisAxis(rotation, right, up, forward);
 
-    cbuffer.cameraPos = pTransform->GetWorldPosition();
+    glm::vec3 cameraPos = -glm::vec3(cbuffer.matView[3][0], cbuffer.matView[3][1], cbuffer.matView[3][2]);
+    cbuffer.cameraPos = cameraPos;
     cbuffer.cameraLookUp = up;
     cbuffer.cameraLookAt = forward;
-    cbuffer.renderTargetSize = {pCamera->GetScreenWidth(), pCamera->GetScreenHeight()};
+    cbuffer.renderTargetSize = {pCurrentCameraState->screenWidth, pCurrentCameraState->screenHeight};
     cbuffer.invRenderTargetSize = 1.f / cbuffer.renderTargetSize;
 
     cbuffer.totalTime = GameTimer::Get().GetTotalTime();
@@ -80,11 +74,6 @@ auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting {
     cbuffer.ambientLight.color = renderSetting.GetAmbientColor();
     cbuffer.ambientLight.intensity = renderSetting.GetAmbientIntensity();
     return cbuffer;
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO) {
-    CbPrePass cbuffer = MakeCbPrePass(pCameraGO);
-    return pContext->AllocConstantBuffer(cbuffer);
 }
 
 }    // namespace cbuffer

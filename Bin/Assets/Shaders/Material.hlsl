@@ -2,7 +2,6 @@
 #include "CbPrePass.hlsli"
 #include "CbPreObject.hlsli"
 #include "CookTorrance.hlsli"
-#include "NormalUtil.hlsli"
 #include "DepthUtil.hlsli"
 
 #include "NRDEncoding.hlsli"
@@ -100,7 +99,7 @@ VertexOut VSMain(VertexIn vin) {
         vout.uv0 = vin.uv0 * gCbMaterial.tilingAndOffset.xy + gCbMaterial.tilingAndOffset.zw;
     #endif
     #if GENERATE_MOTION_VECTOR
-		vout.currentClipPos = mul(gCbPrePass.matViewProj, worldPosition);
+		vout.currentClipPos = vout.SVPosition;
 		vout.previousClipPos = mul(gCbPrePass.matPrevViewProj, mul(gCbPreObject.gPrevMatWorld, localPosition));
 	#endif
     return vout;
@@ -116,7 +115,8 @@ float4 GetAlbedo(VertexOut pin) {
 	float4 sampleColor = (float4)1.0;
 	#if ENABLE_ALBEDO_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
-        sampleColor = gTextureList[NonUniformResourceIndex(gCbMaterial.albedoTexIndex)].Sample(samplerState, pin.uv0);
+        uint textureIndex = NonUniformResourceIndex(gCbMaterial.albedoTexIndex);
+        sampleColor = gTextureList[textureIndex].SampleBias(samplerState, pin.uv0, gCbPrePass.mipBias);
 		albedo *= sampleColor;
 	#endif
 
@@ -132,7 +132,8 @@ float2 GetMetallicAndRoughness(VertexOut pin) {
     float roughness = gCbMaterial.roughness;
 	#if ENABLE_METAL_ROUGHNESS_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
-        float2 sampleTexture = gTextureList[NonUniformResourceIndex(gCbMaterial.metalRoughnessTexIndex)].Sample(samplerState, pin.uv0).rg;
+        uint textureIndex = NonUniformResourceIndex(gCbMaterial.metalRoughnessTexIndex);
+        float2 sampleTexture = gTextureList[textureIndex].SampleBias(samplerState, pin.uv0, gCbPrePass.mipBias).rg;
         metallic *= sampleTexture.r;
 		roughness *= sampleTexture.g;
 	#endif
@@ -143,7 +144,8 @@ float3 GetNormal(VertexOut pin) {
     float3 N = normalize(float3(pin.normal.xy * gCbMaterial.normalScale, pin.normal.z));
 	#if ENABLE_NORMAL_TEX
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
-		float3 sampleNormal = gTextureList[NonUniformResourceIndex(gCbMaterial.normalTexIndex)].Sample(samplerState, pin.uv0);
+        uint textureIndex = NonUniformResourceIndex(gCbMaterial.normalTexIndex);
+		float3 sampleNormal = gTextureList[textureIndex].SampleBias(samplerState, pin.uv0, gCbPrePass.mipBias);
 		sampleNormal = sampleNormal * 2.f - 1.f;
         float3 T = normalize(pin.tangent);
         float3 B = cross(N, T);
@@ -156,7 +158,8 @@ float GetAmbientOcclusion(VertexOut pin) {
     float ao = 1.0;
     #if ENABLE_AMBIENT_OCCLUSION_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
-        ao *= gTextureList[NonUniformResourceIndex(gCbMaterial.ambientOcclusionTexIndex)].Sample(samplerState, pin.uv0).r;
+        uint textureIndex = NonUniformResourceIndex(gCbMaterial.ambientOcclusionTexIndex);
+        ao *= gTextureList[textureIndex].SampleBias(samplerState, pin.uv0, gCbPrePass.mipBias).r;
     #endif
     return ao;
 }
@@ -165,7 +168,8 @@ float3 GetEmission(VertexOut pin) {
 	float3 emission = gCbMaterial.emission;
 	#if ENABLE_EMISSION_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
-		emission += gTextureList[NonUniformResourceIndex(gCbMaterial.emissionTexIndex)].Sample(samplerState, pin.uv0).rgb;
+        uint textureIndex = NonUniformResourceIndex(gCbMaterial.emissionTexIndex);
+		emission += gTextureList[textureIndex].SampleBias(samplerState, pin.uv0, gCbPrePass.mipBias).rgb;
 	#endif
     return emission;
 }

@@ -4,6 +4,8 @@
 #include "Foundation/NonCopyable.h"
 #include "Renderer/RenderUtils/ResolutionInfo.hpp"
 
+struct CameraState;
+
 namespace dx {
 class Texture;
 }
@@ -28,13 +30,15 @@ public:
 
     struct FSR2ExecuteDesc {
         // clang-format off
-        dx::ComputeContext *pComputeContext = nullptr;
-        dx::Texture *pColorTex              = nullptr;        // 
-        dx::Texture *pDepthTex              = nullptr;        // d32f+
-        dx::Texture *pMotionVectorTex       = nullptr;        // rg16f+
-        //(optional)
-        dx::Texture *pExposureTex           = nullptr;
-        dx::Texture *pOutputTex             = nullptr;
+        dx::ComputeContext  *pComputeContext        = nullptr;
+        const CameraState   *pCameraState           = nullptr;
+        dx::Texture         *pColorTex              = nullptr;        
+        dx::Texture         *pDepthTex              = nullptr;        // d32f+
+        dx::Texture         *pMotionVectorTex       = nullptr;        // rg16f+
+        dx::Texture         *pExposureTex           = nullptr;        // optional
+        dx::Texture         *pReactiveMaskTex       = nullptr;        // optional
+        dx::Texture         *pCompositionMaskTex    = nullptr;        // optional
+        dx::Texture         *pOutputTex             = nullptr;
         // clang-format on
     };
 public:
@@ -69,7 +73,7 @@ public:
         return _useMask;
     }
     auto GetResolutionInfo(size_t width, size_t height) const -> ResolutionInfo;
-    void GetJitterOffset(const ResolutionInfo &resolution, float &jitterX, float &jitterY) const;
+    void GetJitterOffset(float &jitterX, float &jitterY) const;
 private:
     static void FfxMsgCallback(FfxMsgType type, const wchar_t *pMsg);
     void DestroyContext();
@@ -80,9 +84,11 @@ private:
     float                           _upscaleRatio;
     float                           _mipBias;
     float                           _sharpness;
-    uint32_t                        _jitterIndex;
     bool                            _useMask;
     bool                            _RCASSharpen;
+    FSR2MaskMode                    _maskMode;
+    uint32_t                        _jitterIndex;
+    uint32_t                        _jitterPhaseCount;
     FfxFsr2ContextDescription       _contextDest;
     std::unique_ptr<FfxFsr2Context> _pContext;
     // clang-format on

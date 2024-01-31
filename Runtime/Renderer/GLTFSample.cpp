@@ -53,7 +53,9 @@ void GLTFSample::OnDestroy() {
 void GLTFSample::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    _cbPrePass = cbuffer::MakeCbPrePass(_pCameraGO);
+    CameraState cameraState;
+    cameraState.Update(_pCameraGO->GetComponent<Camera>());
+    _cbPrePass = cbuffer::MakeCbPrePass(&cameraState);
     _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();

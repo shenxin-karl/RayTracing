@@ -159,7 +159,7 @@ constexpr auto GetTypelessDepthTextureSRVFormat(DXGI_FORMAT format) -> DXGI_FORM
     case DXGI_FORMAT_R16_TYPELESS:
         return DXGI_FORMAT_R16_UNORM;
     default:
-        Assert(false);
+        Assert(IsDepthTextureFormat(format) && "Cannot convert typeless to Depth Format");
         return format;
     }
 }

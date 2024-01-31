@@ -1,4 +1,5 @@
 #pragma once
+#include "Components/Camera.h"
 #include "D3d12/Context.h"
 #include "Foundation/GlmStd.hpp"
 #include "D3d12/D3dStd.h"
@@ -27,12 +28,13 @@ struct alignas(kAlignment) CbPrePass {
 	glm::mat4x4 matViewProj;
 	glm::mat4x4 matInvViewProj;
 	glm::mat4x4 matPrevViewProj;
+
 	glm::vec3   cameraPos;
 	float		nearClip;
 	glm::vec3	cameraLookUp;
 	float		farClip;
 	glm::vec3	cameraLookAt;
-	float		padding0;
+	float		mipBias;
 
 	glm::vec2	renderTargetSize;
 	glm::vec2	invRenderTargetSize;
@@ -80,9 +82,7 @@ struct CbLighting {
 
 // clang-format on
 
-auto MakeCbPrePass(const GameObject *pCameraGO) -> CbPrePass;
+auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pPreviousCameraState = nullptr) -> CbPrePass;
 auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting;
-
-D3D12_GPU_VIRTUAL_ADDRESS AllocPrePassCBuffer(dx::Context *pContext, const GameObject *pCameraGO);
 
 }    // namespace cbuffer

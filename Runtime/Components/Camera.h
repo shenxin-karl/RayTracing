@@ -27,9 +27,6 @@ public:
 	auto GetInverseViewProjectionMatrix() const -> const glm::mat4x4 & {
 		return _matInvViewProj;
 	}
-	auto GetPreviousViewProjectionMatrix() const -> const glm::mat4x4 & {
-		return _matPrevViewProj;
-	}
 	auto GetNearClip() const -> float {
 		return _zNear;
 	}
@@ -68,7 +65,6 @@ private:
 	glm::mat4x4		_matInvView;
 	glm::mat4x4		_matInvProj;
 	glm::mat4x4		_matInvViewProj;
-	glm::mat4x4		_matPrevViewProj;
 	CallbackHandle	_resizeCallbackHandle;
     // clang-format on
 };
@@ -87,5 +83,5 @@ struct CameraState {
 	glm::mat4x4		matInvProj;
 	glm::mat4x4		matInvViewProj;
 public:
-	void Update(const Camera *pCamera);
+	void Update(const Camera *pCamera, float jitterX = 0.f, float jitterY = 0.f);
 };

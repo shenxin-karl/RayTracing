@@ -67,9 +67,6 @@ void SoftShadow::OnUpdate(GameTimer &timer) {
 void SoftShadow::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    _cbPrePass = cbuffer::MakeCbPrePass(_pCameraGO);
-    _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
-
     Camera *pCamera = _pCameraGO->GetComponent<Camera>();
     if (_pPreviousCameraState == nullptr) {
         _pPreviousCameraState = std::make_unique<CameraState>();
@@ -80,6 +77,13 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
         *_pPreviousCameraState = *_pCurrentCameraState;
         _pCurrentCameraState->Update(pCamera);
     }
+
+    _cbPrePass = cbuffer::MakeCbPrePass(_pCurrentCameraState.get(), _pPreviousCameraState.get());
+
+    // todo
+    _cbPrePass.mipBias = 0.f;
+
+    _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     pRenderObjectMgr->ClassifyRenderObjects(_pCameraGO->GetTransform()->GetWorldPosition());
@@ -326,45 +330,25 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     if (_renderTargetRTV.IsNull()) {
         _renderTargetRTV = _pDevice->AllocDescriptor<dx::RTV>(1);
     }
-    D3D12_RENDER_TARGET_VIEW_DESC renderTextureRtv = {};
-    renderTextureRtv.Format = pGfxDevice->GetRenderTargetFormat();
-    renderTextureRtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-    renderTextureRtv.Texture2D.MipSlice = 0;
-    renderTextureRtv.Texture2D.PlaneSlice = 0;
-    device->CreateRenderTargetView(_renderTargetTex.GetResource(), &renderTextureRtv, _renderTargetRTV.GetCpuHandle());
+    device->CreateRenderTargetView(_renderTargetTex.GetResource(), nullptr, _renderTargetRTV.GetCpuHandle());
 
     if (_renderTargetSRV.IsNull()) {
         _renderTargetSRV = _pDevice->AllocDescriptor<dx::SRV>(1);
     }
-    D3D12_SHADER_RESOURCE_VIEW_DESC renderTextureSrv = {};
-    renderTextureSrv.Format = pGfxDevice->GetRenderTargetFormat();
-    renderTextureSrv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    renderTextureSrv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    renderTextureSrv.Texture2D.MostDetailedMip = 0;
-    renderTextureSrv.Texture2D.MipLevels = 1;
-    renderTextureSrv.Texture2D.PlaneSlice = 0;
-    renderTextureSrv.Texture2D.ResourceMinLODClamp = 0.f;
-    device->CreateShaderResourceView(_renderTargetTex.GetResource(),
-        &renderTextureSrv,
-        _renderTargetSRV.GetCpuHandle());
+    device->CreateShaderResourceView(_renderTargetTex.GetResource(), nullptr, _renderTargetSRV.GetCpuHandle());
 
     if (_renderTargetUAV.IsNull()) {
         _renderTargetUAV = _pDevice->AllocDescriptor<dx::UAV>(1);
     }
-    D3D12_UNORDERED_ACCESS_VIEW_DESC renderTextureUav = {};
-    renderTextureUav.Format = _renderTargetTex.GetFormat();
-    renderTextureUav.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    renderTextureUav.Texture2D.MipSlice = 0;
-    renderTextureUav.Texture2D.PlaneSlice = 0;
     device->CreateUnorderedAccessView(_renderTargetTex.GetResource(),
         nullptr,
-        &renderTextureUav,
+        nullptr,
         _renderTargetUAV.GetCpuHandle());
 
     // recreate depth stencil
     _depthStencilTex.OnDestroy();
     D3D12_RESOURCE_DESC depthStencilDesc = renderTargetDesc;
-    depthStencilDesc.Format = dx::GetTypelessFormat(pGfxDevice->GetDepthStencilFormat());
+    depthStencilDesc.Format = dx::GetTypelessDepthTextureDSVFormat(pGfxDevice->GetDepthStencilFormat());
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     D3D12_CLEAR_VALUE depthStencilClearValue = {};
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();

@@ -2,19 +2,25 @@
 #include <limits>
 #include <cmath>
 #include <FidelityFX/host/backends/dx12/ffx_dx12.h>
+
+#include "Components/Camera.h"
 #include "D3d12/Device.h"
 #include "D3d12/Texture.h"
+#include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/UserMarker.h"
 
 FSR2Integration::FSR2Integration()
     : _scalePreset(),
       _mipBias(0),
       _sharpness(0),
-      _jitterIndex(0),
       _useMask(false),
       _RCASSharpen(false),
+      _maskMode(FSR2MaskMode::Disabled),
+      _jitterIndex(0),
+      _jitterPhaseCount(0),
       _contextDest() {
     SetScalePreset(FSR2ScalePreset::Quality);
 }
@@ -43,6 +49,7 @@ void FSR2Integration::OnDestroy() {
 void FSR2Integration::OnResize(const ResolutionInfo &resolution) {
     DestroyContext();
     CreateContext(resolution);
+    _jitterPhaseCount = ffxFsr2GetJitterPhaseCount(resolution.renderWidth, resolution.displayWidth);
 }
 
 static FfxSurfaceFormat ConvertToFfxFormat(DXGI_FORMAT format) {
@@ -98,7 +105,8 @@ static FfxResource ConvertFfxResource(const dx::Texture *pTexture, std::wstring_
         ffxResource.description.usage = FFX_RESOURCE_USAGE_UAV;
     }
     if (flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) {
-        ffxResource.description.format = ConvertToFfxFormat(dx::GetTypelessDepthTextureSRVFormat(pTexture->GetFormat()));
+        ffxResource.description.format = ConvertToFfxFormat(
+            dx::GetTypelessDepthTextureSRVFormat(pTexture->GetFormat()));
         ffxResource.description.usage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ffxResource.state = FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ;
@@ -109,6 +117,8 @@ static FfxResource ConvertFfxResource(const dx::Texture *pTexture, std::wstring_
 
 void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dx::ComputeContext *pComputeContext = desc.pComputeContext;
+    UserMarker userMarker(pComputeContext, "FSR2");
+
     Assert(desc.pDepthTex->GetFormat() == DXGI_FORMAT_R32_TYPELESS);
 
     FfxFsr2DispatchDescription dispatchParameters = {};
@@ -124,12 +134,55 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dispatchParameters.motionVectors = ConvertFfxResource(desc.pMotionVectorTex, L"FSR2_Input_MotionVectors");
 
     if (desc.pExposureTex != nullptr) {
-	    pComputeContext->Transition(desc.pExposureTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		dispatchParameters.exposure = ConvertFfxResource(desc.pExposureTex, L"FSR2_InputExposure");
+        pComputeContext->Transition(desc.pExposureTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchParameters.exposure = ConvertFfxResource(desc.pExposureTex, L"FSR2_InputExposure");
     }
 
     pComputeContext->Transition(desc.pOutputTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     dispatchParameters.output = ConvertFfxResource(desc.pOutputTex, L"FSR2_Output");
+
+    if (_maskMode != FSR2MaskMode::Disabled) {
+        pComputeContext->Transition(desc.pReactiveMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchParameters.reactive = ConvertFfxResource(desc.pReactiveMaskTex, L"FSR2_InputReactiveMap");
+    }
+    if (_useMask) {
+        pComputeContext->Transition(desc.pCompositionMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchParameters.transparencyAndComposition = ConvertFfxResource(desc.pCompositionMaskTex,
+            L"FSR2_TransparencyAndCompositionMap");
+    }
+
+    float jitterX, jitterY;
+    GetJitterOffset(jitterX, jitterY);
+    dispatchParameters.jitterOffset.x = jitterX;
+    dispatchParameters.jitterOffset.y = jitterY;
+    dispatchParameters.motionVectorScale.x = desc.pColorTex->GetWidth();
+    dispatchParameters.motionVectorScale.y = desc.pColorTex->GetHeight();
+    dispatchParameters.reset = false;
+    dispatchParameters.enableSharpening = _RCASSharpen;
+    dispatchParameters.sharpness = _sharpness;
+
+    // Cauldron keeps time in seconds, but FSR expects miliseconds
+    dispatchParameters.frameTimeDelta = GameTimer::Get().GetDeltaTime() * 1000.f;
+
+    dispatchParameters.preExposure = RenderSetting::Get().GetExposure();
+    dispatchParameters.renderSize.width = desc.pColorTex->GetWidth();
+    dispatchParameters.renderSize.height = desc.pColorTex->GetHeight();
+
+    // Setup camera params as required
+    dispatchParameters.cameraFovAngleVertical = glm::radians(desc.pCameraState->fov);
+    if (RenderSetting::Get().GetReversedZ()) {
+        dispatchParameters.cameraFar = desc.pCameraState->zNear;
+        dispatchParameters.cameraNear = FLT_MAX;
+    } else {
+	    dispatchParameters.cameraFar = desc.pCameraState->zFar;
+        dispatchParameters.cameraNear = desc.pCameraState->zNear;
+    }
+
+    FfxErrorCode errorCode = ffxFsr2ContextDispatch(_pContext.get(), &dispatchParameters);
+    FFX_ASSERT(errorCode == FFX_OK);
+
+    // FSR2 会修改 DescriptorHeaps. 重新绑定自己的
+    pComputeContext->BindDescriptorHeaps();
 }
 
 static float CalculateMipBias(float upscalerRatio) {
@@ -167,9 +220,8 @@ auto FSR2Integration::GetResolutionInfo(size_t width, size_t height) const -> Re
     return resolution;
 }
 
-void FSR2Integration::GetJitterOffset(const ResolutionInfo &resolution, float &jitterX, float &jitterY) const {
-    const int32_t jitterPhaseCount = ffxFsr2GetJitterPhaseCount(resolution.renderWidth, resolution.displayWidth);
-    ffxFsr2GetJitterOffset(&jitterX, &jitterY, _jitterIndex, jitterPhaseCount);
+void FSR2Integration::GetJitterOffset(float &jitterX, float &jitterY) const {
+    ffxFsr2GetJitterOffset(&jitterX, &jitterY, _jitterIndex, _jitterPhaseCount);
 }
 
 void FSR2Integration::FfxMsgCallback(FfxMsgType type, const wchar_t *pMsg) {
