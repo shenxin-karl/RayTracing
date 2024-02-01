@@ -82,6 +82,8 @@ struct CameraState {
 	glm::mat4x4		matInvView;
 	glm::mat4x4		matInvProj;
 	glm::mat4x4		matInvViewProj;
+	glm::mat4x4		matJitterViewProj;
+	glm::mat4x4		matInvJitterViewProj;
 public:
 	void Update(const Camera *pCamera, float jitterX = 0.f, float jitterY = 0.f);
 };

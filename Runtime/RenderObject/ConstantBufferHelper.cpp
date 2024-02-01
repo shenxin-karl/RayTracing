@@ -18,7 +18,13 @@ auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pP
     cbuffer.matInvProj = pCurrentCameraState->matInvProj;
     cbuffer.matViewProj = pCurrentCameraState->matViewProj;
     cbuffer.matInvViewProj = pCurrentCameraState->matInvViewProj;
-    cbuffer.matPrevViewProj = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matViewProj : cbuffer.matViewProj;
+
+    cbuffer.matViewProjPrev = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matViewProj : cbuffer.matViewProj;
+    cbuffer.matJitterViewProjPrev = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matJitterViewProj : cbuffer.matJitterViewProj;
+
+    cbuffer.matJitterViewProj = pCurrentCameraState->matJitterViewProj;
+    cbuffer.matInvJitterViewProj = pCurrentCameraState->matInvJitterViewProj;
+
     cbuffer.nearClip = pCurrentCameraState->zNear;
     cbuffer.farClip = pCurrentCameraState->zFar;
 
@@ -45,8 +51,8 @@ auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pP
     cbuffer.renderTargetSize = {pCurrentCameraState->screenWidth, pCurrentCameraState->screenHeight};
     cbuffer.invRenderTargetSize = 1.f / cbuffer.renderTargetSize;
 
-    cbuffer.totalTime = GameTimer::Get().GetTotalTime();
-    cbuffer.deltaTime = GameTimer::Get().GetDeltaTime();
+    cbuffer.totalTime = GameTimer::Get().GetTotalTimeS();
+    cbuffer.deltaTime = GameTimer::Get().GetDeltaTimeS();
     return cbuffer;
 }
 

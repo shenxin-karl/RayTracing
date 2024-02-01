@@ -98,13 +98,10 @@ target("RayTracing")
 
     add_packages("RayTracingDenoiser")
     add_headerfiles("ThirdParty/RayTracingDenoiser/Include/**.h")
-    add_headerfiles("ThirdParty/RayTracingDenoiser/Source/**.c")
-    add_headerfiles("ThirdParty/RayTracingDenoiser/Source/**.cpp")
 
     add_packages("FidelityFX")
+    add_defines("FFX_FSR=1")
     add_headerfiles("ThirdParty/FidelityFX-SDK/sdk/include/**.h")
-    add_headerfiles("ThirdParty/FidelityFX-SDK/sdk/src/**.c")
-    add_headerfiles("ThirdParty/FidelityFX-SDK/sdk/src/**.cpp")
 
     set_targetdir(BINARY_DIR)
 

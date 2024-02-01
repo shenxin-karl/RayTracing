@@ -8,9 +8,9 @@ void GameTimer::Reset() {
     _baseTime = stdchrono::steady_clock::now();
     _prevTime = _baseTime;
     _stopped = false;
-    _deltaTime = 0.f;
-    _totalTime = 0.f;
-    _pausedTime = 0.f;
+    _deltaTime = {};
+    _totalTime = {};
+    _pausedTime = {};
     _prevFrameTimes = 30;
     _currFameTimes = 0;
     _nextTime = std::chrono::system_clock::to_time_t(stdchrono::system_clock::now()) + 1;
@@ -25,15 +25,14 @@ void GameTimer::Start() {
     _stopped = false;
     auto currentTime = stdchrono::steady_clock::now();
     _prevTime = currentTime;
-    stdchrono::duration<float> diff = currentTime - _stoppedTime;
-    _pausedTime += diff.count();
+    _pausedTime += currentTime - _stoppedTime;
 }
 
 void GameTimer::Stop() {
     if (_stopped)
         return;
 
-    _deltaTime = 0.f;
+    _deltaTime = {};
     _stopped = true;
     _stoppedTime = stdchrono::steady_clock::now();
 }
@@ -43,11 +42,9 @@ void GameTimer::StartNewFrame() {
         return;
 
     auto currentTime = stdchrono::steady_clock::now();
-    stdchrono::duration<float> diff = currentTime - _prevTime;
+    _deltaTime = currentTime - _prevTime;
+    _totalTime = currentTime - _pausedTime;
     _prevTime = currentTime;
-    _deltaTime = diff.count();
-    diff = currentTime - _baseTime;
-    _totalTime = diff.count() - _pausedTime;
     ++_currFameTimes;
     ++_frameCount;
     time_t sysTime = stdchrono::system_clock::to_time_t(stdchrono::system_clock::now());
@@ -60,12 +57,20 @@ void GameTimer::StartNewFrame() {
     }
 }
 
-float GameTimer::GetTotalTime() const {
-    return _totalTime;
+float GameTimer::GetTotalTimeMS() const {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(_totalTime).count();
 }
 
-float GameTimer::GetDeltaTime() const {
-    return _deltaTime;
+float GameTimer::GetDeltaTimeMS() const {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(_deltaTime).count();
+}
+
+auto GameTimer::GetTotalTimeS() const -> float {
+    return GetTotalTimeMS() * (1.f / 1000.f);
+}
+
+auto GameTimer::GetDeltaTimeS() const -> float {
+    return GetDeltaTimeMS() * (1.f / 1000.f);
 }
 
 std::uint32_t GameTimer::GetFPS() const {

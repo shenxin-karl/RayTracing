@@ -98,14 +98,14 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);
     _sceneConstantBuffer.lightAmbientColor = glm::vec4(0.1f);
     _sceneConstantBuffer.lightDiffuseColor = glm::vec4(0.9f);
-    _sceneConstantBuffer.time = timer.GetTotalTime();
+    _sceneConstantBuffer.time = timer.GetTotalTimeMS();
 }
 
 void SimpleLighting::OnRender(GameTimer &timer) {
     static uint64_t frameCount = 0;
-    if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
+    if (static_cast<uint64_t>(timer.GetTotalTimeMS()) > frameCount) {
         Logger::Info("fps {}", timer.GetFPS());
-        frameCount = static_cast<uint64_t>(timer.GetTotalTime());
+        frameCount = static_cast<uint64_t>(timer.GetTotalTimeMS());
     }
 
     bool beginCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
@@ -143,8 +143,8 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         dispatchRaysDesc.missShaderTable.push_back(dx::ShaderRecode(pMissShaderIdentifier));
 
         CubeConstantBuffer cbuffer;
-        cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTime()) * 0.5 + 0.5f, std::cos(timer.GetTotalTime()) * 0.5 + 0.5f, 1.f, 1.f);
-        cbuffer.noiseTile = (std::sin(timer.GetTotalTime() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
+        cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTimeMS()) * 0.5 + 0.5f, std::cos(timer.GetTotalTimeMS()) * 0.5 + 0.5f, 1.f, 1.f);
+        cbuffer.noiseTile = (std::sin(timer.GetTotalTimeMS() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
         auto cubeCB = pGraphicsCtx->AllocConstantBuffer(cbuffer);
 
         dx::ShaderRecode hitGroupShaderRecode(pHitGroupShaderIdentifier, &_closestLocalRootSignature);

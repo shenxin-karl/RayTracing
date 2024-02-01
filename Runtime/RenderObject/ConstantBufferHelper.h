@@ -12,38 +12,52 @@ namespace cbuffer {
 
 constexpr size_t kAlignment = sizeof(glm::vec4);
 
+using float4x4 = glm::mat4x4;
+using float4 = glm::vec4;
+using float3 = glm::vec3;
+using float2 = glm::vec2;
+
 // clang-format off
 struct alignas(kAlignment) CbPreObject {
-	glm::mat4x4 matWorld;
-	glm::mat4x4 matInvWorld;
-	glm::mat4x4 matNormal;
-	glm::mat4x4 matPrevWorld;
+    float4x4 matWorld;
+    float4x4 matInvWorld;
+    float4x4 matNormal;
+    float4x4 matWorldPrev;     
 };
 
 struct alignas(kAlignment) CbPrePass {
-	glm::mat4x4 matView;
-	glm::mat4x4 matInvView;
-	glm::mat4x4 matProj;
-	glm::mat4x4 matInvProj;
-	glm::mat4x4 matViewProj;
-	glm::mat4x4 matInvViewProj;
-	glm::mat4x4 matPrevViewProj;
+	float4x4 matView;
+	float4x4 matInvView;
+	float4x4 matProj;
+	float4x4 matInvProj;
+	float4x4 matViewProj;
+	float4x4 matInvViewProj;
 
-	glm::vec3   cameraPos;
-	float		nearClip;
-	glm::vec3	cameraLookUp;
-	float		farClip;
-	glm::vec3	cameraLookAt;
-	float		mipBias;
+	// previous frame matrix
+	float4x4 matViewProjPrev;
+	float4x4 matJitterViewProjPrev;
 
-	glm::vec2	renderTargetSize;
-	glm::vec2	invRenderTargetSize;
+	// current frame jitter matrix
+	float4x4 matJitterViewProj;
+	float4x4 matInvJitterViewProj;
 
-	float		totalTime;
-	float		deltaTime;
-	glm::vec2	padding1;
+	float3   cameraPos;
+	float	 nearClip;
+    float3   cameraLookUp;
+	float	 farClip;
+	float3   cameraLookAt;
+    float	 mipBias;
 
-	glm::vec4   zBufferParams;
+    // RenderTarget
+	float2   renderTargetSize;
+	float2   invRenderTargetSize;
+
+    /// time
+	float	totalTime;
+	float	deltaTime;
+	float2	padding1;
+
+	float4  zBufferParams;
 };
 
 

@@ -128,8 +128,6 @@ void GLTFSample::RenderFrame(GameTimer &timer) {
     pGfxCxt->SetScissor(scissor);
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {
-        _width,
-        _height,
         _renderTextureSRV.GetCpuHandle(),
         pGfxCxt.get(),
     };

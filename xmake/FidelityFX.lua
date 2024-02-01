@@ -8,10 +8,10 @@ package("FidelityFX")
 
         local configs = {}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
-        table.insert(configs, "-DNRD_STATIC_LIBRARY=" .. (package:config("shared") and "ON" or "OFF"))
         table.insert(configs, "-DFFX_API_CUSTOM=1")
         table.insert(configs, "-DFFX_API_DX12=1")
-        table.insert(configs, "-DFFX_FSR2=1")           
+        table.insert(configs, "-DFFX_FSR=1")     
+        table.insert(configs, "-DFFX_FSR2=1")      
         table.insert(configs, "-DBIN_OUTPUT="..path.join(package:buildir(), "bin"))
         import("package.tools.cmake").install(package, configs)
         -- copy lib

@@ -55,9 +55,9 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     Renderer::OnRender(timer);
 
     static uint64_t frameCount = 0;
-    if (static_cast<uint64_t>(timer.GetTotalTime()) > frameCount) {
+    if (static_cast<uint64_t>(timer.GetTotalTimeMS()) > frameCount) {
         Logger::Info("fps {}", timer.GetFPS());
-        frameCount = static_cast<uint64_t>(timer.GetTotalTime());
+        frameCount = static_cast<uint64_t>(timer.GetTotalTimeMS());
     }
 
     InputSystem *pInputSystem = InputSystem::GetInstance();

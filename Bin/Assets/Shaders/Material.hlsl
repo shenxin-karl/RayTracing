@@ -84,12 +84,12 @@ Texture2D<float4>               gTextureList[]          : register(t0);
 VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
     float4 localPosition = float4(vin.position, 1.0);
-    float4 worldPosition = mul(gCbPreObject.gMatWorld, localPosition);
-    vout.SVPosition = mul(gCbPrePass.matViewProj, worldPosition);
+    float4 worldPosition = mul(gCbPreObject.matWorld, localPosition);
+    vout.SVPosition = mul(gCbPrePass.matJitterViewProjPrev, worldPosition);
     vout.position = worldPosition.xyz;
-    vout.normal = mul((float3x3)gCbPreObject.gMatNormal, vin.normal);
+    vout.normal = mul((float3x3)gCbPreObject.matNormal, vin.normal);
     #if ENABLE_NORMAL_TEX
-        vout.tangent.xyz = mul((float3x3)gCbPreObject.gMatWorld, vin.tangent.xyz);
+        vout.tangent.xyz = mul((float3x3)gCbPreObject.matWorld, vin.tangent.xyz);
         vout.tangent *= vin.tangent.w;
     #endif
     #if ENABLE_VERTEX_COLOR
@@ -100,7 +100,7 @@ VertexOut VSMain(VertexIn vin) {
     #endif
     #if GENERATE_MOTION_VECTOR
 		vout.currentClipPos = vout.SVPosition;
-		vout.previousClipPos = mul(gCbPrePass.matPrevViewProj, mul(gCbPreObject.gPrevMatWorld, localPosition));
+		vout.previousClipPos = mul(gCbPrePass.matJitterViewProjPrev, mul(gCbPreObject.matWorldPrev, localPosition));
 	#endif
     return vout;
 }

@@ -8,6 +8,7 @@
 #include "D3d12/Texture.h"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
+#include "Foundation/StringUtil.h"
 #include "Renderer/GfxDevice.h"
 #include "Renderer/RenderSetting.h"
 #include "Renderer/RenderUtils/UserMarker.h"
@@ -17,10 +18,11 @@ FSR2Integration::FSR2Integration()
       _mipBias(0),
       _sharpness(0),
       _useMask(false),
-      _RCASSharpen(false),
+      _RCASSharpen(true),
       _maskMode(FSR2MaskMode::Disabled),
       _jitterIndex(0),
       _jitterPhaseCount(0),
+      _resolutionInfo(),
       _contextDest() {
     SetScalePreset(FSR2ScalePreset::Quality);
 }
@@ -28,7 +30,7 @@ FSR2Integration::FSR2Integration()
 void FSR2Integration::OnCreate() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     size_t scratchBufferSize = ffxGetScratchMemorySizeDX12(FFX_FSR2_CONTEXT_COUNT);
-    void *pScratchBuffer = new std::byte[scratchBufferSize];
+    void *pScratchBuffer = std::malloc(scratchBufferSize);
     FfxDevice ffxDevice = ffxGetDeviceDX12(pGfxDevice->GetDevice()->GetNativeDevice());
     FfxErrorCode errorCode = ffxGetInterfaceDX12(&_contextDest.backendInterface,
         ffxDevice,
@@ -41,7 +43,7 @@ void FSR2Integration::OnCreate() {
 void FSR2Integration::OnDestroy() {
     DestroyContext();
     if (_contextDest.backendInterface.scratchBuffer != nullptr) {
-        delete[] _contextDest.backendInterface.scratchBuffer;
+        std::free(_contextDest.backendInterface.scratchBuffer);
         _contextDest.backendInterface.scratchBuffer = nullptr;
     }
 }
@@ -50,6 +52,8 @@ void FSR2Integration::OnResize(const ResolutionInfo &resolution) {
     DestroyContext();
     CreateContext(resolution);
     _jitterPhaseCount = ffxFsr2GetJitterPhaseCount(resolution.renderWidth, resolution.displayWidth);
+    _jitterIndex = 0;
+    _resolutionInfo = resolution;
 }
 
 static FfxSurfaceFormat ConvertToFfxFormat(DXGI_FORMAT format) {
@@ -119,34 +123,36 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dx::ComputeContext *pComputeContext = desc.pComputeContext;
     UserMarker userMarker(pComputeContext, "FSR2");
 
-    Assert(desc.pDepthTex->GetFormat() == DXGI_FORMAT_R32_TYPELESS);
+    Assert(desc.pDepthTex->GetFormat() == DXGI_FORMAT_D32_FLOAT);
 
     FfxFsr2DispatchDescription dispatchParameters = {};
     dispatchParameters.commandList = ffxGetCommandListDX12(pComputeContext->GetCommandList());
 
-    pComputeContext->Transition(desc.pColorTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    D3D12_RESOURCE_STATES computeRead = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+                                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    pComputeContext->Transition(desc.pColorTex->GetResource(), computeRead);
     dispatchParameters.color = ConvertFfxResource(desc.pColorTex, L"FSR2_Input_Color");
 
-    pComputeContext->Transition(desc.pDepthTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->Transition(desc.pDepthTex->GetResource(), computeRead);
     dispatchParameters.depth = ConvertFfxResource(desc.pDepthTex, L"FSR2_InputDepth");
 
-    pComputeContext->Transition(desc.pMotionVectorTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->Transition(desc.pMotionVectorTex->GetResource(), computeRead);
     dispatchParameters.motionVectors = ConvertFfxResource(desc.pMotionVectorTex, L"FSR2_Input_MotionVectors");
 
     if (desc.pExposureTex != nullptr) {
-        pComputeContext->Transition(desc.pExposureTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        pComputeContext->Transition(desc.pExposureTex->GetResource(), computeRead);
         dispatchParameters.exposure = ConvertFfxResource(desc.pExposureTex, L"FSR2_InputExposure");
     }
 
-    pComputeContext->Transition(desc.pOutputTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pComputeContext->Transition(desc.pOutputTex->GetResource(), computeRead);
     dispatchParameters.output = ConvertFfxResource(desc.pOutputTex, L"FSR2_Output");
 
     if (_maskMode != FSR2MaskMode::Disabled) {
-        pComputeContext->Transition(desc.pReactiveMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        pComputeContext->Transition(desc.pReactiveMaskTex->GetResource(), computeRead);
         dispatchParameters.reactive = ConvertFfxResource(desc.pReactiveMaskTex, L"FSR2_InputReactiveMap");
     }
     if (_useMask) {
-        pComputeContext->Transition(desc.pCompositionMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        pComputeContext->Transition(desc.pCompositionMaskTex->GetResource(), computeRead);
         dispatchParameters.transparencyAndComposition = ConvertFfxResource(desc.pCompositionMaskTex,
             L"FSR2_TransparencyAndCompositionMap");
     }
@@ -155,18 +161,18 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     GetJitterOffset(jitterX, jitterY);
     dispatchParameters.jitterOffset.x = jitterX;
     dispatchParameters.jitterOffset.y = jitterY;
-    dispatchParameters.motionVectorScale.x = desc.pColorTex->GetWidth();
-    dispatchParameters.motionVectorScale.y = desc.pColorTex->GetHeight();
+    dispatchParameters.motionVectorScale.x = _resolutionInfo.renderWidth;
+    dispatchParameters.motionVectorScale.y = _resolutionInfo.renderHeight;
     dispatchParameters.reset = false;
     dispatchParameters.enableSharpening = _RCASSharpen;
     dispatchParameters.sharpness = _sharpness;
 
     // Cauldron keeps time in seconds, but FSR expects miliseconds
-    dispatchParameters.frameTimeDelta = GameTimer::Get().GetDeltaTime() * 1000.f;
+    dispatchParameters.frameTimeDelta = GameTimer::Get().GetDeltaTimeMS();
 
     dispatchParameters.preExposure = RenderSetting::Get().GetExposure();
-    dispatchParameters.renderSize.width = desc.pColorTex->GetWidth();
-    dispatchParameters.renderSize.height = desc.pColorTex->GetHeight();
+    dispatchParameters.renderSize.width = _resolutionInfo.renderWidth;
+    dispatchParameters.renderSize.height = _resolutionInfo.renderHeight;
 
     // Setup camera params as required
     dispatchParameters.cameraFovAngleVertical = glm::radians(desc.pCameraState->fov);
@@ -174,15 +180,17 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
         dispatchParameters.cameraFar = desc.pCameraState->zNear;
         dispatchParameters.cameraNear = FLT_MAX;
     } else {
-	    dispatchParameters.cameraFar = desc.pCameraState->zFar;
+        dispatchParameters.cameraFar = desc.pCameraState->zFar;
         dispatchParameters.cameraNear = desc.pCameraState->zNear;
     }
 
+    pComputeContext->FlushResourceBarriers();
     FfxErrorCode errorCode = ffxFsr2ContextDispatch(_pContext.get(), &dispatchParameters);
     FFX_ASSERT(errorCode == FFX_OK);
 
     // FSR2 会修改 DescriptorHeaps. 重新绑定自己的
     pComputeContext->BindDescriptorHeaps();
+    ++_jitterIndex;
 }
 
 static float CalculateMipBias(float upscalerRatio) {
@@ -225,10 +233,11 @@ void FSR2Integration::GetJitterOffset(float &jitterX, float &jitterY) const {
 }
 
 void FSR2Integration::FfxMsgCallback(FfxMsgType type, const wchar_t *pMsg) {
+    std::string msg = nstd::to_string(pMsg);
     if (type == FFX_MESSAGE_TYPE_ERROR) {
-        Logger::Error("FSR2_API_DEBUG_ERROR: {}", pMsg);
+        Logger::Error("FSR2_API_DEBUG_ERROR: {}", msg);
     } else if (type == FFX_MESSAGE_TYPE_WARNING) {
-        Logger::Warning("FSR2_API_DEBUG_WARNING: {}", pMsg);
+        Logger::Warning("FSR2_API_DEBUG_WARNING: {}", msg);
     }
 }
 

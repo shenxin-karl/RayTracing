@@ -111,7 +111,7 @@ void CameraController::OnPostUpdate() {
         glm::vec3 forward = {};
         glm::Quaternion2BasisAxis(rotation, right, up, forward);
 
-        float moveStep = GameTimer::Get().GetDeltaTime() * cameraMoveSpeed * acceleratedSpeed;
+        float moveStep = GameTimer::Get().GetDeltaTimeS() * cameraMoveSpeed * acceleratedSpeed;
         glm::vec3 offsetX = right * deviation;
         glm::vec3 offsetY = up * elevationRise;
         glm::vec3 offsetZ = forward * advance;

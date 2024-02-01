@@ -59,6 +59,7 @@ void Camera::OnPreRender() {
     [[maybe_unused]] glm::vec3 scale;
     pTransform->GetWorldTRS(lookForm, lookQuat, scale);
 
+    [[maybe_unused]]
     auto &&[x, y, z] = glm::Quaternion2BasisAxis(lookQuat);
 
     glm::mat4x4 rotationMatrix = glm::mat4_cast(lookQuat);
@@ -95,12 +96,16 @@ void CameraState::Update(const Camera *pCamera, float jitterX, float jitterY) {
 	matProj = pCamera->_matProj;
 	matInvView = pCamera->_matInvView;
 	matInvProj = pCamera->_matInvProj;
+
+    matViewProj = pCamera->_matViewProj;
+    matInvViewProj = pCamera->_matInvViewProj;
+
     glm::vec3 jitterVec = {
         jitterX * +2.0f / screenWidth,
         jitterY * -2.0f / screenHeight,
         0.f
     };
     glm::mat4x4 jitterMatrix = glm::translate(glm::identity<glm::mat4>(), jitterVec);
-    matViewProj = jitterMatrix * pCamera->_matViewProj;
-    matInvViewProj = glm::inverse(matViewProj);
+    matJitterViewProj = jitterMatrix * pCamera->_matViewProj;
+    matInvJitterViewProj = glm::inverse(matJitterViewProj);
 }

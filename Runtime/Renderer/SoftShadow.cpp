@@ -30,6 +30,7 @@
 #include "imgui.h"
 #include "Denoiser/Denoiser.h"
 #include "Foundation/GameTimer.h"
+#include "FSR2/FSR2Integration.h"
 #include "RenderUtils/GUI.h"
 
 SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
@@ -54,6 +55,7 @@ void SoftShadow::OnDestroy() {
     _pSkyBoxPass->OnDestroy();
     _pRayTracingShadowPass->OnDestroy();
     _pDenoiser->OnDestroy();
+    _pFsr2Pass->OnDestroy();
     _renderTargetRTV.Release();
     _depthStencilDSV.Release();
     _renderTargetTex.OnDestroy();
@@ -74,14 +76,14 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
         _pCurrentCameraState->Update(pCamera);
         *_pPreviousCameraState = *_pCurrentCameraState;
     } else {
+        float jitterX, jitterY;
+        _pFsr2Pass->GetJitterOffset(jitterX, jitterY);
         *_pPreviousCameraState = *_pCurrentCameraState;
-        _pCurrentCameraState->Update(pCamera);
+        _pCurrentCameraState->Update(pCamera, jitterX, jitterY);
     }
 
     _cbPrePass = cbuffer::MakeCbPrePass(_pCurrentCameraState.get(), _pPreviousCameraState.get());
-
-    // todo
-    _cbPrePass.mipBias = 0.f;
+    _cbPrePass.mipBias = _pFsr2Pass->GetMipMapBias();
 
     _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
 
@@ -110,11 +112,12 @@ void SoftShadow::OnRender(GameTimer &timer) {
 
 void SoftShadow::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
-    ResolutionInfo resolutionInfo = {width, height, width, height};
+    ResolutionInfo resolutionInfo = _pFsr2Pass->GetResolutionInfo(width, height);
 
     _pGBufferPass->OnResize(resolutionInfo);
     _pRayTracingShadowPass->OnResize(resolutionInfo);
     _pDenoiser->OnResize(resolutionInfo);
+    _pFsr2Pass->OnResize(resolutionInfo);
     RecreateWindowSizeDependentResources();
 }
 
@@ -125,20 +128,22 @@ void SoftShadow::PrepareFrame() {
     D3D12_GPU_VIRTUAL_ADDRESS cbPrePass = pGfxCxt->AllocConstantBuffer(_cbPrePass);
     D3D12_GPU_VIRTUAL_ADDRESS cbLighting = pGfxCxt->AllocConstantBuffer(_cbLighting);
 
+    ResolutionInfo resolution = _pFsr2Pass->GetResolutionInfo(_width, _height);
+
     nrd::CommonSettings denoiseCommandSetting = {};
     constexpr size_t kMatrixSize = sizeof(float) * 16;
     std::memcpy(denoiseCommandSetting.viewToClipMatrix, value_ptr(_pCurrentCameraState->matProj), kMatrixSize);
     std::memcpy(denoiseCommandSetting.viewToClipMatrixPrev, value_ptr(_pPreviousCameraState->matProj), kMatrixSize);
     std::memcpy(denoiseCommandSetting.worldToViewMatrix, value_ptr(_pCurrentCameraState->matView), kMatrixSize);
     std::memcpy(denoiseCommandSetting.worldToViewMatrixPrev, value_ptr(_pPreviousCameraState->matView), kMatrixSize);
-    denoiseCommandSetting.resourceSize[0] = static_cast<uint16_t>(_width);
-    denoiseCommandSetting.resourceSize[1] = static_cast<uint16_t>(_height);
-    denoiseCommandSetting.resourceSizePrev[0] = static_cast<uint16_t>(_width);
-    denoiseCommandSetting.resourceSizePrev[1] = static_cast<uint16_t>(_height);
-    denoiseCommandSetting.rectSize[0] = static_cast<uint16_t>(_width);
-    denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(_height);
-    denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(_width);
-    denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(_height);
+    denoiseCommandSetting.resourceSize[0] = static_cast<uint16_t>(resolution.renderWidth);
+    denoiseCommandSetting.resourceSize[1] = static_cast<uint16_t>(resolution.renderHeight);
+    denoiseCommandSetting.resourceSizePrev[0] = static_cast<uint16_t>(resolution.renderWidth);
+    denoiseCommandSetting.resourceSizePrev[1] = static_cast<uint16_t>(resolution.renderHeight);
+    denoiseCommandSetting.rectSize[0] = static_cast<uint16_t>(resolution.renderWidth);
+    denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(resolution.renderHeight);
+    denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(resolution.renderWidth);
+    denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(resolution.renderHeight);
     denoiseCommandSetting.frameIndex = GameTimer::Get().GetFrameCount();
     denoiseCommandSetting.isBaseColorMetalnessAvailable = true;
     _pDenoiser->SetCommonSetting(denoiseCommandSetting);
@@ -208,6 +213,15 @@ void SoftShadow::PrepareFrame() {
     skyBoxDrawArgs.pGfxCtx = pGfxCxt.get();
     _pSkyBoxPass->Draw(skyBoxDrawArgs);
 
+    FSR2Integration::FSR2ExecuteDesc fsr2ExecuteDesc = {};
+    fsr2ExecuteDesc.pComputeContext = pGfxCxt.get();
+    fsr2ExecuteDesc.pCameraState = _pCurrentCameraState.get();
+    fsr2ExecuteDesc.pColorTex = &_renderTargetTex;
+    fsr2ExecuteDesc.pDepthTex = &_depthStencilTex;
+    fsr2ExecuteDesc.pMotionVectorTex = _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex);
+    fsr2ExecuteDesc.pOutputTex = &_renderTargetTex;
+    _pFsr2Pass->Execute(fsr2ExecuteDesc);
+
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pFrameResource.ExecuteContexts(pGfxCxt.get());
 }
@@ -239,6 +253,7 @@ void SoftShadow::CreateRenderPass() {
     _pSkyBoxPass = std::make_unique<SkyBoxPass>();
     _pRayTracingShadowPass = std::make_unique<RayTracingShadowPass>();
     _pDenoiser = std::make_unique<Denoiser>();
+    _pFsr2Pass = std::make_unique<FSR2Integration>();
 
     _pGBufferPass->OnCreate();
     _pPostProcessPass->OnCreate();
@@ -246,6 +261,7 @@ void SoftShadow::CreateRenderPass() {
     _pSkyBoxPass->OnCreate(GfxDevice::GetInstance()->GetRenderTargetFormat());
     _pRayTracingShadowPass->OnCreate();
     _pDenoiser->OnCreate();
+    _pFsr2Pass->OnCreate();
 }
 
 void SoftShadow::CreateScene() {
@@ -348,7 +364,7 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     // recreate depth stencil
     _depthStencilTex.OnDestroy();
     D3D12_RESOURCE_DESC depthStencilDesc = renderTargetDesc;
-    depthStencilDesc.Format = dx::GetTypelessDepthTextureDSVFormat(pGfxDevice->GetDepthStencilFormat());
+    depthStencilDesc.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     D3D12_CLEAR_VALUE depthStencilClearValue = {};
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();

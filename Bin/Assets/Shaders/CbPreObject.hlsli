@@ -2,10 +2,10 @@
 #define __OBJECT_CB_HLSLI__
 
 struct CBPreObject {
-    float4x4 gMatWorld;
-    float4x4 gMatInvWorld;
-    float4x4 gMatNormal;
-    float4x4 gPrevMatWorld;     // generate motion vector
+    float4x4 matWorld;
+    float4x4 matInvWorld;
+    float4x4 matNormal;
+    float4x4 matWorldPrev;     
 };
 
 #endif

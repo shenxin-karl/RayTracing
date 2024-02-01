@@ -98,7 +98,7 @@ void MeshRenderer::CommitRenderObject() {
     }
 
 	cbuffer::CbPreObject &cbPreObject = _renderData.renderObject.cbPreObject;
-    cbPreObject.matPrevWorld = cbPreObject.matWorld;
+    cbPreObject.matWorldPrev = cbPreObject.matWorld;
     if (pTransform->ThisFrameChanged()) {
         cbPreObject.matWorld = pTransform->GetWorldMatrix();
         cbPreObject.matInvWorld = inverse(cbPreObject.matWorld);

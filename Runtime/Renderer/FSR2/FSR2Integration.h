@@ -89,6 +89,7 @@ private:
     FSR2MaskMode                    _maskMode;
     uint32_t                        _jitterIndex;
     uint32_t                        _jitterPhaseCount;
+    ResolutionInfo                  _resolutionInfo;
     FfxFsr2ContextDescription       _contextDest;
     std::unique_ptr<FfxFsr2Context> _pContext;
     // clang-format on

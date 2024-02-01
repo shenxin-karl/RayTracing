@@ -9,7 +9,14 @@ struct CBPrePass {
 	float4x4 matInvProj;
 	float4x4 matViewProj;
 	float4x4 matInvViewProj;
-	float4x4 matPrevViewProj;
+
+	// previous frame matrix
+	float4x4 matViewProjPrev;
+	float4x4 matJitterViewProjPrev;
+
+	// current frame jitter matrix
+	float4x4 matJitterViewProj;
+	float4x4 matInvJitterViewProj;
 
 	float3   cameraPos;
 	float	 nearClip;

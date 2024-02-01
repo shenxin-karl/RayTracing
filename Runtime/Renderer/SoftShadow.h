@@ -4,6 +4,7 @@
 #include "D3d12/Texture.h"
 #include "RenderObject/ConstantBufferHelper.h"
 
+class FSR2Integration;
 class Denoiser;
 class RayTracingShadowPass;
 class SkyBoxPass;
@@ -63,4 +64,5 @@ private:
 	std::unique_ptr<SkyBoxPass>				_pSkyBoxPass;
 	std::unique_ptr<RayTracingShadowPass>	_pRayTracingShadowPass;
 	std::unique_ptr<Denoiser>				_pDenoiser;
+	std::unique_ptr<FSR2Integration> _pFsr2Pass;
 };
