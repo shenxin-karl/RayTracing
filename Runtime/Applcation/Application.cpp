@@ -165,7 +165,7 @@ void Application::OnPostRender(GameTimer &timer) {
 }
 
 void Application::OnResize(uint32_t width, uint32_t height) {
-    GlobalCallbacks::Get().OnResize.Invoke(width, height);
     GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
+    GlobalCallbacks::Get().OnResize.Invoke(width, height);
     _pRenderer->OnResize(width, height);
 }

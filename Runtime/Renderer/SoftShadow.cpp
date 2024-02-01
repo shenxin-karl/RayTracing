@@ -79,7 +79,7 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
         float jitterX, jitterY;
         _pFsr2Pass->GetJitterOffset(jitterX, jitterY);
         *_pPreviousCameraState = *_pCurrentCameraState;
-        _pCurrentCameraState->Update(pCamera, jitterX, jitterY);
+        _pCurrentCameraState->Update(pCamera, glm::vec2(jitterX, jitterY));
     }
 
     _cbPrePass = cbuffer::MakeCbPrePass(_pCurrentCameraState.get(), _pPreviousCameraState.get());
@@ -167,6 +167,7 @@ void SoftShadow::PrepareFrame() {
         _pGBufferPass->GetGBufferTexture(GBufferPass::eAlbedoMetallicTex));
     _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, _pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex));
 
+#if ENABLE_RAY_TRACING
     // shadow map
     SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
     RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
@@ -179,6 +180,7 @@ void SoftShadow::PrepareFrame() {
     shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
     shadowPassDrawArgs.pDenoiser = _pDenoiser.get();
     _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
+#endif
 
     // deferred lighting pass
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

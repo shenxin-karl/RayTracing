@@ -32,6 +32,7 @@ void RayTracingShadowPass::OnCreate() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     _pShadowMaskTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowMaskTex");
     _pShadowDataTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowDataTex");
+#if ENABLE_RAY_TRACING
 
     _pGlobalRootSignature = std::make_unique<dx::RootSignature>();
     _pGlobalRootSignature->OnCreate(3, 6);
@@ -64,21 +65,26 @@ void RayTracingShadowPass::OnCreate() {
 
     _buildRenderSettingUiHandle = GlobalCallbacks::Get().OnBuildRenderSettingGUI.Register(this,
         &RayTracingShadowPass::BuildRenderSettingUI);
+#endif
 }
 
 void RayTracingShadowPass::OnDestroy() {
+#if ENABLE_RAY_TRACING
     RenderPass::OnDestroy();
     _pShadowDataTex = nullptr;
     _pShadowDataTex = nullptr;
     _pGlobalRootSignature = nullptr;
     _pAlphaTestLocalRootSignature = nullptr;
     _pRayTracingPSO = nullptr;
+#endif
 }
 
 void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
+#if ENABLE_RAY_TRACING
     UserMarker userMarker(args.pComputeContext, "GenerateShadowMaskMap");
     GenerateShadowData(args);
     ShadowDenoise(args);
+#endif
 }
 
 auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HANDLE {

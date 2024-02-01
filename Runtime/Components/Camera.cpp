@@ -33,7 +33,7 @@ void Camera::OnAddToScene() {
     Component::OnAddToScene();
     auto it = std::ranges::find(sAvailableCameras, this);
     if (it == sAvailableCameras.end()) {
-	    sAvailableCameras.push_back(this);
+        sAvailableCameras.push_back(this);
     }
     _resizeCallbackHandle = GlobalCallbacks::Get().OnResize.Register(this, &Camera::OnResize);
 }
@@ -42,14 +42,14 @@ void Camera::OnRemoveFormScene() {
     Component::OnRemoveFormScene();
     auto it = std::ranges::find(sAvailableCameras, this);
     if (it != sAvailableCameras.end()) {
-	    sAvailableCameras.erase(it);
+        sAvailableCameras.erase(it);
     }
     _resizeCallbackHandle.Release();
 }
 
 void Camera::OnPreRender() {
     Component::OnPreRender();
-	Transform *pTransform = GetGameObject()->GetTransform();
+    Transform *pTransform = GetGameObject()->GetTransform();
     if (pTransform == nullptr) {
         return;
     }
@@ -59,17 +59,16 @@ void Camera::OnPreRender() {
     [[maybe_unused]] glm::vec3 scale;
     pTransform->GetWorldTRS(lookForm, lookQuat, scale);
 
-    [[maybe_unused]]
-    auto &&[x, y, z] = glm::Quaternion2BasisAxis(lookQuat);
+    [[maybe_unused]] auto &&[x, y, z] = glm::Quaternion2BasisAxis(lookQuat);
 
     glm::mat4x4 rotationMatrix = glm::mat4_cast(lookQuat);
     glm::mat4x4 translationMatrix = glm::translate(rotationMatrix, -lookForm);
     _matView = translationMatrix;
 
     if (RenderSetting::Get().GetReversedZ()) {
-		_matProj = glm::perspective(glm::radians(_fov), _aspect, _zFar, _zNear);
+        _matProj = glm::perspective(glm::radians(_fov), _aspect, _zFar, _zNear);
     } else {
-		_matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
+        _matProj = glm::perspective(glm::radians(_fov), _aspect, _zNear, _zFar);
     }
 
     _matViewProj = _matProj * _matView;
@@ -85,27 +84,26 @@ void Camera::OnResize(size_t width, size_t height) {
     _screenHeight = static_cast<float>(height);
 }
 
-void CameraState::Update(const Camera *pCamera, float jitterX, float jitterY) {
-	aspect = pCamera->_aspect;
-	zNear = pCamera->_zNear;
-	zFar = pCamera->_zFar;
-	fov = pCamera->_fov;
-	screenWidth = pCamera->_screenWidth;
-	screenHeight = pCamera->_screenHeight;
-	matView = pCamera->_matView;
-	matProj = pCamera->_matProj;
-	matInvView = pCamera->_matInvView;
-	matInvProj = pCamera->_matInvProj;
+void CameraState::Update(const Camera *pCamera, glm::vec2 jitterOffset) {
+    aspect = pCamera->_aspect;
+    zNear = pCamera->_zNear;
+    zFar = pCamera->_zFar;
+    fov = pCamera->_fov;
+    screenWidth = pCamera->_screenWidth;
+    screenHeight = pCamera->_screenHeight;
+    matView = pCamera->_matView;
+    matProj = pCamera->_matProj;
+    matInvView = pCamera->_matInvView;
+    matInvProj = pCamera->_matInvProj;
 
     matViewProj = pCamera->_matViewProj;
     matInvViewProj = pCamera->_matInvViewProj;
-
-    glm::vec3 jitterVec = {
-        jitterX * +2.0f / screenWidth,
-        jitterY * -2.0f / screenHeight,
-        0.f
+    viewportJitter = {
+        jitterOffset.x * +2.0f / screenWidth,
+        jitterOffset.y * -2.0f / screenHeight,
     };
-    glm::mat4x4 jitterMatrix = glm::translate(glm::identity<glm::mat4>(), jitterVec);
+
+    glm::mat4x4 jitterMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(viewportJitter, 0.f));
     matJitterViewProj = jitterMatrix * pCamera->_matViewProj;
     matInvJitterViewProj = glm::inverse(matJitterViewProj);
 }

@@ -85,7 +85,7 @@ VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
     float4 localPosition = float4(vin.position, 1.0);
     float4 worldPosition = mul(gCbPreObject.matWorld, localPosition);
-    vout.SVPosition = mul(gCbPrePass.matJitterViewProjPrev, worldPosition);
+    vout.SVPosition = mul(gCbPrePass.matJitterViewProj, worldPosition);
     vout.position = worldPosition.xyz;
     vout.normal = mul((float3x3)gCbPreObject.matNormal, vin.normal);
     #if ENABLE_NORMAL_TEX
@@ -100,7 +100,7 @@ VertexOut VSMain(VertexIn vin) {
     #endif
     #if GENERATE_MOTION_VECTOR
 		vout.currentClipPos = vout.SVPosition;
-		vout.previousClipPos = mul(gCbPrePass.matJitterViewProjPrev, mul(gCbPreObject.matWorldPrev, localPosition));
+		vout.previousClipPos = mul(gCbPrePass.matViewProjPrev, mul(gCbPreObject.matWorldPrev, localPosition));
 	#endif
     return vout;
 }
@@ -165,7 +165,7 @@ float GetAmbientOcclusion(VertexOut pin) {
 }
 
 float3 GetEmission(VertexOut pin) {
-	float3 emission = gCbMaterial.emission;
+	float3 emission = gCbMaterial.emission.rgb;
 	#if ENABLE_EMISSION_TEXTURE
 		SamplerState samplerState = gStaticSamplerState[NonUniformResourceIndex(gCbMaterial.samplerStateIndex)];
         uint textureIndex = NonUniformResourceIndex(gCbMaterial.emissionTexIndex);
@@ -174,14 +174,12 @@ float3 GetEmission(VertexOut pin) {
     return emission;
 }
 
-float2 GetScreenUV(float4 clipPos) {
-	return (clipPos.xy / clipPos.w) * float2(+0.5, -0.5) + 0.5;
-}
-
 float2 CalcMotionVector(float4 currentClipPos, float4 previousClipPos) {
-	float2 prevSampleUV = GetScreenUV(previousClipPos);
-    float2 currSampleUV = GetScreenUV(currentClipPos);
-    float2 motionVector = (prevSampleUV - currSampleUV);
+    // current clip pos is jittered
+    float2 currNDC = (currentClipPos.xy / currentClipPos.w) - gCbPrePass.currViewportJitter;
+    float2 prevNDC = (previousClipPos.xy / previousClipPos.w);
+	float2 motionVector = prevNDC - currNDC;
+    motionVector *= float2(+0.5f, -0.5f);
     return motionVector;
 }
 

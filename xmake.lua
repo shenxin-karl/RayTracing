@@ -92,7 +92,6 @@ target("RayTracing")
     add_packages("renderdoc")
     add_headerfiles("ThirdParty/renderdoc/inc/**.h")
 
-    add_defines("USE_PIX=1")
     add_packages("pix")
     add_headerfiles("ThirdParty/WinPixEventRuntime/Include/WinPixEventRuntime/**.h")
 
@@ -100,7 +99,6 @@ target("RayTracing")
     add_headerfiles("ThirdParty/RayTracingDenoiser/Include/**.h")
 
     add_packages("FidelityFX")
-    add_defines("FFX_FSR=1")
     add_headerfiles("ThirdParty/FidelityFX-SDK/sdk/include/**.h")
 
     set_targetdir(BINARY_DIR)

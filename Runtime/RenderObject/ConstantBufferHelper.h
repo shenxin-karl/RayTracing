@@ -41,6 +41,9 @@ struct alignas(kAlignment) CbPrePass {
 	float4x4 matJitterViewProj;
 	float4x4 matInvJitterViewProj;
 
+	float2   currViewportJitter;
+	float2   prevViewportJitter;
+
 	float3   cameraPos;
 	float	 nearClip;
     float3   cameraLookUp;

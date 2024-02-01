@@ -63,7 +63,7 @@ void BuildInResource::BuildCubeMesh() {
 		glm::vec2 uv0;
 	};
 
-	CubeVertex vertices[] = {
+	[[maybe_unused]] CubeVertex vertices[] = {
 
 	};
 

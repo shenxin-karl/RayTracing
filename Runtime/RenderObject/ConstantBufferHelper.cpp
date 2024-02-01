@@ -11,6 +11,10 @@
 namespace cbuffer {
 
 auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pPreviousCameraState) -> CbPrePass {
+    if (pPreviousCameraState == nullptr) {
+	    pPreviousCameraState = pCurrentCameraState;
+    }
+
     CbPrePass cbuffer = {};
     cbuffer.matView = pCurrentCameraState->matView;
     cbuffer.matInvView = pCurrentCameraState->matInvView;
@@ -19,11 +23,14 @@ auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pP
     cbuffer.matViewProj = pCurrentCameraState->matViewProj;
     cbuffer.matInvViewProj = pCurrentCameraState->matInvViewProj;
 
-    cbuffer.matViewProjPrev = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matViewProj : cbuffer.matViewProj;
-    cbuffer.matJitterViewProjPrev = (pPreviousCameraState != nullptr) ? pPreviousCameraState->matJitterViewProj : cbuffer.matJitterViewProj;
+    cbuffer.matViewProjPrev = pPreviousCameraState->matViewProj;
+    cbuffer.matJitterViewProjPrev = pPreviousCameraState->matJitterViewProj;
 
     cbuffer.matJitterViewProj = pCurrentCameraState->matJitterViewProj;
     cbuffer.matInvJitterViewProj = pCurrentCameraState->matInvJitterViewProj;
+
+    cbuffer.currViewportJitter = pCurrentCameraState->viewportJitter;
+    cbuffer.prevViewportJitter = pPreviousCameraState->viewportJitter; 
 
     cbuffer.nearClip = pCurrentCameraState->zNear;
     cbuffer.farClip = pCurrentCameraState->zFar;

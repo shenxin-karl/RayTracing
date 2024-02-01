@@ -128,13 +128,17 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     FfxFsr2DispatchDescription dispatchParameters = {};
     dispatchParameters.commandList = ffxGetCommandListDX12(pComputeContext->GetCommandList());
 
-    D3D12_RESOURCE_STATES computeRead = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
-                                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    D3D12_RESOURCE_STATES computeRead = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
     pComputeContext->Transition(desc.pColorTex->GetResource(), computeRead);
     dispatchParameters.color = ConvertFfxResource(desc.pColorTex, L"FSR2_Input_Color");
 
-    pComputeContext->Transition(desc.pDepthTex->GetResource(), computeRead);
-    dispatchParameters.depth = ConvertFfxResource(desc.pDepthTex, L"FSR2_InputDepth");
+    D3D12_RESOURCE_STATES depthTexState = computeRead;
+    if (desc.pDepthTex->GetFlags() & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) {
+        // if it is a depth stencil texture, the D3D12_RESOURCE_STATE_DEPTH_READ state is required
+		depthTexState = computeRead | D3D12_RESOURCE_STATE_DEPTH_READ;
+    }
+    pComputeContext->Transition(desc.pDepthTex->GetResource(), depthTexState);
+	dispatchParameters.depth = ConvertFfxResource(desc.pDepthTex, L"FSR2_InputDepth");
 
     pComputeContext->Transition(desc.pMotionVectorTex->GetResource(), computeRead);
     dispatchParameters.motionVectors = ConvertFfxResource(desc.pMotionVectorTex, L"FSR2_Input_MotionVectors");
@@ -167,7 +171,6 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dispatchParameters.enableSharpening = _RCASSharpen;
     dispatchParameters.sharpness = _sharpness;
 
-    // Cauldron keeps time in seconds, but FSR expects miliseconds
     dispatchParameters.frameTimeDelta = GameTimer::Get().GetDeltaTimeMS();
 
     dispatchParameters.preExposure = RenderSetting::Get().GetExposure();
@@ -188,7 +191,7 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     FfxErrorCode errorCode = ffxFsr2ContextDispatch(_pContext.get(), &dispatchParameters);
     FFX_ASSERT(errorCode == FFX_OK);
 
-    // FSR2 会修改 DescriptorHeaps. 重新绑定自己的
+    // ffxFsr2ContextDispatch will modify the descriptor heap. here we bind our own descriptor heap
     pComputeContext->BindDescriptorHeaps();
     ++_jitterIndex;
 }

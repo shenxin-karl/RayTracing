@@ -5,13 +5,12 @@ package("FidelityFX")
 
     on_install(function (package)
         local sourceDir = path.join(os.projectdir(), "ThirdParty", "FidelityFX-SDK", "sdk");
-
         local configs = {}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DFFX_API_CUSTOM=1")
         table.insert(configs, "-DFFX_API_DX12=1")
-        table.insert(configs, "-DFFX_FSR=1")     
-        table.insert(configs, "-DFFX_FSR2=1")      
+        table.insert(configs, "-DFFX_FSR=1")
+        table.insert(configs, "-DFFX_FSR2=1")
         table.insert(configs, "-DBIN_OUTPUT="..path.join(package:buildir(), "bin"))
         import("package.tools.cmake").install(package, configs)
         -- copy lib
@@ -36,6 +35,7 @@ package("FidelityFX")
         end
         result.includedirs = { includeDir }
         result.linkdirs = { linkDir }
+        result.defines = { "FFX_FSR" }
         return result
     end)
 package_end()

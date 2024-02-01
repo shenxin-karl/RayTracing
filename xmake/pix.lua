@@ -16,6 +16,7 @@ package("pix")
         result.links = { "WinPixEventRuntime", "Shell32" }
         result.includedirs = { package:installdir("Include") }
         result.linkdirs = { package:installdir(binDir) }
+        result.defines = { "USE_PIX" }
         return result
     end)
 package_end()
