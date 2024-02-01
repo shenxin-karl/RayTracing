@@ -1,6 +1,5 @@
 #pragma once
 #include <d3d12.h>
-
 #include "D3d12/D3dStd.h"
 #include "Foundation/GlmStd.hpp"
 #include "Foundation/NonCopyable.h"
@@ -36,14 +35,19 @@ private:
     T _maxValue;
 };
 
+enum class ShadowMaskResolution {
+    eFull = 0,
+    eHalf = 1,
+};
+
 struct ShadowConfig {
-    // clang-format off
-    Var<float>    rayTMin = {0.5f, 0.f, 1.f}; 
-    Var<float>    rayTMax = {FLT_MAX, 0.f, FLT_MAX};
-    Var<float>    sunAngularDiameter = {2.5f, 0.f, 5.f};
-    Var<int>      rayTraceMaxRecursiveDepth = {1, 1, 5};
-    Var<float>    denoiseBlurRadiusScale = {2.f, 0.f, 3.f};
-    Var<float>    planeDistanceSensitivity = {0.05f, 0.f, 5.f};
+    Var<float> rayTMin = {0.5f, 0.f, 1.f};
+    Var<float> rayTMax = {FLT_MAX, 0.f, FLT_MAX};
+    Var<float> sunAngularDiameter = {2.5f, 0.f, 5.f};
+    Var<int> rayTraceMaxRecursiveDepth = {1, 1, 5};
+    Var<float> denoiseBlurRadiusScale = {2.f, 0.f, 3.f};
+    Var<float> planeDistanceSensitivity = {0.05f, 0.f, 5.f};
+    ShadowMaskResolution resolution = {ShadowMaskResolution::eFull};
     // clang-format on
 };
 

@@ -6,12 +6,14 @@
 #include "NRDEncoding.hlsli"
 #include "NRD.hlsli"
 
-Texture2D<float4>			gBuffer0	: register(t0);
-Texture2D<float4>			gBuffer1	: register(t1);
-Texture2D<float4>			gBuffer2	: register(t2);
-Texture2D<float>            gDepthTex   : register(t3);
-Texture2D<float>            gShadowMask : register(t4);
-RWTexture2D<float4>         gOutput     : register(u0);
+Texture2D<float4>			gBuffer0	   : register(t0);
+Texture2D<float4>			gBuffer1	   : register(t1);
+Texture2D<float4>			gBuffer2	   : register(t2);
+Texture2D<float>            gDepthTex      : register(t3);
+Texture2D<float>            gShadowMask    : register(t4);
+RWTexture2D<float4>         gOutput        : register(u0);
+SamplerState                gLinearSampler : register(s0);
+
 
 ConstantBuffer<CbLighting>  gCbLighting : register(b0);
 ConstantBuffer<CBPrePass>   gCbPrePass  : register(b1);
@@ -42,12 +44,13 @@ void UnpackGBuffer2(ComputeIn cin, out float3 emission) {
 
 float3 GetWorldPosition(ComputeIn cin) {
 	float zNdc = gDepthTex[cin.DispatchThreadID.xy];
-    float2 uv = (cin.DispatchThreadID.xy + 0.5f) * gCbPrePass.invRenderTargetSize;
+    float2 uv = (cin.DispatchThreadID.xy + 0.5f) * gCbPrePass.invRenderSize;
     return WorldPositionFromDepth(uv, zNdc, gCbPrePass.matInvViewProj);
 }
 
 float GetShadow(ComputeIn cin) {
-    float shadowData = gShadowMask[cin.DispatchThreadID.xy];
+	float2 uv = (cin.DispatchThreadID.xy + 0.5f) * gCbPrePass.invRenderSize;
+    float shadowData = gShadowMask.SampleLevel(gLinearSampler, uv, 0);
     float shadow = SIGMA_BackEnd_UnpackShadow(shadowData);
     return shadow;
 }

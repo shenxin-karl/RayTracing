@@ -11,7 +11,7 @@
 void DeferredLightingPass::OnCreate() {
 	GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 	_pRootSignature = std::make_unique<dx::RootSignature>();
-	_pRootSignature->OnCreate(eNumRootParam);
+	_pRootSignature->OnCreate(eNumRootParam, 1);
 	_pRootSignature->At(eCbPrePass).InitAsBufferCBV(1);	// b1
 	_pRootSignature->At(eCbLighting).InitAsBufferCBV(0);	// b0
 	_pRootSignature->At(eTable0).InitAsDescriptorTable({
@@ -20,6 +20,7 @@ void DeferredLightingPass::OnCreate() {
 		// u0
 		CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0),
 	});
+	_pRootSignature->SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
 	_pRootSignature->Generate(pGfxDevice->GetDevice());
 	_pRootSignature->SetName("DeferredLightingPass::RootSignature");
 

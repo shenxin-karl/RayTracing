@@ -4,6 +4,7 @@
 #include "D3d12/DescriptorHandle.h"
 #include "SceneObject/RayTracingGeometry.h"
 #include "Utils/GlobalCallbacks.h"
+#include "Renderer/RenderSetting.h"
 
 class Denoiser;
 
@@ -53,6 +54,7 @@ private:
     void BuildRenderSettingUI();
 private:
     // clang-format off
+    ResolutionInfo                     _resolutionInfo;
 	dx::SRV							   _shadowMaskSRV;
 	dx::UAV							   _shadowMaskUAV;
     std::unique_ptr<dx::Texture>       _pShadowMaskTex;

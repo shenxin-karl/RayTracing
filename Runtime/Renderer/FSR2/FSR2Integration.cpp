@@ -128,17 +128,18 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     FfxFsr2DispatchDescription dispatchParameters = {};
     dispatchParameters.commandList = ffxGetCommandListDX12(pComputeContext->GetCommandList());
 
-    D3D12_RESOURCE_STATES computeRead = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    D3D12_RESOURCE_STATES computeRead = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+                                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     pComputeContext->Transition(desc.pColorTex->GetResource(), computeRead);
     dispatchParameters.color = ConvertFfxResource(desc.pColorTex, L"FSR2_Input_Color");
 
     D3D12_RESOURCE_STATES depthTexState = computeRead;
     if (desc.pDepthTex->GetFlags() & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) {
         // if it is a depth stencil texture, the D3D12_RESOURCE_STATE_DEPTH_READ state is required
-		depthTexState = computeRead | D3D12_RESOURCE_STATE_DEPTH_READ;
+        depthTexState = computeRead | D3D12_RESOURCE_STATE_DEPTH_READ;
     }
     pComputeContext->Transition(desc.pDepthTex->GetResource(), depthTexState);
-	dispatchParameters.depth = ConvertFfxResource(desc.pDepthTex, L"FSR2_InputDepth");
+    dispatchParameters.depth = ConvertFfxResource(desc.pDepthTex, L"FSR2_InputDepth");
 
     pComputeContext->Transition(desc.pMotionVectorTex->GetResource(), computeRead);
     dispatchParameters.motionVectors = ConvertFfxResource(desc.pMotionVectorTex, L"FSR2_Input_MotionVectors");

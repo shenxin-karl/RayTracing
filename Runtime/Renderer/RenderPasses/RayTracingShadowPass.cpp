@@ -7,7 +7,6 @@
 #include "D3d12/Texture.h"
 #include "Foundation/GameTimer.h"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/RenderSetting.h"
 #include "Renderer/Denoiser/Denoiser.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 #include "RenderObject/GPUMeshData.h"
@@ -94,8 +93,16 @@ auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HAND
 void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
     _pShadowMaskTex->OnDestroy();
 
+    _resolutionInfo = resolution;
+    size_t textureWidth = resolution.renderWidth;
+    size_t textureHeight = resolution.renderHeight;
+    if (RenderSetting::Get().GetShadowConfig().resolution == ShadowMaskResolution::eHalf) {
+        textureWidth /= 2;
+        textureHeight /= 2;
+    }
+
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, resolution.renderWidth, resolution.renderHeight);
+    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, textureWidth, textureHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     _pShadowMaskTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
 
@@ -112,7 +119,7 @@ void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
     device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
 
     _pShadowDataTex->OnDestroy();
-    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, resolution.renderWidth, resolution.renderHeight);
+    texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, textureWidth, textureHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
     if (_shadowDataUAV.IsNull()) {
@@ -182,6 +189,14 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     Denoiser *pDenoiser = args.pDenoiser;
     ShadowDenoiseDesc denoiseDesc;
 
+    nrd::CommonSettings commonSettingRestore = pDenoiser->GetCommonSetting();
+    nrd::CommonSettings shadowCommonSetting = commonSettingRestore;
+    shadowCommonSetting.rectSize[0] = _pShadowMaskTex->GetWidth();
+    shadowCommonSetting.rectSize[1] = _pShadowMaskTex->GetHeight();
+    shadowCommonSetting.rectSizePrev[0] = _pShadowMaskTex->GetWidth();
+    shadowCommonSetting.rectSizePrev[1] = _pShadowMaskTex->GetHeight();
+    pDenoiser->SetCommonSetting(shadowCommonSetting);
+
     const ShadowConfig &shadowConfig = RenderSetting::Get().GetShadowConfig();
     denoiseDesc.settings.blurRadiusScale = shadowConfig.denoiseBlurRadiusScale;
     denoiseDesc.settings.planeDistanceSensitivity = shadowConfig.planeDistanceSensitivity;
@@ -190,6 +205,7 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     denoiseDesc.pShadowDataTex = _pShadowDataTex.get();
     denoiseDesc.pOutputShadowMaskTex = _pShadowMaskTex.get();
     pDenoiser->ShadowDenoise(denoiseDesc);
+    pDenoiser->SetCommonSetting(commonSettingRestore);
 }
 
 void RayTracingShadowPass::CreatePipelineState() {
@@ -341,5 +357,15 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
     ImGui::SliderFloat("BlurRadiusScale", &shadowConfig.denoiseBlurRadiusScale, 0.f, 3.f);
     ImGui::SliderFloat("PlaneDistanceSensitivity", &shadowConfig.planeDistanceSensitivity, 0.f, 5.f);
 
+    int resolution = static_cast<int>(shadowConfig.resolution);
+    const char *resolutionType[] = {"Full", "Half"};
+    if (ImGui::Combo("Shadow Mask Texture Resolution", &resolution, resolutionType, std::size(resolutionType))) {
+        shadowConfig.resolution = static_cast<ShadowMaskResolution>(resolution);
+    }
+
+    if (static_cast<ShadowMaskResolution>(resolution) != shadowConfig.resolution) {
+        GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
+        OnResize(_resolutionInfo);
+    }
     ImGui::TreePop();
 }

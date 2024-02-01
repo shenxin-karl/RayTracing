@@ -28,16 +28,17 @@ struct CBPrePass {
 	float3   cameraLookAt;
     float	 mipBias;
 
-    // RenderTarget
-	float2   renderTargetSize;
-	float2   invRenderTargetSize;
-
     /// time
 	float	totalTime;
 	float	deltaTime;
 	float2	padding1;
 
 	float4  zBufferParams;
+
+	float2  renderSize;
+	float2  displaySize;
+	float2  invRenderSize;
+	float2  invDisplaySize;
 };
 
 #endif

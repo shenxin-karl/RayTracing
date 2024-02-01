@@ -31,7 +31,11 @@ void Denoiser::OnDestroy() {
 }
 
 void Denoiser::SetCommonSetting(const nrd::CommonSettings &settings) {
-    _pNrd->SetCommonSettings(settings);
+    _settings = settings;
+}
+
+auto Denoiser::GetCommonSetting() const -> nrd::CommonSettings {
+    return _settings;
 }
 
 void Denoiser::ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc) {
@@ -51,6 +55,7 @@ void Denoiser::ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc) {
     userPool[static_cast<size_t>(ResourceType::OUT_SHADOW_TRANSLUCENCY)] = denoiseDesc.pOutputShadowMaskTex;
 
 	nrd::Identifier identifier = NRD_ID(SIGMA_SHADOW);
+    _pNrd->SetCommonSettings(_settings);
     _pNrd->SetDenoiserSettings(identifier, &denoiseDesc.settings);
     _pNrd->Denoise(&identifier, 1, denoiseDesc.pComputeContext, userPool);
 }
