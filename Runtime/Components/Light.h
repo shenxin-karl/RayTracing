@@ -20,7 +20,6 @@ private:
 	// clang-format on
 };
 
-
 class DirectionalLight : public Light {
 	DECLARE_CLASS(DirectionalLight);
 private:

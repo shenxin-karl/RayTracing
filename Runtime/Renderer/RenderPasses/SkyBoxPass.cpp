@@ -4,7 +4,8 @@
 #include "D3d12/RootSignature.h"
 #include "D3d12/ShaderCompiler.h"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderView.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Mesh.h"
@@ -42,7 +43,8 @@ void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
     dx::GraphicsContext *pGfxCtx = drawArgs.pGfxCtx;
     UserMarker userMarker(pGfxCtx, "SkyBoxPass");
 
-    glm::mat4 matView = drawArgs.matView;
+    const auto &cbPrePass = drawArgs.pRenderView->GetCBPrePass();
+    glm::mat4 matView = cbPrePass.matView;
     matView[3][0] = 0.f;
     matView[3][1] = 0.f;
     matView[3][2] = 0.f;
@@ -53,7 +55,7 @@ void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
     };
 
     CbSetting cbSetting;
-    cbSetting.matViewProj = drawArgs.matProj * matView;
+    cbSetting.matViewProj = cbPrePass.matJitteredProj * matView;
     cbSetting.reversedZ = RenderSetting::Get().GetReversedZ() ? 1.f : 0.f;
 
     pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());

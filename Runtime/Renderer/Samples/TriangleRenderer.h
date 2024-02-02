@@ -1,10 +1,10 @@
 #pragma once
 #include "Renderer.h"
 #include "D3d12/AccelerationStructure.h"
+#include "D3d12/ASBuilder.h"
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/RootSignature.h"
 #include "D3d12/Texture.h"
-#include "D3d12/ASBuilder.h"
 
 class TriangleRenderer : public Renderer {
 private:

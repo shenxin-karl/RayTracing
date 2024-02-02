@@ -1,7 +1,4 @@
 #include "GLTFSample.h"
-#include "RenderUtils/FrameCaptrue.h"
-#include "GfxDevice.h"
-#include "RenderSetting.h"
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
 #include "Components/Light.h"
@@ -15,17 +12,20 @@
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
 #include "Object/GameObject.h"
-#include "RenderPasses/ForwardPass.h"
+#include "Renderer/GfxDevice.h"
+#include "Renderer/GUI/GUI.h"
+#include "Renderer/RenderPasses/ForwardPass.h"
+#include "Renderer/RenderPasses/PostProcessPass.h"
+#include "Renderer/RenderUtils/FrameCaptrue.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
+#include "SceneObject/SceneLightManager.h"
 #include "SceneObject/SceneManager.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
-#include "RenderPasses/ForwardPass.h"
-#include "RenderPasses/PostProcessPass.h"
-#include "RenderUtils/GUI.h"
 
-GLTFSample::GLTFSample() : _cbPrePass{}, _cbLighting{} {
+GLTFSample::GLTFSample() {
 }
 
 GLTFSample::~GLTFSample() {
@@ -53,10 +53,14 @@ void GLTFSample::OnDestroy() {
 void GLTFSample::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    CameraState cameraState;
-    cameraState.Update(_pCameraGO->GetComponent<Camera>());
-    _cbPrePass = cbuffer::MakeCbPrePass(&cameraState);
-    _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
+    _renderView.Step0_OnNewFrame();
+    _renderView.Step1_UpdateCameraMatrix(_pCameraGO->GetComponent<Camera>());
+    _renderView.Step2_UpdateResolutionInfo(ResolutionInfo(_width, _height));
+	const std::vector<GameObject*> &directionalLightObjects = _pScene->GetSceneLightManager()->GetDirectionalLightObjects();
+    if (!directionalLightObjects.empty()) {
+		_renderView.Step3_UpdateDirectionalLightInfo(directionalLightObjects.front()->GetComponent<DirectionalLight>());
+    }
+    _renderView.Step4_Finalize();
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     pRenderObjectMgr->ClassifyRenderObjects(_pCameraGO->GetTransform()->GetWorldPosition());
@@ -84,9 +88,6 @@ void GLTFSample::PrepareFrame(GameTimer &timer) {
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
-    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTextureRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
@@ -95,15 +96,14 @@ void GLTFSample::PrepareFrame(GameTimer &timer) {
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
         RenderSetting::Get().GetDepthClearValue(),
         0);
-    pGfxCxt->SetViewport(viewport);
-    pGfxCxt->SetScissor(scissor);
+
+    pGfxCxt->SetViewport(_renderView.GetRenderSizeViewport());
+    pGfxCxt->SetScissor(_renderView.GetRenderSizeScissorRect());
 
     ForwardPass::DrawArgs forwardPassDrawArgs = {};
     forwardPassDrawArgs.pGfxCtx = pGfxCxt.get();
-    forwardPassDrawArgs.pCbPrePass = &_cbPrePass;
-    forwardPassDrawArgs.pCbLighting = &_cbLighting;
-    forwardPassDrawArgs.cbPrePassCBuffer = pGfxCxt->AllocConstantBuffer(_cbPrePass);
-    forwardPassDrawArgs.cbLightBuffer = pGfxCxt->AllocConstantBuffer(_cbLighting);
+    forwardPassDrawArgs.cbPrePassCBuffer = pGfxCxt->AllocConstantBuffer(_renderView.GetCBPrePass());
+    forwardPassDrawArgs.cbLightBuffer = pGfxCxt->AllocConstantBuffer(_renderView.GetCBLighting());
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetOpaqueRenderObjects(), forwardPassDrawArgs);
@@ -122,10 +122,8 @@ void GLTFSample::RenderFrame(GameTimer &timer) {
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 
-    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-    pGfxCxt->SetViewport(viewport);
-    pGfxCxt->SetScissor(scissor);
+    pGfxCxt->SetViewport(_renderView.GetDisplaySizeViewport());
+    pGfxCxt->SetScissor(_renderView.GetDisplaySizeScissorRect());
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {
         _renderTextureSRV.GetCpuHandle(),
@@ -138,6 +136,8 @@ void GLTFSample::RenderFrame(GameTimer &timer) {
 
 void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
+
+    _pCameraGO->GetComponent<Camera>()->SetAspect(width, height);
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     dx::NativeDevice *device = _pDevice->GetNativeDevice();

@@ -4,7 +4,7 @@
 #include "Foundation/NonCopyable.h"
 #include "Renderer/RenderUtils/ResolutionInfo.hpp"
 
-struct CameraState;
+class RenderView;
 
 namespace dx {
 class Texture;
@@ -31,7 +31,7 @@ public:
     struct FSR2ExecuteDesc {
         // clang-format off
         dx::ComputeContext  *pComputeContext        = nullptr;
-        const CameraState   *pCameraState           = nullptr;
+        const RenderView    *pRenderView            = nullptr;
         dx::Texture         *pColorTex              = nullptr;        
         dx::Texture         *pDepthTex              = nullptr;        // d32f+
         dx::Texture         *pMotionVectorTex       = nullptr;        // rg16f+

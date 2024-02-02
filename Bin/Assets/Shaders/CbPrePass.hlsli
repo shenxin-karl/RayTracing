@@ -2,7 +2,6 @@
 #define __CB_PRE_PASS__
 
 struct CBPrePass {
-    // camera
 	float4x4 matView;
 	float4x4 matInvView;
 	float4x4 matProj;
@@ -15,11 +14,17 @@ struct CBPrePass {
 	float4x4 matJitterViewProjPrev;
 
 	// current frame jitter matrix
-	float4x4 matJitterViewProj;
-	float4x4 matInvJitterViewProj;
+	float4x4 matJitteredProj;
+	float4x4 matInvJitteredProj;
 
-	float2   currViewportJitter;
-	float2   prevViewportJitter;
+	float4x4 matJitteredViewProj;
+	float4x4 matInvJitteredViewProj;
+
+	float2   viewportJitter;
+	float2   viewportJitterPrev;
+
+	float2   cameraJitter;
+	float2   cameraJitterPrev;
 
 	float3   cameraPos;
 	float	 nearClip;
@@ -28,10 +33,12 @@ struct CBPrePass {
 	float3   cameraLookAt;
     float	 mipBias;
 
-    /// time
+    // time
 	float	totalTime;
 	float	deltaTime;
-	float2	padding1;
+
+	float	radianFov;
+	float	degreeFov;
 
 	float4  zBufferParams;
 

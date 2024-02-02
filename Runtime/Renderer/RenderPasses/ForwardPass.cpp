@@ -11,7 +11,7 @@
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 #include "D3d12/BindlessCollection.hpp"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 
 void ForwardPass::OnCreate() {

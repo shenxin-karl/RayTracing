@@ -3,6 +3,7 @@
 #include "D3d12/D3dStd.h"
 #include "Utils/GlobalCallbacks.h"
 
+class RenderView;
 class SkyBoxPass : public RenderPass {
 public:
 	SkyBoxPass();
@@ -19,8 +20,7 @@ public:
 
 	struct DrawArgs {
 		D3D12_CPU_DESCRIPTOR_HANDLE cubeMapSRV;
-		glm::mat4					matView;
-		glm::mat4					matProj;
+		const RenderView		   *pRenderView;
 		dx::GraphicsContext		   *pGfxCtx;
 	};
 	// clang-format on

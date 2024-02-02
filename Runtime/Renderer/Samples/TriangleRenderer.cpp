@@ -1,5 +1,4 @@
 #include "TriangleRenderer.h"
-#include "RenderUtils/FrameCaptrue.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
@@ -14,7 +13,8 @@
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
-#include "RenderUtils/GUI.h"
+#include "Renderer/GUI/GUI.h"
+#include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 

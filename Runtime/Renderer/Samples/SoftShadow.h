@@ -1,8 +1,9 @@
 #pragma once
+#include "Renderer.h"
 #include "D3d12/DescriptorHandle.h"
-#include "Renderer/Renderer.h"
 #include "D3d12/Texture.h"
-#include "RenderObject/ConstantBufferHelper.h"
+#include "Renderer/RenderUtils/ConstantBufferHelper.h"
+#include "Renderer/RenderUtils/RenderView.h"
 
 class FSR2Integration;
 class Denoiser;
@@ -13,7 +14,6 @@ class PostProcessPass;
 class GameObject;
 class Scene;
 class GBufferPass;
-struct CameraState;
 
 class SoftShadow : public Renderer {
 public:
@@ -47,11 +47,7 @@ private:
 	dx::DSV							_depthStencilDSV;
 	dx::SRV							_depthStencilSRV;
 
-	cbuffer::CbPrePass				_cbPrePass;
-	cbuffer::CbLighting				_cbLighting;
-	std::unique_ptr<CameraState>	_pPreviousCameraState;
-	std::unique_ptr<CameraState>	_pCurrentCameraState;
-
+	RenderView					     _renderView;
 	Scene							*_pScene;
 	GameObject						*_pCameraGO;
 

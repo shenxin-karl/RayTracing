@@ -38,11 +38,17 @@ struct alignas(kAlignment) CbPrePass {
 	float4x4 matJitterViewProjPrev;
 
 	// current frame jitter matrix
-	float4x4 matJitterViewProj;
-	float4x4 matInvJitterViewProj;
+	float4x4 matJitteredProj;
+	float4x4 matInvJitteredProj;
 
-	float2   currViewportJitter;
-	float2   prevViewportJitter;
+	float4x4 matJitteredViewProj;
+	float4x4 matInvJitteredViewProj;
+
+	float2   viewportJitter;
+	float2   viewportJitterPrev;
+
+	float2   cameraJitter;
+	float2   cameraJitterPrev;
 
 	float3   cameraPos;
 	float	 nearClip;
@@ -51,16 +57,19 @@ struct alignas(kAlignment) CbPrePass {
 	float3   cameraLookAt;
     float	 mipBias;
 
-    // RenderTarget
-	float2   renderTargetSize;
-	float2   invRenderTargetSize;
-
-    /// time
+    // time
 	float	totalTime;
 	float	deltaTime;
-	float2	padding1;
+
+	float	radianFov;
+	float	degreeFov;
 
 	float4  zBufferParams;
+
+	float2  renderSize;
+	float2  displaySize;
+	float2  invRenderSize;
+	float2  invDisplaySize;
 };
 
 
@@ -98,8 +107,5 @@ struct CbLighting {
 };
 
 // clang-format on
-
-auto MakeCbPrePass(const CameraState *pCurrentCameraState, const CameraState *pPreviousCameraState = nullptr) -> CbPrePass;
-auto MakeCbLighting(const SceneLightManager *pSceneLightManager) -> CbLighting;
 
 }    // namespace cbuffer

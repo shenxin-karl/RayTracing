@@ -1,14 +1,14 @@
 #pragma once
-#include "RenderObject/ConstantBufferHelper.h"
+#include "Renderer/RenderUtils/ConstantBufferHelper.h"
 #include "RenderPass.h"
 #include "Utils/GlobalCallbacks.h"
+
+class RenderView;
 
 class ForwardPass : public RenderPass {
 public:
     struct DrawArgs {
 	    dx::GraphicsContext             *pGfxCtx            = nullptr;
-	    const cbuffer::CbPrePass        *pCbPrePass         = nullptr;
-	    const cbuffer::CbLighting       *pCbLighting        = nullptr;
 	    D3D12_GPU_VIRTUAL_ADDRESS        cbPrePassCBuffer   = 0;
 	    D3D12_GPU_VIRTUAL_ADDRESS        cbLightBuffer      = 0;
     };

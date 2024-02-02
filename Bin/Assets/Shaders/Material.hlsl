@@ -85,7 +85,7 @@ VertexOut VSMain(VertexIn vin) {
     VertexOut vout = (VertexOut)0;
     float4 localPosition = float4(vin.position, 1.0);
     float4 worldPosition = mul(gCbPreObject.matWorld, localPosition);
-    vout.SVPosition = mul(gCbPrePass.matJitterViewProj, worldPosition);
+    vout.SVPosition = mul(gCbPrePass.matJitteredViewProj, worldPosition);
     vout.position = worldPosition.xyz;
     vout.normal = mul((float3x3)gCbPreObject.matNormal, vin.normal);
     #if ENABLE_NORMAL_TEX
@@ -176,7 +176,7 @@ float3 GetEmission(VertexOut pin) {
 
 float2 CalcMotionVector(float4 currentClipPos, float4 previousClipPos) {
     // current clip pos is jittered
-    float2 currNDC = (currentClipPos.xy / currentClipPos.w) - gCbPrePass.currViewportJitter;
+    float2 currNDC = (currentClipPos.xy / currentClipPos.w) - gCbPrePass.viewportJitter;
     float2 prevNDC = (previousClipPos.xy / previousClipPos.w);
 	float2 motionVector = prevNDC - currNDC;
     motionVector *= float2(+0.5f, -0.5f);

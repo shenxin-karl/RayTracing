@@ -5,7 +5,7 @@
 #include "Transform.h"
 #include "Foundation/Logger.h"
 #include "Object/GameObject.h"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 
 Camera::Camera() {
     _aspect = 1.f;
@@ -35,7 +35,6 @@ void Camera::OnAddToScene() {
     if (it == sAvailableCameras.end()) {
         sAvailableCameras.push_back(this);
     }
-    _resizeCallbackHandle = GlobalCallbacks::Get().OnResize.Register(this, &Camera::OnResize);
 }
 
 void Camera::OnRemoveFormScene() {
@@ -44,7 +43,6 @@ void Camera::OnRemoveFormScene() {
     if (it != sAvailableCameras.end()) {
         sAvailableCameras.erase(it);
     }
-    _resizeCallbackHandle.Release();
 }
 
 void Camera::OnPreRender() {
@@ -76,34 +74,4 @@ void Camera::OnPreRender() {
     _matInvView = inverse(_matView);
     _matInvProj = inverse(_matProj);
     _matInvViewProj = inverse(_matViewProj);
-}
-
-void Camera::OnResize(size_t width, size_t height) {
-    _aspect = static_cast<float>(width) / static_cast<float>(height);
-    _screenWidth = static_cast<float>(width);
-    _screenHeight = static_cast<float>(height);
-}
-
-void CameraState::Update(const Camera *pCamera, glm::vec2 jitterOffset) {
-    aspect = pCamera->_aspect;
-    zNear = pCamera->_zNear;
-    zFar = pCamera->_zFar;
-    fov = pCamera->_fov;
-    screenWidth = pCamera->_screenWidth;
-    screenHeight = pCamera->_screenHeight;
-    matView = pCamera->_matView;
-    matProj = pCamera->_matProj;
-    matInvView = pCamera->_matInvView;
-    matInvProj = pCamera->_matInvProj;
-
-    matViewProj = pCamera->_matViewProj;
-    matInvViewProj = pCamera->_matInvViewProj;
-    viewportJitter = {
-        jitterOffset.x * +2.0f / screenWidth,
-        jitterOffset.y * -2.0f / screenHeight,
-    };
-
-    glm::mat4x4 jitterMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(viewportJitter, 0.f));
-    matJitterViewProj = jitterMatrix * pCamera->_matViewProj;
-    matInvJitterViewProj = glm::inverse(matJitterViewProj);
 }

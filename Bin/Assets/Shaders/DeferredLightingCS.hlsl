@@ -45,7 +45,7 @@ void UnpackGBuffer2(ComputeIn cin, out float3 emission) {
 float3 GetWorldPosition(ComputeIn cin) {
 	float zNdc = gDepthTex[cin.DispatchThreadID.xy];
     float2 uv = (cin.DispatchThreadID.xy + 0.5f) * gCbPrePass.invRenderSize;
-    return WorldPositionFromDepth(uv, zNdc, gCbPrePass.matInvViewProj);
+    return WorldPositionFromDepth(uv, zNdc, gCbPrePass.matInvJitteredViewProj);
 }
 
 float GetShadow(ComputeIn cin) {

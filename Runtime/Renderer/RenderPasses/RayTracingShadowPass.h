@@ -4,8 +4,8 @@
 #include "D3d12/DescriptorHandle.h"
 #include "SceneObject/RayTracingGeometry.h"
 #include "Utils/GlobalCallbacks.h"
-#include "Renderer/RenderSetting.h"
 
+class RenderView;
 class Denoiser;
 
 namespace dx {
@@ -35,9 +35,7 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS sceneTopLevelAS;
         ReadonlyArraySpan<RayTracingGeometry> geometries;
         D3D12_CPU_DESCRIPTOR_HANDLE depthTexSRV;
-        glm::vec3 lightDirection;
-        glm::vec4 zBufferParams;
-        glm::mat4x4 matInvViewProj;
+        const RenderView *pRenderView;
         dx::ComputeContext *pComputeContext;
         Denoiser *pDenoiser = nullptr;
     };

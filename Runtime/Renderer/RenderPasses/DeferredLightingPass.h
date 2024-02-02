@@ -2,6 +2,7 @@
 #include <memory>
 #include "RenderPass.h"
 #include "D3d12/D3dStd.h"
+#include "Renderer/RenderUtils/RenderView.h"
 
 class DeferredLightingPass : public RenderPass {
 public:
@@ -26,9 +27,8 @@ public:
 		eTable0DescriptorCount,
 	};
 
-	struct DrawArgs {
-		size_t						width;
-		size_t						height;
+	struct DispatchArgs {
+		const RenderView		   *pRenderView;
 		D3D12_GPU_VIRTUAL_ADDRESS   cbPrePassAddress;
 		D3D12_GPU_VIRTUAL_ADDRESS	cbLightingAddress;
 		D3D12_CPU_DESCRIPTOR_HANDLE gBufferSRV[3];
@@ -38,7 +38,7 @@ public:
 		dx::ComputeContext		   *pComputeCtx;
 	};
     // clang-format on
-	void Draw(const DrawArgs &args);
+	void Dispatch(const DispatchArgs &args);
 private:
     // clang-format off
 	std::unique_ptr<dx::RootSignature>	 _pRootSignature;

@@ -1,9 +1,10 @@
 #include "RenderSetting.h"
-#include "GfxDevice.h"
-#include "D3d12/Device.h"
-#include "Utils/GlobalCallbacks.h"
+
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "D3d12/Device.h"
+#include "Utils/GlobalCallbacks.h"
 
 auto RenderSetting::Get() -> RenderSetting & {
     static RenderSetting instance;

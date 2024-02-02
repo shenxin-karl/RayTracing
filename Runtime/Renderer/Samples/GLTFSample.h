@@ -1,8 +1,9 @@
 #pragma once
 #include "Renderer.h"
-#include "D3d12/Texture.h"
 #include "D3d12/DescriptorHandle.h"
-#include "RenderObject/ConstantBufferHelper.h"
+#include "D3d12/Texture.h"
+#include "Renderer/RenderUtils/RenderView.h"
+#include "Renderer/RenderUtils/ConstantBufferHelper.h"
 
 class PostProcessPass;
 class ForwardPass;
@@ -33,10 +34,7 @@ private:
 	dx::SRV						 _renderTextureSRV;
 	dx::DSV						 _depthStencilDSV;
 
-	cbuffer::CbPrePass			 _cbPrePass;
-	cbuffer::CbLighting			 _cbLighting;
-
-
+	RenderView					 _renderView;
 	Scene						*_pScene = nullptr;
 	GameObject					*_pCameraGO = nullptr;
 

@@ -1,5 +1,7 @@
 #include "SimpleLighting.h"
-#include "RenderUtils/FrameCaptrue.h"
+#include "Components/Camera.h"
+#include "Components/CameraColtroller.h"
+#include "Components/Transform.h"
 #include "D3d12/ASBuilder.h"
 #include "D3d12/BottomLevelASGenerator.h"
 #include "D3d12/Context.h"
@@ -10,23 +12,20 @@
 #include "D3d12/StaticBuffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
+#include "D3d12/UploadHeap.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Foundation/GameTimer.h"
 #include "Foundation/Logger.h"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
 #include "Object/GameObject.h"
+#include "Renderer/GUI/GUI.h"
+#include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneManager.h"
 #include "ShaderLoader/ShaderManager.h"
-#include "Utils/AssetProjectSetting.h"
-
-#include "Components/Camera.h"
-#include "Components/CameraColtroller.h"
-#include "Components/Transform.h"
-#include "D3d12/UploadHeap.h"
-#include "RenderUtils/GUI.h"
 #include "TextureObject/TextureLoader.h"
+#include "Utils/AssetProjectSetting.h"
 
 static const wchar_t *sMyRayGenShader = L"MyRaygenShader";
 static const wchar_t *sClosestHitShader = L"MyClosestHitShader";
@@ -176,6 +175,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
 
 void SimpleLighting::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
+    _pGameObject->GetComponent<Camera>()->SetAspect(width, height);
     CreateRayTracingOutput();
 }
 

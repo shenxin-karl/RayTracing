@@ -7,6 +7,8 @@
 #include "Foundation/NonCopyable.h"
 #include "Renderer/RenderUtils/ResolutionInfo.hpp"
 
+class RenderView;
+
 namespace dx {
 class Texture;
 class ComputeContext;
@@ -21,21 +23,26 @@ struct ShadowDenoiseDesc {
     nrd::SigmaSettings settings = {};
 };
 
+struct DenoiserCommonSettings : public nrd::CommonSettings {
+public:
+    void Update(const RenderView &renderView);
+};
+
 class Denoiser : private NonCopyable {
 public:
     Denoiser();
     ~Denoiser();
     void OnCreate();
     void OnDestroy();
-    void SetCommonSetting(const nrd::CommonSettings &settings);
-    auto GetCommonSetting() const -> nrd::CommonSettings;
+    void SetCommonSetting(const DenoiserCommonSettings &settings);
+    auto GetCommonSetting() const -> DenoiserCommonSettings;
     void ShadowDenoise(const ShadowDenoiseDesc &denoiseDesc);
     void OnResize(const ResolutionInfo &resolution);
     void SetTexture(nrd::ResourceType slot, dx::Texture *pTexture);
 private:
     // clang-format off
     std::unique_ptr<NrdIntegrationD3D12> _pNrd;
-    nrd::CommonSettings                  _settings;
+    DenoiserCommonSettings                  _settings;
     std::vector<dx::Texture *>           _textures;
     // clang-format off
 };

@@ -2,7 +2,6 @@
 #include <functional>
 #include <span>
 #include <vector>
-#include "D3d12/ASBuilder.h"
 #include "Foundation/NonCopyable.h"
 #include "Renderer/RenderUtils/ResolutionInfo.hpp"
 

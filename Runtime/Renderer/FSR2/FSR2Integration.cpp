@@ -10,7 +10,8 @@
 #include "Foundation/Logger.h"
 #include "Foundation/StringUtil.h"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderView.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 
 FSR2Integration::FSR2Integration()
@@ -178,14 +179,16 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dispatchParameters.renderSize.width = _resolutionInfo.renderWidth;
     dispatchParameters.renderSize.height = _resolutionInfo.renderHeight;
 
+    const cbuffer::CbPrePass &cbPrePass = desc.pRenderView->GetCBPrePass();
+
     // Setup camera params as required
-    dispatchParameters.cameraFovAngleVertical = glm::radians(desc.pCameraState->fov);
+    dispatchParameters.cameraFovAngleVertical = cbPrePass.radianFov;
     if (RenderSetting::Get().GetReversedZ()) {
-        dispatchParameters.cameraFar = desc.pCameraState->zNear;
+        dispatchParameters.cameraFar = cbPrePass.nearClip;
         dispatchParameters.cameraNear = FLT_MAX;
     } else {
-        dispatchParameters.cameraFar = desc.pCameraState->zFar;
-        dispatchParameters.cameraNear = desc.pCameraState->zNear;
+        dispatchParameters.cameraFar = cbPrePass.farClip;
+        dispatchParameters.cameraNear = cbPrePass.nearClip;
     }
 
     pComputeContext->FlushResourceBarriers();
@@ -224,12 +227,9 @@ void FSR2Integration::SetScalePreset(FSR2ScalePreset preset) {
 }
 
 auto FSR2Integration::GetResolutionInfo(size_t width, size_t height) const -> ResolutionInfo {
-    ResolutionInfo resolution;
-    resolution.renderWidth = static_cast<uint32_t>(std::ceil(static_cast<float>(width) / _upscaleRatio));
-    resolution.renderHeight = static_cast<uint32_t>(std::ceil(static_cast<float>(height) / _upscaleRatio));
-    resolution.displayWidth = width;
-    resolution.displayHeight = height;
-    return resolution;
+    float jitterX, jitterY;
+    GetJitterOffset(jitterX, jitterY);
+    return ResolutionInfo(width, height, _upscaleRatio, jitterX, jitterY);
 }
 
 void FSR2Integration::GetJitterOffset(float &jitterX, float &jitterY) const {

@@ -16,7 +16,9 @@
 #include "RenderObject/VertexSemantic.hpp"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
-#include "Renderer/RenderUtils/ImguiHelper.h"
+#include "Renderer/GUI/ImguiHelper.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderView.h"
 
 static const wchar_t *sShadowRayGenShaderName = L"ShadowRaygenShader";
 static const wchar_t *sShadowMissShaderName = L"ShadowMissShader";
@@ -155,11 +157,13 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     const ShadowConfig &shadowConfig = RenderSetting::Get().GetShadowConfig();
 
     float angularDiameter = glm::radians(shadowConfig.sunAngularDiameter * 0.5f);
-    RayGenCB rayGenCb;
-    rayGenCb.matInvViewProj = args.matInvViewProj;
-    rayGenCb.lightDirection = args.lightDirection;
+
+
+	RayGenCB rayGenCb;
+    rayGenCb.matInvViewProj = args.pRenderView->GetCBPrePass().matInvViewProj;
+    rayGenCb.lightDirection = args.pRenderView->GetCBLighting().directionalLight.direction;
     rayGenCb.enableSoftShadow = angularDiameter != 0.f;
-    rayGenCb.zBufferParams = args.zBufferParams;
+    rayGenCb.zBufferParams = args.pRenderView->GetCBPrePass().zBufferParams;
     rayGenCb.cosSunAngularRadius = std::cos(angularDiameter);
     rayGenCb.tanSunAngularRadius = std::tan(angularDiameter);
     rayGenCb.frameCount = GameTimer::Get().GetFrameCount();
@@ -189,8 +193,8 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     Denoiser *pDenoiser = args.pDenoiser;
     ShadowDenoiseDesc denoiseDesc;
 
-    nrd::CommonSettings commonSettingRestore = pDenoiser->GetCommonSetting();
-    nrd::CommonSettings shadowCommonSetting = commonSettingRestore;
+    DenoiserCommonSettings commonSettingRestore = pDenoiser->GetCommonSetting();
+    DenoiserCommonSettings shadowCommonSetting = commonSettingRestore;
     shadowCommonSetting.rectSize[0] = _pShadowMaskTex->GetWidth();
     shadowCommonSetting.rectSize[1] = _pShadowMaskTex->GetHeight();
     shadowCommonSetting.rectSizePrev[0] = _pShadowMaskTex->GetWidth();

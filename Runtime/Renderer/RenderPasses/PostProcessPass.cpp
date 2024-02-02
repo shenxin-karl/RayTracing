@@ -4,7 +4,7 @@
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/SwapChain.h"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 #include "Renderer/RenderUtils/UserMarker.h"
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"

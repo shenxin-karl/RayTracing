@@ -2,9 +2,34 @@
 #include "NRDIntegrationD3D12.h"
 #include "D3d12/Context.h"
 #include "D3d12/Texture.h"
+#include "Foundation/GameTimer.h"
 #include "Renderer/GfxDevice.h"
+#include "Renderer/RenderUtils/RenderView.h"
 
 #define NRD_ID(x) static_cast<nrd::Identifier>(nrd::Denoiser::x)
+
+void DenoiserCommonSettings::Update(const RenderView &renderView) {
+    constexpr size_t kMatrixSize = sizeof(float) * 16;
+    const cbuffer::CbPrePass &cbPrePass = renderView.GetCBPrePass();
+    uint16_t renderWidth = cbPrePass.renderSize.x;
+    uint16_t renderHeight = cbPrePass.renderSize.y;
+    std::memcpy(this->viewToClipMatrix, value_ptr(cbPrePass.matProj), kMatrixSize);
+    std::memcpy(this->viewToClipMatrixPrev, value_ptr(cbPrePass.matProj), kMatrixSize);
+    std::memcpy(this->worldToViewMatrix, value_ptr(cbPrePass.matView), kMatrixSize);
+    std::memcpy(this->worldToViewMatrixPrev, value_ptr(cbPrePass.matView), kMatrixSize);
+    this->cameraJitter[0] = cbPrePass.cameraJitter.x;
+    this->cameraJitter[1] = cbPrePass.cameraJitter.y;
+    this->cameraJitterPrev[0] = cbPrePass.cameraJitterPrev.y;
+    this->cameraJitterPrev[1] = cbPrePass.cameraJitterPrev.y;
+    this->resourceSize[0] = renderWidth;
+    this->resourceSize[1] = renderHeight;
+    this->resourceSizePrev[0] = renderWidth;
+    this->resourceSizePrev[1] = renderHeight;
+    this->rectSize[0] = renderWidth;
+    this->rectSize[1] = renderHeight;
+    this->rectSizePrev[0] = renderWidth;
+    this->rectSizePrev[1] = renderHeight;
+}
 
 Denoiser::Denoiser() {
     _pNrd = std::make_unique<NrdIntegrationD3D12>("Nrd");
@@ -30,11 +55,11 @@ void Denoiser::OnDestroy() {
 	_pNrd->OnDestroy();
 }
 
-void Denoiser::SetCommonSetting(const nrd::CommonSettings &settings) {
+void Denoiser::SetCommonSetting(const DenoiserCommonSettings &settings) {
     _settings = settings;
 }
 
-auto Denoiser::GetCommonSetting() const -> nrd::CommonSettings {
+auto Denoiser::GetCommonSetting() const -> DenoiserCommonSettings {
     return _settings;
 }
 

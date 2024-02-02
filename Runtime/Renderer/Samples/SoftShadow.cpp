@@ -1,7 +1,5 @@
 #include "SoftShadow.h"
-#include "RenderUtils/FrameCaptrue.h"
-#include "GfxDevice.h"
-#include "RenderSetting.h"
+#include "Renderer.h"
 #include "Components/Camera.h"
 #include "Components/CameraColtroller.h"
 #include "Components/Light.h"
@@ -12,28 +10,32 @@
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
+#include "Foundation/GameTimer.h"
 #include "Foundation/Memory/SharedPtr.hpp"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
 #include "Object/GameObject.h"
-#include "RenderPasses/DeferredLightingPass.h"
-#include "RenderPasses/GBufferPass.h"
-#include "RenderPasses/PostProcessPass.h"
-#include "RenderPasses/RayTracingShadowPass.h"
-#include "RenderPasses/SkyBoxPass.h"
+#include "Renderer/GfxDevice.h"
+#include "Renderer/Denoiser/Denoiser.h"
+#include "Renderer/FSR2/FSR2Integration.h"
+#include "Renderer/GUI/GUI.h"
+#include "Renderer/RenderPasses/DeferredLightingPass.h"
+#include "Renderer/RenderPasses/GBufferPass.h"
+#include "Renderer/RenderPasses/PostProcessPass.h"
+#include "Renderer/RenderPasses/RayTracingShadowPass.h"
+#include "Renderer/RenderPasses/SkyBoxPass.h"
+#include "Renderer/RenderUtils/ConstantBufferHelper.h"
+#include "Renderer/RenderUtils/FrameCaptrue.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
+#include "SceneObject/SceneLightManager.h"
 #include "SceneObject/SceneManager.h"
 #include "SceneObject/SceneRayTracingASManager.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
-#include "imgui.h"
-#include "Denoiser/Denoiser.h"
-#include "Foundation/GameTimer.h"
-#include "FSR2/FSR2Integration.h"
-#include "RenderUtils/GUI.h"
 
-SoftShadow::SoftShadow() : _cbPrePass(), _cbLighting(), _pScene(nullptr), _pCameraGO(nullptr) {
+SoftShadow::SoftShadow() : _pScene(nullptr), _pCameraGO(nullptr) {
 }
 
 SoftShadow::~SoftShadow() {
@@ -69,23 +71,18 @@ void SoftShadow::OnUpdate(GameTimer &timer) {
 void SoftShadow::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 
-    Camera *pCamera = _pCameraGO->GetComponent<Camera>();
-    if (_pPreviousCameraState == nullptr) {
-        _pPreviousCameraState = std::make_unique<CameraState>();
-        _pCurrentCameraState = std::make_unique<CameraState>();
-        _pCurrentCameraState->Update(pCamera);
-        *_pPreviousCameraState = *_pCurrentCameraState;
-    } else {
-        float jitterX, jitterY;
-        _pFsr2Pass->GetJitterOffset(jitterX, jitterY);
-        *_pPreviousCameraState = *_pCurrentCameraState;
-        _pCurrentCameraState->Update(pCamera, glm::vec2(jitterX, jitterY));
+    const std::vector<GameObject *> &directionalLightObjects = _pScene->GetSceneLightManager()
+                                                                   ->GetDirectionalLightObjects();
+    ResolutionInfo resolutionInfo = _pFsr2Pass->GetResolutionInfo(_width, _height);
+
+    _renderView.Step0_OnNewFrame();
+    _renderView.Step1_UpdateCameraMatrix(_pCameraGO->GetComponent<Camera>());
+    _renderView.Step2_UpdateResolutionInfo(resolutionInfo);
+    if (!directionalLightObjects.empty()) {
+        _renderView.Step3_UpdateDirectionalLightInfo(directionalLightObjects.front()->GetComponent<DirectionalLight>());
     }
-
-    _cbPrePass = cbuffer::MakeCbPrePass(_pCurrentCameraState.get(), _pPreviousCameraState.get());
-    _cbPrePass.mipBias = _pFsr2Pass->GetMipMapBias();
-
-    _cbLighting = cbuffer::MakeCbLighting(_pScene->GetSceneLightManager());
+    _renderView.BeforeFinalizeOptional_SetMipBias(_pFsr2Pass->GetMipMapBias());
+    _renderView.Step4_Finalize();
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     pRenderObjectMgr->ClassifyRenderObjects(_pCameraGO->GetTransform()->GetWorldPosition());
@@ -112,8 +109,8 @@ void SoftShadow::OnRender(GameTimer &timer) {
 
 void SoftShadow::OnResize(uint32_t width, uint32_t height) {
     Renderer::OnResize(width, height);
+    _pCameraGO->GetComponent<Camera>()->SetAspect(width, height);
     ResolutionInfo resolutionInfo = _pFsr2Pass->GetResolutionInfo(width, height);
-
     _pGBufferPass->OnResize(resolutionInfo);
     _pRayTracingShadowPass->OnResize(resolutionInfo);
     _pDenoiser->OnResize(resolutionInfo);
@@ -125,32 +122,24 @@ void SoftShadow::PrepareFrame() {
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
-    D3D12_GPU_VIRTUAL_ADDRESS cbPrePass = pGfxCxt->AllocConstantBuffer(_cbPrePass);
-    D3D12_GPU_VIRTUAL_ADDRESS cbLighting = pGfxCxt->AllocConstantBuffer(_cbLighting);
+    const cbuffer::CbPrePass &cbPrePass = _renderView.GetCBPrePass();
+    const cbuffer::CbLighting &cbLighting = _renderView.GetCBLighting();
 
-    ResolutionInfo resolution = _pFsr2Pass->GetResolutionInfo(_width, _height);
+    D3D12_GPU_VIRTUAL_ADDRESS cbPrePassAddress = pGfxCxt->AllocConstantBuffer(cbPrePass);
+    D3D12_GPU_VIRTUAL_ADDRESS cbLightingAddress = pGfxCxt->AllocConstantBuffer(cbLighting);
 
-    nrd::CommonSettings denoiseCommandSetting = {};
-    constexpr size_t kMatrixSize = sizeof(float) * 16;
-    std::memcpy(denoiseCommandSetting.viewToClipMatrix, value_ptr(_pCurrentCameraState->matProj), kMatrixSize);
-    std::memcpy(denoiseCommandSetting.viewToClipMatrixPrev, value_ptr(_pPreviousCameraState->matProj), kMatrixSize);
-    std::memcpy(denoiseCommandSetting.worldToViewMatrix, value_ptr(_pCurrentCameraState->matView), kMatrixSize);
-    std::memcpy(denoiseCommandSetting.worldToViewMatrixPrev, value_ptr(_pPreviousCameraState->matView), kMatrixSize);
-    denoiseCommandSetting.resourceSize[0] = static_cast<uint16_t>(resolution.renderWidth);
-    denoiseCommandSetting.resourceSize[1] = static_cast<uint16_t>(resolution.renderHeight);
-    denoiseCommandSetting.resourceSizePrev[0] = static_cast<uint16_t>(resolution.renderWidth);
-    denoiseCommandSetting.resourceSizePrev[1] = static_cast<uint16_t>(resolution.renderHeight);
-    denoiseCommandSetting.rectSize[0] = static_cast<uint16_t>(resolution.renderWidth);
-    denoiseCommandSetting.rectSize[1] = static_cast<uint16_t>(resolution.renderHeight);
-    denoiseCommandSetting.rectSizePrev[0] = static_cast<uint16_t>(resolution.renderWidth);
-    denoiseCommandSetting.rectSizePrev[1] = static_cast<uint16_t>(resolution.renderHeight);
+	DenoiserCommonSettings denoiseCommandSetting = {};
+    denoiseCommandSetting.Update(_renderView);
     denoiseCommandSetting.frameIndex = GameTimer::Get().GetFrameCount();
     denoiseCommandSetting.isBaseColorMetalnessAvailable = true;
     _pDenoiser->SetCommonSetting(denoiseCommandSetting);
 
+    pGfxCxt->SetViewport(_renderView.GetRenderSizeViewport());
+    pGfxCxt->SetScissor(_renderView.GetRenderSizeScissorRect());
+
     GBufferPass::DrawArgs gbufferDrawArgs = {};
     gbufferDrawArgs.pGfxCtx = pGfxCxt.get();
-    gbufferDrawArgs.cbPrePassCBuffer = cbPrePass;
+    gbufferDrawArgs.cbPrePassCBuffer = cbPrePassAddress;
     gbufferDrawArgs.pDepthBufferResource = _depthStencilTex.GetResource();
     gbufferDrawArgs.depthBufferDSV = _depthStencilDSV.GetCpuHandle();
     _pGBufferPass->PreDraw(gbufferDrawArgs);
@@ -174,9 +163,7 @@ void SoftShadow::PrepareFrame() {
     shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
     shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
     shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
-    shadowPassDrawArgs.lightDirection = _cbLighting.directionalLight.direction;
-    shadowPassDrawArgs.zBufferParams = _cbPrePass.zBufferParams;
-    shadowPassDrawArgs.matInvViewProj = _cbPrePass.matInvViewProj;
+    shadowPassDrawArgs.pRenderView = &_renderView;
     shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
     shadowPassDrawArgs.pDenoiser = _pDenoiser.get();
     _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
@@ -184,11 +171,10 @@ void SoftShadow::PrepareFrame() {
 
     // deferred lighting pass
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    DeferredLightingPass::DrawArgs deferredLightingPassDrawArgs = {};
-    deferredLightingPassDrawArgs.width = _width;
-    deferredLightingPassDrawArgs.height = _height;
-    deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePass;
-    deferredLightingPassDrawArgs.cbLightingAddress = cbLighting;
+    DeferredLightingPass::DispatchArgs deferredLightingPassDrawArgs = {};
+    deferredLightingPassDrawArgs.pRenderView = &_renderView;
+    deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePassAddress;
+    deferredLightingPassDrawArgs.cbLightingAddress = cbLightingAddress;
     deferredLightingPassDrawArgs.gBufferSRV[0] = _pGBufferPass->GetGBufferSRV(0);
     deferredLightingPassDrawArgs.gBufferSRV[1] = _pGBufferPass->GetGBufferSRV(1);
     deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
@@ -196,28 +182,25 @@ void SoftShadow::PrepareFrame() {
     deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
     deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
     deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
-    _pDeferredLightingPass->Draw(deferredLightingPassDrawArgs);
+    _pDeferredLightingPass->Dispatch(deferredLightingPassDrawArgs);
 
     // skybox pass
     pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
-
-    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-    pGfxCxt->SetViewport(viewport);
-    pGfxCxt->SetScissor(scissor);
+    pGfxCxt->SetViewport(_renderView.GetRenderSizeViewport());
+    pGfxCxt->SetScissor(_renderView.GetRenderSizeScissorRect());
 
     SkyBoxPass::DrawArgs skyBoxDrawArgs = {};
     skyBoxDrawArgs.cubeMapSRV = _skyBoxCubeSRV.GetCpuHandle();
-    skyBoxDrawArgs.matView = _cbPrePass.matView;
-    skyBoxDrawArgs.matProj = _cbPrePass.matProj;
+    skyBoxDrawArgs.pRenderView = &_renderView;
     skyBoxDrawArgs.pGfxCtx = pGfxCxt.get();
     _pSkyBoxPass->Draw(skyBoxDrawArgs);
 
+    // fsr2
     FSR2Integration::FSR2ExecuteDesc fsr2ExecuteDesc = {};
     fsr2ExecuteDesc.pComputeContext = pGfxCxt.get();
-    fsr2ExecuteDesc.pCameraState = _pCurrentCameraState.get();
+    fsr2ExecuteDesc.pRenderView = &_renderView;
     fsr2ExecuteDesc.pColorTex = &_renderTargetTex;
     fsr2ExecuteDesc.pDepthTex = &_depthStencilTex;
     fsr2ExecuteDesc.pMotionVectorTex = _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex);
@@ -235,10 +218,8 @@ void SoftShadow::RenderFrame() {
     pGfxCxt->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     pGfxCxt->SetRenderTargets(_pSwapChain->GetCurrentBackBufferRTV());
 
-    D3D12_VIEWPORT viewport = {0, 0, static_cast<float>(_width), static_cast<float>(_height), 0.f, 1.f};
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-    pGfxCxt->SetViewport(viewport);
-    pGfxCxt->SetScissor(scissor);
+    pGfxCxt->SetViewport(_renderView.GetDisplaySizeViewport());
+    pGfxCxt->SetScissor(_renderView.GetDisplaySizeScissorRect());
 
     PostProcessPassDrawArgs postProcessPassDrawArgs = {};
     postProcessPassDrawArgs.inputSRV = _renderTargetSRV.GetCpuHandle();

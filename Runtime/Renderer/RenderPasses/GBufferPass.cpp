@@ -5,9 +5,9 @@
 #include "D3d12/Device.h"
 #include "Foundation/ColorUtil.hpp"
 #include "Renderer/GfxDevice.h"
-#include "Renderer/RenderSetting.h"
+#include "Renderer/RenderUtils/RenderSetting.h"
 #include "Renderer/RenderUtils/UserMarker.h"
-#include "RenderObject/ConstantBufferHelper.h"
+#include "Renderer/RenderUtils/ConstantBufferHelper.h"
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Material.h"
 #include "RenderObject/Mesh.h"
@@ -110,18 +110,6 @@ void GBufferPass::PreDraw(const DrawArgs &args) {
         0);
 
     args.pGfxCtx->SetRenderTargets(_gBufferRTV.GetCpuHandle(), 5, args.depthBufferDSV);
-
-    D3D12_RECT scissor = {0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height)};
-    D3D12_VIEWPORT viewport = {
-        0.f,
-        0.f,
-        static_cast<float>(_width),
-        static_cast<float>(_height),
-        0.f,
-        1.f,
-    };
-    args.pGfxCtx->SetViewport(viewport);
-    args.pGfxCtx->SetScissor(scissor);
 }
 
 void GBufferPass::DrawBatch(const std::vector<RenderObject *> &batchList, const DrawArgs &args) {

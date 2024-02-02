@@ -60,7 +60,7 @@ void DeferredLightingPass::OnDestroy() {
 	_pPipelineState = nullptr;
 }
 
-void DeferredLightingPass::Draw(const DrawArgs &args) {
+void DeferredLightingPass::Dispatch(const DispatchArgs &args) {
 	dx::ComputeContext *pComputeCtx = args.pComputeCtx;
 	UserMarker marker(pComputeCtx, "DeferredLightingPass");
 
@@ -79,7 +79,9 @@ void DeferredLightingPass::Draw(const DrawArgs &args) {
 	pComputeCtx->SetDynamicViews(eTable0, table0Handles);
 
 	dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
-	UINT threadX = dx::DivideRoundingUp(args.width,  pDevice->GetWorkGroupWarpSize());
-	UINT threadY = dx::DivideRoundingUp(args.height, 16);
+	const RenderView *pRenderView = args.pRenderView;
+	glm::vec2 renderSize = pRenderView->GetCBPrePass().renderSize;
+	UINT threadX = dx::DivideRoundingUp(static_cast<size_t>(renderSize.x),  pDevice->GetWorkGroupWarpSize());
+	UINT threadY = dx::DivideRoundingUp(static_cast<size_t>(renderSize.y), 16);
 	pComputeCtx->Dispatch(threadX, threadY, 1);
 }

@@ -43,7 +43,7 @@ void GameTimer::StartNewFrame() {
 
     auto currentTime = stdchrono::steady_clock::now();
     _deltaTime = currentTime - _prevTime;
-    _totalTime = currentTime - _pausedTime;
+    _totalTime += _deltaTime;
     _prevTime = currentTime;
     ++_currFameTimes;
     ++_frameCount;
