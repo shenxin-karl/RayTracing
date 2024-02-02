@@ -1,8 +1,11 @@
 #include "FSR2Integration.h"
 #include <limits>
 #include <cmath>
+#include <imgui.h>
 #include <FidelityFX/host/backends/dx12/ffx_dx12.h>
+#include <magic_enum.hpp>
 
+#include "Applcation/Application.h"
 #include "Components/Camera.h"
 #include "D3d12/Device.h"
 #include "D3d12/Texture.h"
@@ -15,17 +18,7 @@
 #include "Renderer/RenderUtils/UserMarker.h"
 
 FSR2Integration::FSR2Integration()
-    : _scalePreset(),
-      _mipBias(0),
-      _sharpness(0),
-      _useMask(false),
-      _RCASSharpen(true),
-      _maskMode(FSR2MaskMode::Disabled),
-      _jitterIndex(0),
-      _jitterPhaseCount(0),
-      _resolutionInfo(),
-      _contextDest() {
-    SetScalePreset(FSR2ScalePreset::Quality);
+    : _mipBias(0), _useMask(false), _jitterIndex(0), _jitterPhaseCount(0), _resolutionInfo(), _contextDest() {
 }
 
 void FSR2Integration::OnCreate() {
@@ -39,6 +32,8 @@ void FSR2Integration::OnCreate() {
         scratchBufferSize,
         FFX_FSR2_CONTEXT_COUNT);
     Assert(errorCode == FFX_OK);
+    _onBuildRenderSettingGUI = GlobalCallbacks::Get().OnBuildRenderSettingGUI.Register(this,
+        &FSR2Integration::BuildRenderSettingUI);
 }
 
 void FSR2Integration::OnDestroy() {
@@ -47,6 +42,7 @@ void FSR2Integration::OnDestroy() {
         std::free(_contextDest.backendInterface.scratchBuffer);
         _contextDest.backendInterface.scratchBuffer = nullptr;
     }
+    _onBuildRenderSettingGUI.Release();
 }
 
 void FSR2Integration::OnResize(const ResolutionInfo &resolution) {
@@ -153,11 +149,12 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     pComputeContext->Transition(desc.pOutputTex->GetResource(), computeRead);
     dispatchParameters.output = ConvertFfxResource(desc.pOutputTex, L"FSR2_Output");
 
-    if (_maskMode != FSR2MaskMode::Disabled) {
+    const FSR2Config &fsr2Config = RenderSetting::Get().GetFsr2Config();
+    if (fsr2Config.maskMode != FSR2MaskMode::Disabled && desc.pReactiveMaskTex != nullptr) {
         pComputeContext->Transition(desc.pReactiveMaskTex->GetResource(), computeRead);
         dispatchParameters.reactive = ConvertFfxResource(desc.pReactiveMaskTex, L"FSR2_InputReactiveMap");
     }
-    if (_useMask) {
+    if (_useMask && desc.pCompositionMaskTex != nullptr) {
         pComputeContext->Transition(desc.pCompositionMaskTex->GetResource(), computeRead);
         dispatchParameters.transparencyAndComposition = ConvertFfxResource(desc.pCompositionMaskTex,
             L"FSR2_TransparencyAndCompositionMap");
@@ -170,11 +167,9 @@ void FSR2Integration::Execute(const FSR2ExecuteDesc &desc) {
     dispatchParameters.motionVectorScale.x = _resolutionInfo.renderWidth;
     dispatchParameters.motionVectorScale.y = _resolutionInfo.renderHeight;
     dispatchParameters.reset = false;
-    dispatchParameters.enableSharpening = _RCASSharpen;
-    dispatchParameters.sharpness = _sharpness;
-
+    dispatchParameters.enableSharpening = fsr2Config.sharpness != 0.f;
+    dispatchParameters.sharpness = fsr2Config.sharpness;
     dispatchParameters.frameTimeDelta = GameTimer::Get().GetDeltaTimeMS();
-
     dispatchParameters.preExposure = RenderSetting::Get().GetExposure();
     dispatchParameters.renderSize.width = _resolutionInfo.renderWidth;
     dispatchParameters.renderSize.height = _resolutionInfo.renderHeight;
@@ -204,36 +199,30 @@ static float CalculateMipBias(float upscalerRatio) {
     return std::log2f(1.f / upscalerRatio) - 1.f + std::numeric_limits<float>::epsilon();
 }
 
-void FSR2Integration::SetScalePreset(FSR2ScalePreset preset) {
-    _scalePreset = preset;
-    switch (preset) {
-    case FSR2ScalePreset::Quality:
-        _upscaleRatio = 1.5f;
-        break;
-    case FSR2ScalePreset::Balanced:
-        _upscaleRatio = 1.7f;
-        break;
-    case FSR2ScalePreset::Performance:
-        _upscaleRatio = 2.f;
-        break;
-    case FSR2ScalePreset::UltraPerformance:
-        _upscaleRatio = 3.f;
-        break;
-    case FSR2ScalePreset::Custom:
-    default:;
-        break;
-    }
-    _mipBias = CalculateMipBias(_upscaleRatio);
-}
-
 auto FSR2Integration::GetResolutionInfo(size_t width, size_t height) const -> ResolutionInfo {
     float jitterX, jitterY;
     GetJitterOffset(jitterX, jitterY);
-    return ResolutionInfo(width, height, _upscaleRatio, jitterX, jitterY);
+    float upscaleRatio = RenderSetting::Get().GetFsr2Config().upscaleRatio;
+    return ResolutionInfo(width, height, upscaleRatio, jitterX, jitterY);
 }
 
 void FSR2Integration::GetJitterOffset(float &jitterX, float &jitterY) const {
     ffxFsr2GetJitterOffset(&jitterX, &jitterY, _jitterIndex, _jitterPhaseCount);
+}
+
+auto FSR2Integration::CalculateUpscaleRatio(FSR2ScalePreset preset) -> float {
+    switch (preset) {
+    case FSR2ScalePreset::Balanced:
+        return 1.7f;
+    case FSR2ScalePreset::Performance:
+        return 2.f;
+    case FSR2ScalePreset::UltraPerformance:
+        return 3.f;
+    case FSR2ScalePreset::Custom:
+    case FSR2ScalePreset::Quality:
+    default:;
+        return 1.5f;
+    }
 }
 
 void FSR2Integration::FfxMsgCallback(FfxMsgType type, const wchar_t *pMsg) {
@@ -280,4 +269,44 @@ void FSR2Integration::CreateContext(const ResolutionInfo &resolution) {
     _pContext = std::make_unique<FfxFsr2Context>();
     FfxErrorCode errorCode = ffxFsr2ContextCreate(_pContext.get(), &_contextDest);
     Assert(errorCode == FFX_OK);
+}
+
+void FSR2Integration::BuildRenderSettingUI() {
+    if (!ImGui::TreeNode("FSR2")) {
+        return;
+    }
+
+    GfxDevice *pGfxDevice = GfxDevice::GetInstance();
+    RenderSetting &renderSetting = RenderSetting::Get();
+    FSR2Config &fsr2Config = renderSetting.GetFsr2Config();
+
+    const char *kScalePresetItem[] = {"Quality", "Balanced", "Performance", "UltraPerformance", "Custom"};
+    int scalePreset = static_cast<int>(fsr2Config.scalePreset);
+    bool hasChanged = ImGui::Combo("ScalePreset", &scalePreset, kScalePresetItem, std::size(kScalePresetItem));
+    fsr2Config.scalePreset = static_cast<FSR2ScalePreset>(scalePreset);
+
+    if (hasChanged && scalePreset != static_cast<int>(FSR2ScalePreset::Custom)) {
+        pGfxDevice->GetDevice()->WaitForGPUFlush();
+        fsr2Config.upscaleRatio = CalculateUpscaleRatio(static_cast<FSR2ScalePreset>(scalePreset));
+        _mipBias = CalculateMipBias(fsr2Config.upscaleRatio );
+        Application::GetInstance()->MakeWindowSizeDirty();
+    }
+
+    float upscaleRatio = fsr2Config.upscaleRatio;
+    if (scalePreset == static_cast<int>(FSR2ScalePreset::Custom)) {
+		hasChanged = ImGui::DragFloat("UpscaleRation", &upscaleRatio, 0.1f, 1.f, 3.f);
+        if (hasChanged) {
+	        fsr2Config.upscaleRatio = upscaleRatio;
+	        _mipBias = CalculateMipBias(upscaleRatio);
+	        Application::GetInstance()->MakeWindowSizeDirty();
+        }
+    }
+
+    const char *kMaskModeItem[] = {"Disabled", "Manual"};
+    int maskMode = static_cast<int>(fsr2Config.maskMode);
+    if (ImGui::Combo("MaskMode", &maskMode, kMaskModeItem, std::size(kMaskModeItem))) {
+	    fsr2Config.maskMode = static_cast<FSR2MaskMode>(maskMode);
+    }
+    ImGui::DragFloat("Sharpness", &fsr2Config.sharpness, 0.01f, 0.f, 1.f);
+    ImGui::TreePop();
 }

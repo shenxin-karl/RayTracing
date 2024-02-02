@@ -22,6 +22,8 @@ public:
     void OnRender(GameTimer &timer) override;
     void OnPostRender(GameTimer &timer) override;
     void OnResize(uint32_t width, uint32_t height);
+    void MakeWindowSizeDirty();
 private:
+    bool                      _shouldResize;
     std::unique_ptr<Renderer> _pRenderer;
 };

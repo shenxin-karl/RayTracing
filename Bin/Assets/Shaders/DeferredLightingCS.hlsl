@@ -12,8 +12,6 @@ Texture2D<float4>			gBuffer2	   : register(t2);
 Texture2D<float>            gDepthTex      : register(t3);
 Texture2D<float>            gShadowMask    : register(t4);
 RWTexture2D<float4>         gOutput        : register(u0);
-SamplerState                gLinearSampler : register(s0);
-
 
 ConstantBuffer<CbLighting>  gCbLighting : register(b0);
 ConstantBuffer<CBPrePass>   gCbPrePass  : register(b1);
@@ -49,8 +47,7 @@ float3 GetWorldPosition(ComputeIn cin) {
 }
 
 float GetShadow(ComputeIn cin) {
-	float2 uv = (cin.DispatchThreadID.xy + 0.5f) * gCbPrePass.invRenderSize;
-    float shadowData = gShadowMask.SampleLevel(gLinearSampler, uv, 0);
+    float shadowData = gShadowMask[cin.DispatchThreadID.xy];
     float shadow = SIGMA_BackEnd_UnpackShadow(shadowData);
     return shadow;
 }

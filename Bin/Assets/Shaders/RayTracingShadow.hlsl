@@ -91,8 +91,6 @@ void ShadowRaygenShader() {
     ShadowRayPayload payload = { NRD_FP16_MAX, 0 };
     uint2 index = DispatchRaysIndex().xy;
     float2 uv = float2(index + 0.5f) / DispatchRaysDimensions().xy;
-    SamplerState linearClamp = gStaticSamplerState[3];
-    //float zNdc = gDepthTex.SampleLevel(linearClamp, uv, 0);
     float zNdc = gDepthTex[index];
     float viewSpaceDepth = ViewSpaceDepth(zNdc, gRayGenCB.zBufferParams);
     if (zNdc == gRayGenCB.backgroundNDCDepth) {

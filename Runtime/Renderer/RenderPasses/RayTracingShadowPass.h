@@ -52,7 +52,6 @@ private:
     void BuildRenderSettingUI();
 private:
     // clang-format off
-    ResolutionInfo                     _resolutionInfo;
 	dx::SRV							   _shadowMaskSRV;
 	dx::UAV							   _shadowMaskUAV;
     std::unique_ptr<dx::Texture>       _pShadowMaskTex;

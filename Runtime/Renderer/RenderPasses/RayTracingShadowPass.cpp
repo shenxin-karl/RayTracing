@@ -95,14 +95,8 @@ auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HAND
 void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
     _pShadowMaskTex->OnDestroy();
 
-    _resolutionInfo = resolution;
     size_t textureWidth = resolution.renderWidth;
     size_t textureHeight = resolution.renderHeight;
-    if (RenderSetting::Get().GetShadowConfig().resolution == ShadowMaskResolution::eHalf) {
-        textureWidth /= 2;
-        textureHeight /= 2;
-    }
-
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, textureWidth, textureHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -151,6 +145,7 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
         float       minT;
 		uint        maxRecursiveDepth;
         float       backgroundNDCDepth;
+        uint        padding0;
     };
     // clang-format on
 
@@ -158,9 +153,8 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
 
     float angularDiameter = glm::radians(shadowConfig.sunAngularDiameter * 0.5f);
 
-
-	RayGenCB rayGenCb;
-    rayGenCb.matInvViewProj = args.pRenderView->GetCBPrePass().matInvViewProj;
+    RayGenCB rayGenCb;
+    rayGenCb.matInvViewProj = args.pRenderView->GetCBPrePass().matInvJitteredViewProj;
     rayGenCb.lightDirection = args.pRenderView->GetCBLighting().directionalLight.direction;
     rayGenCb.enableSoftShadow = angularDiameter != 0.f;
     rayGenCb.zBufferParams = args.pRenderView->GetCBPrePass().zBufferParams;
@@ -349,7 +343,7 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
     RenderSetting &renderSetting = RenderSetting::Get();
     ShadowConfig &shadowConfig = renderSetting.GetShadowConfig();
 
-    ImGui::DragFloat("RayTMin", &shadowConfig.rayTMin, 0.1f, 0.f, 5.f);
+    ImGui::DragFloat("RayTMin", &shadowConfig.rayTMin, 0.05f, 0.f, 5.f);
     ImGui::InputFloat("RayTMax", &shadowConfig.rayTMax);
 
     ImGui::SliderFloat("SunAngularDiameter", &shadowConfig.sunAngularDiameter, 0.f, 5.f);
@@ -358,18 +352,8 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
         _pRayTracingPSO = nullptr;
         CreatePipelineState();
     }
-    ImGui::SliderFloat("BlurRadiusScale", &shadowConfig.denoiseBlurRadiusScale, 0.f, 3.f);
-    ImGui::SliderFloat("PlaneDistanceSensitivity", &shadowConfig.planeDistanceSensitivity, 0.f, 5.f);
+    ImGui::DragFloat("BlurRadiusScale", &shadowConfig.denoiseBlurRadiusScale, 0.01f, 1.f, 3.f);
+    ImGui::SliderFloat("PlaneDistanceSensitivity", &shadowConfig.planeDistanceSensitivity, 0.f, 0.5f);
 
-    int resolution = static_cast<int>(shadowConfig.resolution);
-    const char *resolutionType[] = {"Full", "Half"};
-    if (ImGui::Combo("Shadow Mask Texture Resolution", &resolution, resolutionType, std::size(resolutionType))) {
-        shadowConfig.resolution = static_cast<ShadowMaskResolution>(resolution);
-    }
-
-    if (static_cast<ShadowMaskResolution>(resolution) != shadowConfig.resolution) {
-        GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
-        OnResize(_resolutionInfo);
-    }
     ImGui::TreePop();
 }

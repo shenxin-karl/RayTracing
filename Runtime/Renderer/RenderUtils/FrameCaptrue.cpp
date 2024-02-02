@@ -3,7 +3,7 @@
 #include "Modules/Renderdoc/RenderDoc.h"
 #include "Modules/Pix/Pix.h"
 
-#if 0
+#if 1
 using NativeFrameCaptureType = Pix;
 #else
 using NativeFrameCaptureType = RenderDoc;

@@ -20,7 +20,7 @@
 #include "Renderer/Samples/SoftShadow.h"
 #include "Renderer/Samples/TriangleRenderer.h"
 
-Application::Application() {
+Application::Application(): _shouldResize(false) {
 }
 
 Application::~Application() {
@@ -63,7 +63,9 @@ void Application::OnCreate() {
     GfxDevice::GetInstance()->GetASBuilder()->FlushAndFinish();
 
     // register resize call back
-    pInputSystem->pWindow->SetResizeCallback([=](int width, int height) { OnResize(width, height); });
+    pInputSystem->pWindow->SetResizeCallback([=](int width, int height) {
+	    MakeWindowSizeDirty();
+    });
 
     pInputSystem->pWindow->SetPrepareMessageCallBack([](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	    return GUI::Get().PollEvent(hwnd, msg, wParam, lParam);
@@ -139,6 +141,11 @@ void Application::OnPostUpdate(GameTimer &timer) {
 }
 
 void Application::OnPreRender(GameTimer &timer) {
+    if (_shouldResize) {
+	    InputSystem *pInputSystem = InputSystem::GetInstance();
+        OnResize(pInputSystem->pWindow->GetWidth(), pInputSystem->pWindow->GetHeight());
+    }
+
     ITick::OnPreRender(timer);
     InputSystem::GetInstance()->OnPreRender(timer);
     MainThread::ExecuteMainThreadJob(MainThread::PreRender, timer);
@@ -164,7 +171,12 @@ void Application::OnPostRender(GameTimer &timer) {
 }
 
 void Application::OnResize(uint32_t width, uint32_t height) {
+    _shouldResize = false;
     GfxDevice::GetInstance()->GetDevice()->WaitForGPUFlush();
     GlobalCallbacks::Get().OnResize.Invoke(width, height);
     _pRenderer->OnResize(width, height);
+}
+
+void Application::MakeWindowSizeDirty() {
+    _shouldResize = true;
 }
