@@ -34,8 +34,9 @@ private:
 	void CreateScene();
 	void SetupCamera();
 	void SetupLight();
+	void CreateCubeObject();
 	void LoadGLTF();
-	void LoadCubeMap();
+	void LoadSkyBoxTexture();
 	void RecreateWindowSizeDependentResources();
 private:
 	dx::Texture						_renderTargetTex;

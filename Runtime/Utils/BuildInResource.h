@@ -14,6 +14,9 @@ public:
 	auto GetSkyBoxCubeMesh() const -> std::shared_ptr<Mesh> {
 		return _pSkyBoxCubeMesh;
 	}
+	auto GetCubeMesh() const -> std::shared_ptr<Mesh> {
+		return _pCubeMesh;
+	}
 	auto GetEmptyLocalRootSignature() const -> const std::shared_ptr<dx::RootSignature> & {
 		return _pEmptyLocalRootSignature;
 	}

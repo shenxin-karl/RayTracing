@@ -11,6 +11,7 @@
 #include "RenderObject/GPUMeshData.h"
 #include "RenderObject/Material.h"
 #include "RenderObject/Mesh.h"
+#include "RenderObject/RenderGroup.hpp"
 #include "RenderObject/RenderObject.h"
 #include "RenderObject/VertexSemantic.hpp"
 #include "ShaderLoader/ShaderManager.h"
@@ -138,9 +139,7 @@ void GBufferPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
     pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
     pGfxCtx->SetPipelineState(pPipelineState);
     pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
     pGfxCtx->SetGraphicsRootConstantBufferView(eCbPrePass, args.cbPrePassCBuffer);
-
     using TextureType = Material::TextureType;
 
     size_t index = 0;

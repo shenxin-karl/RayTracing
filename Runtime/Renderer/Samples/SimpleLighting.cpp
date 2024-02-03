@@ -97,7 +97,7 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
     _sceneConstantBuffer.lightPosition = glm::vec4(65.f, 45.f, 0.f, 0.f);
     _sceneConstantBuffer.lightAmbientColor = glm::vec4(0.1f);
     _sceneConstantBuffer.lightDiffuseColor = glm::vec4(0.9f);
-    _sceneConstantBuffer.time = timer.GetTotalTimeMS();
+    _sceneConstantBuffer.time = timer.GetTotalTimeS();
 }
 
 void SimpleLighting::OnRender(GameTimer &timer) {
@@ -142,8 +142,8 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         dispatchRaysDesc.missShaderTable.push_back(dx::ShaderRecode(pMissShaderIdentifier));
 
         CubeConstantBuffer cbuffer;
-        cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTimeMS()) * 0.5 + 0.5f, std::cos(timer.GetTotalTimeMS()) * 0.5 + 0.5f, 1.f, 1.f);
-        cbuffer.noiseTile = (std::sin(timer.GetTotalTimeMS() * 0.5f) * 0.5 + 0.5) * 5.f + 2.f;
+        cbuffer.albedo = glm::vec4(std::sin(timer.GetTotalTimeS()) * 0.5 + 0.5f, std::cos(timer.GetTotalTimeS()) * 0.5 + 0.5f, 1.f, 1.f);
+        cbuffer.noiseTile = (std::sin(timer.GetTotalTimeS() * 0.5f) * 0.5 + 0.5) + 2.f;
         auto cubeCB = pGraphicsCtx->AllocConstantBuffer(cbuffer);
 
         dx::ShaderRecode hitGroupShaderRecode(pHitGroupShaderIdentifier, &_closestLocalRootSignature);

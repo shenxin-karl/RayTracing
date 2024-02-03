@@ -103,9 +103,9 @@ void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCamer
         }
     };
 
-    FetchRenderObject(_opaqueRenderObjects, &RenderGroup::IsOpaque);
-    FetchRenderObject(_alphaTestRenderObjects, &RenderGroup::IsAlphaTest);
     FetchRenderObject(_transparentRenderObjects, &RenderGroup::IsTransparent);
+    FetchRenderObject(_alphaTestRenderObjects, &RenderGroup::IsAlphaTest);
+    FetchRenderObject(_opaqueRenderObjects, &RenderGroup::IsOpaque);
 }
 
 std::strong_ordering operator<=>(const RenderObjectKey &lhs, const RenderObjectKey &rhs) {

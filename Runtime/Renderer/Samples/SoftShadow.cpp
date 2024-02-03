@@ -27,6 +27,7 @@
 #include "Renderer/RenderUtils/ConstantBufferHelper.h"
 #include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "Renderer/RenderUtils/RenderSetting.h"
+#include "RenderObject/Material.h"
 #include "SceneObject/GLTFLoader.h"
 #include "SceneObject/Scene.h"
 #include "SceneObject/SceneLightManager.h"
@@ -34,6 +35,7 @@
 #include "SceneObject/SceneRayTracingASManager.h"
 #include "SceneObject/SceneRenderObjectManager.h"
 #include "Utils/AssetProjectSetting.h"
+#include "Utils/BuildInResource.h"
 
 SoftShadow::SoftShadow() : _pScene(nullptr), _pCameraGO(nullptr) {
 }
@@ -254,8 +256,9 @@ void SoftShadow::CreateScene() {
     RenderSetting::Get().SetExposure(1.1f);
     SetupCamera();
     SetupLight();
+    CreateCubeObject();
     LoadGLTF();
-    LoadCubeMap();
+    LoadSkyBoxTexture();
 }
 
 void SoftShadow::SetupCamera() {
@@ -285,6 +288,28 @@ void SoftShadow::SetupLight() {
     _pScene->AddGameObject(pGameObject);
 }
 
+void SoftShadow::CreateCubeObject() {
+	SharedPtr<GameObject> pGameObject = GameObject::Create();
+    glm::vec3 scale(50.f);
+    glm::vec3 translate(-500, 50, -100.f);
+    glm::quat rotation = glm::identity<glm::quat>();
+    pGameObject->GetTransform()->SetWorldTRS(translate, rotation, scale);
+	MeshRenderer *pMeshRenderer = pGameObject->AddComponent<MeshRenderer>();
+    std::shared_ptr<Material> pMaterial = std::make_shared<Material>();
+
+    TextureLoader textureLoader;
+    stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/WireFence.dds");
+	std::shared_ptr<dx::Texture> pAlbedoTexture = textureLoader.LoadFromFile(path, false);
+	dx::SRV albedoSRV = textureLoader.GetSRV2D(pAlbedoTexture.get());
+    pMaterial->SetTexture(Material::eAlbedoTex, pAlbedoTexture, albedoSRV);
+    pMaterial->SetRenderGroup(RenderGroup::eAlphaTest);
+    pMaterial->SetCutoff(0.8f);
+
+    pMeshRenderer->SetMesh(BuildInResource::Get().GetCubeMesh());
+    pMeshRenderer->SetMaterial(pMaterial);
+    _pScene->AddGameObject(pGameObject);
+}
+
 void SoftShadow::LoadGLTF() {
     GLTFLoader loader;
     loader.Load(AssetProjectSetting::ToAssetPath("Models/powerplant/powerplant.gltf"));
@@ -293,7 +318,7 @@ void SoftShadow::LoadGLTF() {
     _pScene->AddGameObject(pRootGameObject);
 }
 
-void SoftShadow::LoadCubeMap() {
+void SoftShadow::LoadSkyBoxTexture() {
     TextureLoader textureLoader;
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
     _pSkyBoxCubeMap = textureLoader.LoadFromFile(path, true);

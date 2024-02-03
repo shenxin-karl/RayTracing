@@ -19,6 +19,7 @@
 #include "Renderer/GUI/ImguiHelper.h"
 #include "Renderer/RenderUtils/RenderSetting.h"
 #include "Renderer/RenderUtils/RenderView.h"
+#include "Utils/BuildInResource.h"
 
 static const wchar_t *sShadowRayGenShaderName = L"ShadowRaygenShader";
 static const wchar_t *sShadowMissShaderName = L"ShadowMissShader";
@@ -217,10 +218,11 @@ void RayTracingShadowPass::CreatePipelineState() {
     CD3DX12_STATE_OBJECT_DESC rayTracingPipeline{D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE};
     CD3DX12_DXIL_LIBRARY_SUBOBJECT *pLib = rayTracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
     pLib->SetDXILLibrary(&byteCode);
-    pLib->DefineExport(sShadowRayGenShaderName);
+    /*    pLib->DefineExport(sShadowRayGenShaderName);
     pLib->DefineExport(sOpaqueClosestHitShaderName);
     pLib->DefineExport(sAlphaClosestHitShader);
-    pLib->DefineExport(sShadowMissShaderName);
+    pLib->DefineExport(sShadowMissShaderName)*/
+    ;
 
     CD3DX12_HIT_GROUP_SUBOBJECT *pOpaqueHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
     pOpaqueHitGroup->SetHitGroupExport(sOpaqueHitGroupName);
@@ -244,6 +246,12 @@ void RayTracingShadowPass::CreatePipelineState() {
         CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
     rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
     rootSignatureAssociation->AddExport(sAlphaTestHitGroupName);
+
+    pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    pLocalRootSignature->SetRootSignature(BuildInResource::Get().GetEmptyLocalRootSignature()->GetRootSignature());
+    rootSignatureAssociation = rayTracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+       rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
+    rootSignatureAssociation->AddExport(sOpaqueHitGroupName);
 
     auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
     pGlobalRootSignature->SetRootSignature(_pGlobalRootSignature->GetRootSignature());
@@ -302,11 +310,14 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
     dispatchRaysDesc.rayGenerationShaderRecode = dx::ShaderRecode(pRayGenShaderIdentifier);
     dispatchRaysDesc.missShaderTable.push_back(dx::ShaderRecode(pMissShaderIdentifier));
 
+    auto pEmptyLocalRootSignature = BuildInResource::Get().GetEmptyLocalRootSignature();
+
     uint materialIndex = 0;
     for (const RayTracingGeometry &geometry : geometries) {
         const Material *pMaterial = geometry.pMaterial;
         if (RenderGroup::IsOpaque(pMaterial->GetRenderGroup())) {
-            dispatchRaysDesc.hitGroupTable.push_back(dx::ShaderRecode(pOpaqueHitGroupIdentifier));
+            dispatchRaysDesc.hitGroupTable.push_back(
+                dx::ShaderRecode(pOpaqueHitGroupIdentifier, pEmptyLocalRootSignature.get()));
             continue;
         }
 

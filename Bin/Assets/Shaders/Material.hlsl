@@ -21,6 +21,7 @@ struct CbMaterial {
     int         emissionTexIndex;
     int         metalRoughnessTexIndex;
     int         normalTexIndex;
+    float2      padding0;
 };
 
 

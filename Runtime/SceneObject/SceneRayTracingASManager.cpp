@@ -31,7 +31,7 @@ void SceneRayTracingASManager::RemoveMeshRenderer(MeshRenderer *pMeshRenderer) {
 }
 
 void SceneRayTracingASManager::RebuildTopLevelAS() {
-    static bool sDebugBuildAS = 0;
+    static bool sDebugBuildAS = false;
     if (CompileEnvInfo::IsModeDebug() && sDebugBuildAS) {
         GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 		HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
@@ -75,6 +75,7 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
 	    _pAsyncASBuilder->GetUploadFinishedFence().CpuWaitForFence();
 	    FrameCapture::EndFrameCapture(hwnd, device);
 	    FrameCapture::OpenCaptureInUI();
+        sDebugBuildAS = false;
 	    DEBUG_BREAK;
     }
 }
