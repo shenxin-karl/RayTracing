@@ -49,10 +49,10 @@ public:
     void InitScene();
 private:
     // clang-format off
-	dx::Texture								_rayTracingOutput;
+	SharedPtr<dx::Texture>                  _rayTracingOutput;
 	dx::UAV									_rayTracingOutputHandle;
 
-    std::shared_ptr<dx::Texture>            _pCubeMap;
+    SharedPtr<dx::Texture>                  _pCubeMap;
     dx::SRV                                 _cubeMapHandle;
 
 	dx::RootSignature						_globalRootSignature;

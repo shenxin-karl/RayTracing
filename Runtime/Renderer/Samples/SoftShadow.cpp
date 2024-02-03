@@ -62,8 +62,8 @@ void SoftShadow::OnDestroy() {
     _pFsr2Pass->OnDestroy();
     _renderTargetRTV.Release();
     _depthStencilDSV.Release();
-    _renderTargetTex.OnDestroy();
-    _depthStencilTex.OnDestroy();
+    _pRenderTargetTex.Release();
+    _pDepthStencilTex.Release();
 }
 
 void SoftShadow::OnUpdate(GameTimer &timer) {
@@ -142,7 +142,7 @@ void SoftShadow::PrepareFrame() {
     GBufferPass::DrawArgs gbufferDrawArgs = {};
     gbufferDrawArgs.pGfxCtx = pGfxCxt.get();
     gbufferDrawArgs.cbPrePassCBuffer = cbPrePassAddress;
-    gbufferDrawArgs.pDepthBufferResource = _depthStencilTex.GetResource();
+    gbufferDrawArgs.pDepthBufferResource = _pDepthStencilTex->GetResource();
     gbufferDrawArgs.depthBufferDSV = _depthStencilDSV.GetCpuHandle();
     _pGBufferPass->PreDraw(gbufferDrawArgs);
 
@@ -172,7 +172,7 @@ void SoftShadow::PrepareFrame() {
 #endif
 
     // deferred lighting pass
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pGfxCxt->Transition(_pRenderTargetTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     DeferredLightingPass::DispatchArgs deferredLightingPassDrawArgs = {};
     deferredLightingPassDrawArgs.pRenderView = &_renderView;
     deferredLightingPassDrawArgs.cbPrePassAddress = cbPrePassAddress;
@@ -187,8 +187,8 @@ void SoftShadow::PrepareFrame() {
     _pDeferredLightingPass->Dispatch(deferredLightingPassDrawArgs);
 
     // skybox pass
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    pGfxCxt->Transition(_pRenderTargetTex->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    pGfxCxt->Transition(_pDepthStencilTex->GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTargetRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
     pGfxCxt->SetViewport(_renderView.GetRenderSizeViewport());
     pGfxCxt->SetScissor(_renderView.GetRenderSizeScissorRect());
@@ -203,13 +203,13 @@ void SoftShadow::PrepareFrame() {
     FSR2Integration::FSR2ExecuteDesc fsr2ExecuteDesc = {};
     fsr2ExecuteDesc.pComputeContext = pGfxCxt.get();
     fsr2ExecuteDesc.pRenderView = &_renderView;
-    fsr2ExecuteDesc.pColorTex = &_renderTargetTex;
-    fsr2ExecuteDesc.pDepthTex = &_depthStencilTex;
+    fsr2ExecuteDesc.pColorTex = _pRenderTargetTex.Get();
+    fsr2ExecuteDesc.pDepthTex = _pDepthStencilTex.Get();
     fsr2ExecuteDesc.pMotionVectorTex = _pGBufferPass->GetGBufferTexture(GBufferPass::eMotionVectorTex);
-    fsr2ExecuteDesc.pOutputTex = &_renderTargetTex;
+    fsr2ExecuteDesc.pOutputTex = _pRenderTargetTex.Get();
     _pFsr2Pass->Execute(fsr2ExecuteDesc);
 
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_pRenderTargetTex->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pFrameResource.ExecuteContexts(pGfxCxt.get());
 }
 
@@ -299,8 +299,8 @@ void SoftShadow::CreateCubeObject() {
 
     TextureLoader textureLoader;
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/WireFence.dds");
-	std::shared_ptr<dx::Texture> pAlbedoTexture = textureLoader.LoadFromFile(path, false);
-	dx::SRV albedoSRV = textureLoader.GetSRV2D(pAlbedoTexture.get());
+	SharedPtr<dx::Texture> pAlbedoTexture = textureLoader.LoadFromFile(path, false);
+	dx::SRV albedoSRV = textureLoader.GetSRV2D(pAlbedoTexture.Get());
     pMaterial->SetTexture(Material::eAlbedoTex, pAlbedoTexture, albedoSRV);
     pMaterial->SetRenderGroup(RenderGroup::eAlphaTest);
     pMaterial->SetCutoff(0.8f);
@@ -322,7 +322,7 @@ void SoftShadow::LoadSkyBoxTexture() {
     TextureLoader textureLoader;
     stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/snowcube1024.dds");
     _pSkyBoxCubeMap = textureLoader.LoadFromFile(path, true);
-    _skyBoxCubeSRV = textureLoader.GetSRVCube(_pSkyBoxCubeMap.get());
+    _skyBoxCubeSRV = textureLoader.GetSRVCube(_pSkyBoxCubeMap.Get());
 }
 
 void SoftShadow::RecreateWindowSizeDependentResources() {
@@ -330,7 +330,6 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
 
     // recreate render target
-    _renderTargetTex.OnDestroy();
     D3D12_RESOURCE_DESC renderTargetDesc = {};
     renderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     renderTargetDesc.Alignment = 0;
@@ -348,29 +347,28 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     renderTargetClearValue.Color[1] = 0.f;
     renderTargetClearValue.Color[2] = 0.f;
     renderTargetClearValue.Color[3] = 1.f;
-    _renderTargetTex.OnCreate(_pDevice, renderTargetDesc, D3D12_RESOURCE_STATE_COMMON, &renderTargetClearValue);
-    _renderTargetTex.SetName("RenderTargetTexture");
+    _pRenderTargetTex = dx::Texture::Create(_pDevice, renderTargetDesc, D3D12_RESOURCE_STATE_COMMON, &renderTargetClearValue);
+    _pRenderTargetTex->SetName("RenderTargetTexture");
 
     if (_renderTargetRTV.IsNull()) {
         _renderTargetRTV = _pDevice->AllocDescriptor<dx::RTV>(1);
     }
-    device->CreateRenderTargetView(_renderTargetTex.GetResource(), nullptr, _renderTargetRTV.GetCpuHandle());
+    device->CreateRenderTargetView(_pRenderTargetTex->GetResource(), nullptr, _renderTargetRTV.GetCpuHandle());
 
     if (_renderTargetSRV.IsNull()) {
         _renderTargetSRV = _pDevice->AllocDescriptor<dx::SRV>(1);
     }
-    device->CreateShaderResourceView(_renderTargetTex.GetResource(), nullptr, _renderTargetSRV.GetCpuHandle());
+    device->CreateShaderResourceView(_pRenderTargetTex->GetResource(), nullptr, _renderTargetSRV.GetCpuHandle());
 
     if (_renderTargetUAV.IsNull()) {
         _renderTargetUAV = _pDevice->AllocDescriptor<dx::UAV>(1);
     }
-    device->CreateUnorderedAccessView(_renderTargetTex.GetResource(),
+    device->CreateUnorderedAccessView(_pRenderTargetTex->GetResource(),
         nullptr,
         nullptr,
         _renderTargetUAV.GetCpuHandle());
 
     // recreate depth stencil
-    _depthStencilTex.OnDestroy();
     D3D12_RESOURCE_DESC depthStencilDesc = renderTargetDesc;
     depthStencilDesc.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -378,8 +376,8 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilClearValue.DepthStencil.Depth = RenderSetting::Get().GetDepthClearValue();
     depthStencilClearValue.DepthStencil.Stencil = 0;
-    _depthStencilTex.OnCreate(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
-    _depthStencilTex.SetName("DepthStencilTexture");
+    _pDepthStencilTex = dx::Texture::Create(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
+    _pDepthStencilTex->SetName("DepthStencilTexture");
 
     if (_depthStencilDSV.IsNull()) {
         _depthStencilDSV = _pDevice->AllocDescriptor<dx::DSV>(1);
@@ -388,19 +386,19 @@ void SoftShadow::RecreateWindowSizeDependentResources() {
     depthStencilDsv.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilDsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     depthStencilDsv.Texture2D.MipSlice = 0;
-    device->CreateDepthStencilView(_depthStencilTex.GetResource(), &depthStencilDsv, _depthStencilDSV.GetCpuHandle());
+    device->CreateDepthStencilView(_pDepthStencilTex->GetResource(), &depthStencilDsv, _depthStencilDSV.GetCpuHandle());
 
     if (_depthStencilSRV.IsNull()) {
         _depthStencilSRV = _pDevice->AllocDescriptor<dx::SRV>(1);
     }
 
     D3D12_SHADER_RESOURCE_VIEW_DESC depthStencilSrv = {};
-    depthStencilSrv.Format = dx::GetTypelessDepthTextureSRVFormat(_depthStencilTex.GetFormat());
+    depthStencilSrv.Format = dx::GetTypelessDepthTextureSRVFormat(_pDepthStencilTex->GetFormat());
     depthStencilSrv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     depthStencilSrv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     depthStencilSrv.Texture2D.MostDetailedMip = 0;
     depthStencilSrv.Texture2D.MipLevels = 1;
     depthStencilSrv.Texture2D.PlaneSlice = 0;
     depthStencilSrv.Texture2D.ResourceMinLODClamp = 0.f;
-    device->CreateShaderResourceView(_depthStencilTex.GetResource(), &depthStencilSrv, _depthStencilSRV.GetCpuHandle());
+    device->CreateShaderResourceView(_pDepthStencilTex->GetResource(), &depthStencilSrv, _depthStencilSRV.GetCpuHandle());
 }

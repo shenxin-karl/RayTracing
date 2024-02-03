@@ -55,7 +55,7 @@ private:
     using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
 private:
     // clang-format off
-    using TexturePtr = std::unique_ptr<dx::Texture>;
+    using TexturePtr = SharedPtr<dx::Texture>;
     std::vector<TexturePtr>             _gBufferTextures;
     dx::RTV                             _gBufferRTV;   
     dx::SRV                             _gBufferSRV;

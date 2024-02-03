@@ -13,7 +13,7 @@
 #include <ranges>
 #include "Renderer/GfxDevice.h"
 
-auto TextureLoader::LoadFromFile(stdfs::path path, bool forceSRGB) -> std::shared_ptr<dx::Texture> {
+auto TextureLoader::LoadFromFile(stdfs::path path, bool forceSRGB) -> SharedPtr<dx::Texture> {
     if (!path.is_absolute()) {
         path = stdfs::absolute(path);
     }
@@ -49,7 +49,7 @@ auto TextureLoader::LoadFromFile(stdfs::path path, bool forceSRGB) -> std::share
         Exception::Throw("Unsupported extended file formats: {}", extension);
     }
     pImageLoader->Load(path, 1.f);
-    std::shared_ptr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), forceSRGB);
+    SharedPtr<dx::Texture> pTexture = UploadTexture(pImageLoader.get(), forceSRGB);
     pTexture->SetName(path.string());
     _textureMap[path] = pTexture;
     return pTexture;
@@ -101,10 +101,9 @@ auto TextureLoader::GetSRVCube(const dx::Texture *pTexture) -> dx::SRV {
     return srv;
 }
 
-auto TextureLoader::UploadTexture(dx::IImageLoader *pLoader, bool forceSRGB) -> std::shared_ptr<dx::Texture> {
+auto TextureLoader::UploadTexture(dx::IImageLoader *pLoader, bool forceSRGB) -> SharedPtr<dx::Texture> {
 	dx::UploadHeap *pUploadHeap = GfxDevice::GetInstance()->GetUploadHeap();
 
-    std::shared_ptr<dx::Texture> pTexture = std::make_shared<dx::Texture>();
     dx::ImageHeader imageHeader = pLoader->GetImageHeader();
 
     dx::Device *pDevice = pUploadHeap->GetDevice();
@@ -120,7 +119,7 @@ auto TextureLoader::UploadTexture(dx::IImageLoader *pLoader, bool forceSRGB) -> 
     if (forceSRGB) {
 		textureDesc.Format = dx::GetSRGBFormat(textureDesc.Format);    
     }
-    pTexture->OnCreate(pDevice, textureDesc, D3D12_RESOURCE_STATE_COPY_DEST);
+    SharedPtr<dx::Texture> pTexture = dx::Texture::Create(pDevice, textureDesc, D3D12_RESOURCE_STATE_COPY_DEST);
 
     UINT64 UplHeapSize;
     uint32_t num_rows[D3D12_REQ_MIP_LEVELS] = {0};

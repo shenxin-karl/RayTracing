@@ -32,10 +32,7 @@ static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestClosestHitShader
 
 void RayTracingShadowPass::OnCreate() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    _pShadowMaskTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowMaskTex");
-    _pShadowDataTex = std::make_unique<dx::Texture>("RayTracingShadowPass::ShadowDataTex");
 #if ENABLE_RAY_TRACING
-
     _pGlobalRootSignature = std::make_unique<dx::RootSignature>();
     _pGlobalRootSignature->OnCreate(3, 6);
     _pGlobalRootSignature->At(eScene).InitAsBufferSRV(0);
@@ -94,14 +91,14 @@ auto RayTracingShadowPass::GetShadowMaskSRV() const -> D3D12_CPU_DESCRIPTOR_HAND
 }
 
 void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
-    _pShadowMaskTex->OnDestroy();
+    _pShadowMaskTex = nullptr;
 
     size_t textureWidth = resolution.renderWidth;
     size_t textureHeight = resolution.renderHeight;
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, textureWidth, textureHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    _pShadowMaskTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+    _pShadowMaskTex = dx::Texture::Create(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
 
     if (_shadowMaskSRV.IsNull()) {
         _shadowMaskSRV = pGfxDevice->GetDevice()->AllocDescriptor<dx::SRV>(1);
@@ -115,10 +112,10 @@ void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
     }
     device->CreateUnorderedAccessView(_pShadowMaskTex->GetResource(), nullptr, nullptr, _shadowMaskUAV.GetCpuHandle());
 
-    _pShadowDataTex->OnDestroy();
+    _pShadowDataTex = nullptr;
     texDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, textureWidth, textureHeight);
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    _pShadowDataTex->OnCreate(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
+    _pShadowDataTex = dx::Texture::Create(pGfxDevice->GetDevice(), texDesc, D3D12_RESOURCE_STATE_COMMON);
     if (_shadowDataUAV.IsNull()) {
         _shadowDataUAV = pGfxDevice->GetDevice()->AllocDescriptor<dx::UAV>(1);
     }
@@ -201,8 +198,8 @@ void RayTracingShadowPass::ShadowDenoise(const DrawArgs &args) {
     denoiseDesc.settings.planeDistanceSensitivity = shadowConfig.planeDistanceSensitivity;
 
     denoiseDesc.pComputeContext = pComputeContext;
-    denoiseDesc.pShadowDataTex = _pShadowDataTex.get();
-    denoiseDesc.pOutputShadowMaskTex = _pShadowMaskTex.get();
+    denoiseDesc.pShadowDataTex = _pShadowDataTex.Get();
+    denoiseDesc.pOutputShadowMaskTex = _pShadowMaskTex.Get();
     pDenoiser->ShadowDenoise(denoiseDesc);
     pDenoiser->SetCommonSetting(commonSettingRestore);
 }
@@ -250,7 +247,7 @@ void RayTracingShadowPass::CreatePipelineState() {
     pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
     pLocalRootSignature->SetRootSignature(BuildInResource::Get().GetEmptyLocalRootSignature()->GetRootSignature());
     rootSignatureAssociation = rayTracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-       rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
+    rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
     rootSignatureAssociation->AddExport(sOpaqueHitGroupName);
 
     auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();

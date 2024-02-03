@@ -74,7 +74,7 @@ void SimpleLighting::OnCreate() {
 
 void SimpleLighting::OnDestroy() {
     _pDevice->WaitForGPUFlush();
-    _rayTracingOutput.OnDestroy();
+    _rayTracingOutput.Release();
     _rayTracingOutputHandle.Release();
     _pMeshBuffer->OnDestroy();
     _pBottomLevelAs->OnDestroy();
@@ -118,7 +118,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
 
-    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
     pGraphicsCtx->SetComputeRootShaderResourceView(GlobalRootParams::Scene, _pTopLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetComputeRootDynamicConstantBuffer(GlobalRootParams::SceneCB, _sceneConstantBuffer);
@@ -158,9 +158,9 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         dispatchRaysDesc.depth = 1;
 		pGraphicsCtx->DispatchRays(dispatchRaysDesc);
     }
-    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+    pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
-    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput.GetResource());
+    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput->GetResource());
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
 
@@ -245,8 +245,6 @@ void SimpleLighting::BuildGeometry() {
 }
 
 void SimpleLighting::CreateRayTracingOutput() {
-    _rayTracingOutput.OnDestroy();
-
     DXGI_FORMAT backBufferFormat = _pSwapChain->GetFormat();
     CD3DX12_RESOURCE_DESC uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backBufferFormat,
         _width,
@@ -256,8 +254,8 @@ void SimpleLighting::CreateRayTracingOutput() {
         1,
         0,
         D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    _rayTracingOutput.OnCreate(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
-    _rayTracingOutput.SetName("RayTracingOutput");
+    _rayTracingOutput = dx::Texture::Create(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
+    _rayTracingOutput->SetName("RayTracingOutput");
 
     if (_rayTracingOutputHandle.IsNull()) {
         _rayTracingOutputHandle = _pDevice->AllocDescriptor<dx::UAV>(1);
@@ -265,7 +263,7 @@ void SimpleLighting::CreateRayTracingOutput() {
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
     viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(_rayTracingOutput.GetResource(),
+    device->CreateUnorderedAccessView(_rayTracingOutput->GetResource(),
         nullptr,
         &viewDesc,
         _rayTracingOutputHandle.GetCpuHandle());
@@ -355,7 +353,7 @@ void SimpleLighting::LoadCubeMap() {
 
     TextureLoader textureLoader;
     _pCubeMap = textureLoader.LoadFromFile(path);
-    _cubeMapHandle = textureLoader.GetSRVCube(_pCubeMap.get());
+    _cubeMapHandle = textureLoader.GetSRVCube(_pCubeMap.Get());
 }
 
 void SimpleLighting::InitScene() {

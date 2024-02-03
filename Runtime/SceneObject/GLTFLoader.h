@@ -54,7 +54,7 @@ struct GLTFLoader::GLTFMaterial {
     };
 public:
     void Create(TextureLoader *pTextureLoader, stdfs::path directory, const aiScene *pAiScene, const aiMaterial *pAiMaterial);
-    auto LoadTexture(Texture &texture, bool makeSRGB) -> std::shared_ptr<dx::Texture>;
+    auto LoadTexture(Texture &texture, bool makeSRGB) -> SharedPtr<dx::Texture>;
 private:
     bool ProcessTexture(Texture &texture,
         const stdfs::path &directory,
@@ -72,5 +72,5 @@ public:
     Texture ambientOcclusionMap;
     TextureLoader *pTextureLoader = nullptr;
     std::shared_ptr<::Material> pStdMaterial;
-    std::unordered_map<Texture *, std::shared_ptr<dx::Texture>> textureMap;
+    std::unordered_map<Texture *, SharedPtr<dx::Texture>> textureMap;
 };

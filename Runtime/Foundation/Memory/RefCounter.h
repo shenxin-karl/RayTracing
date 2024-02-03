@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <atomic>
 #include "Foundation/NonCopyable.h"
 
 class RefCounter : private NonCopyable {
@@ -11,8 +12,8 @@ public:
 		++_refCount;
 	}
 	auto GetRefCount() const noexcept -> int32_t {
-		return _refCount;
+		return _refCount.load();
 	}
 private:
-	int32_t	_refCount;
+	std::atomic<int32_t> _refCount;
 };

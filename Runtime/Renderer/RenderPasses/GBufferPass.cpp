@@ -80,8 +80,7 @@ void GBufferPass::OnResize(const ResolutionInfo &resolutio) {
 	    D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(gBufferFormats[i], _width, _height);
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		clearValue.Format = desc.Format;
-        _gBufferTextures[i] = std::make_unique<dx::Texture>();
-        _gBufferTextures[i]->OnCreate(pDevice->GetDevice(), desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
+        _gBufferTextures[i] = dx::Texture::Create(pDevice->GetDevice(), desc, D3D12_RESOURCE_STATE_COMMON, &clearValue);
 		_gBufferTextures[i]->SetName(fmt::format("GBufferPass::GBuffer{}", i));
         dx::NativeDevice *device = pDevice->GetDevice()->GetNativeDevice();
         device->CreateRenderTargetView(_gBufferTextures[i]->GetResource(), nullptr, _gBufferRTV[i]);
@@ -94,7 +93,7 @@ auto GBufferPass::GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HAND
 }
 
 auto GBufferPass::GetGBufferTexture(size_t index) const -> dx::Texture * {
-    return _gBufferTextures[index].get();
+    return _gBufferTextures[index].Get();
 }
 
 void GBufferPass::PreDraw(const DrawArgs &args) {

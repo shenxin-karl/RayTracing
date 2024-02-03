@@ -6,23 +6,7 @@
 
 namespace dx {
 
-Texture::Texture(const std::source_location &sl) : _pResource(nullptr), _textureDesc{} {
-    _pDevice = nullptr;
-    _pAllocation = nullptr;
-    _name = fmt::format("{}:{}", sl.function_name(), sl.line());
-}
-
-Texture::Texture(std::string_view name): _textureDesc() {
-	_pDevice = nullptr;
-	_pAllocation = nullptr;
-	_name = name;
-}
-
-Texture::~Texture() {
-    OnDestroy();
-}
-
-void Texture::OnCreate(Device *pDevice,
+Texture::Texture(Device *pDevice,
     const D3D12_RESOURCE_DESC &desc,
     D3D12_RESOURCE_STATES initState,
     const D3D12_CLEAR_VALUE *pClearValue) {
@@ -43,19 +27,16 @@ void Texture::OnCreate(Device *pDevice,
         IID_PPV_ARGS(&_pResource)));
     // clang-format on
     GlobalResourceState::SetResourceState(_pResource.Get(), initState);
-
-    std::wstring wideName = nstd::to_wstring(_name);
-    _pResource->SetName(wideName.c_str());
 }
 
-void Texture::OnDestroy() {
+Texture::~Texture() {
     if (_pAllocation != nullptr) {
         _pAllocation->Release();
         _pAllocation = nullptr;
     }
     if (_pResource != nullptr) {
-	    GlobalResourceState::RemoveResourceState(_pResource.Get());
-	    _pResource = nullptr;
+        GlobalResourceState::RemoveResourceState(_pResource.Get());
+        _pResource = nullptr;
     }
 }
 

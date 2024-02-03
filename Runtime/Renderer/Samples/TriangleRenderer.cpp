@@ -70,7 +70,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     dx::FrameResource &frameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
 
-    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
     pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
@@ -99,9 +99,9 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         pGraphicsCtx->DispatchRays(dispatchRaysDesc);
     }
 
-    pGraphicsCtx->Transition(_rayTracingOutput.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+    pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE);
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_COPY_DEST);
-    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput.GetResource());
+    pGraphicsCtx->CopyResource(_pSwapChain->GetCurrentBackBuffer(), _rayTracingOutput->GetResource());
 
     pGraphicsCtx->Transition(_pSwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT);
     frameResource.ExecuteContexts(pGraphicsCtx.get());
@@ -210,8 +210,6 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
 }
 
 void TriangleRenderer::CreateRayTracingOutputResource() {
-    _rayTracingOutput.OnDestroy();
-
     DXGI_FORMAT backBufferFormat = _pSwapChain->GetFormat();
     CD3DX12_RESOURCE_DESC uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backBufferFormat,
         _width,
@@ -221,8 +219,8 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
         1,
         0,
         D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    _rayTracingOutput.OnCreate(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
-    _rayTracingOutput.SetName("RayTracingOutput");
+    _rayTracingOutput = dx::Texture::Create(_pDevice, uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
+    _rayTracingOutput->SetName("RayTracingOutput");
 
     if (_rayTracingOutputView.IsNull()) {
         _rayTracingOutputView = _pDevice->AllocDescriptor<dx::UAV>(1);
@@ -231,7 +229,7 @@ void TriangleRenderer::CreateRayTracingOutputResource() {
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
     viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(_rayTracingOutput.GetResource(),
+    device->CreateUnorderedAccessView(_rayTracingOutput->GetResource(),
         nullptr,
         &viewDesc,
         _rayTracingOutputView.GetCpuHandle());

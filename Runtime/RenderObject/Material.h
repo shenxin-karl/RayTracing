@@ -4,6 +4,7 @@
 #include "D3d12/DescriptorHandle.h"
 #include "D3d12/ShaderCompiler.h"
 #include "D3d12/D3dStd.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 enum class SemanticMask;
 
@@ -19,8 +20,8 @@ public:
     Material();
     ~Material();
     void SetRenderGroup(uint16_t renderGroup);
-    void SetTexture(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv);
-    auto GetTexture(TextureType textureType) -> const std::shared_ptr<dx::Texture> &;
+    void SetTexture(TextureType textureType, SharedPtr<dx::Texture> pTexture, dx::SRV srv);
+    auto GetTexture(TextureType textureType) -> const SharedPtr<dx::Texture> &;
     auto GetTextureHandle(TextureType textureType) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
     void SetAlbedo(const glm::vec4 &albedo);
     void SetEmission(const glm::vec4 &emission);
@@ -73,7 +74,7 @@ private:
     uint32_t                     _renderGroup;
     dx::DefineList               _defineList;
     dx::SRV                      _textureHandles[eMaxNum];
-    std::shared_ptr<dx::Texture> _textures[eMaxNum];
+    SharedPtr<dx::Texture>       _textures[eMaxNum];
     CbPreMaterial                _cbPreMaterial;
 
     bool                         _pipelineIDDirty;

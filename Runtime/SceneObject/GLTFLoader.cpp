@@ -1,14 +1,15 @@
 #include "GLTFLoader.h"
-#include "Foundation/Formatter.hpp"
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <RenderObject/Material.h>
 #include "Components/Transform.h"
 #include "D3d12/IImageLoader.h"
+#include "D3d12/Texture.h"
+#include "Foundation/Formatter.hpp"
 #include "Object/GameObject.h"
 #include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
-#include <RenderObject/Material.h>
 #include "RenderObject/VertexSemantic.hpp"
 #include "TextureObject/DDSLoader.h"
 #include "TextureObject/TextureLoader.h"
@@ -180,30 +181,30 @@ auto GLTFLoader::BuildMaterial(size_t materialIndex) -> std::shared_ptr<Material
     pMaterial->SetRenderGroup(gltfMaterial.renderGroup);
     pMaterial->SetCutoff(gltfMaterial.alphaCutoff);
     if (gltfMaterial.baseColorMap.IsValid()) {
-        std::shared_ptr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
-        dx::SRV srv = _textureLoader.GetSRV2D(pBaseTexture.get());
+        SharedPtr<dx::Texture> pBaseTexture = gltfMaterial.LoadTexture(gltfMaterial.baseColorMap, true);
+        dx::SRV srv = _textureLoader.GetSRV2D(pBaseTexture.Get());
         pMaterial->SetTexture(Material::eAlbedoTex, pBaseTexture, std::move(srv));
     }
     if (gltfMaterial.normalMap.IsValid()) {
-        std::shared_ptr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap, false);
-        dx::SRV srv = _textureLoader.GetSRV2D(pNormalMap.get());
+        SharedPtr<dx::Texture> pNormalMap = gltfMaterial.LoadTexture(gltfMaterial.normalMap, false);
+        dx::SRV srv = _textureLoader.GetSRV2D(pNormalMap.Get());
         pMaterial->SetTexture(Material::eNormalTex, pNormalMap, std::move(srv));
     }
     if (gltfMaterial.emissionMap.IsValid()) {
-        std::shared_ptr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap, false);
-        dx::SRV srv = _textureLoader.GetSRV2D(pEmissionMap.get());
+        SharedPtr<dx::Texture> pEmissionMap = gltfMaterial.LoadTexture(gltfMaterial.emissionMap, false);
+        dx::SRV srv = _textureLoader.GetSRV2D(pEmissionMap.Get());
         pMaterial->SetTexture(Material::eEmissionTex, pEmissionMap, std::move(srv));
     }
     if (gltfMaterial.metalnessRoughnessMap.IsValid()) {
-        std::shared_ptr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
-        dx::SRV srv = _textureLoader.GetSRV2D(pMetalRoughnessMap.get());
+        SharedPtr<dx::Texture> pMetalRoughnessMap = gltfMaterial.LoadTexture(gltfMaterial.metalnessRoughnessMap, true);
+        dx::SRV srv = _textureLoader.GetSRV2D(pMetalRoughnessMap.Get());
         pMaterial->SetTexture(Material::eMetalRoughnessTex, pMetalRoughnessMap, std::move(srv));
         pMaterial->SetRoughness(1.f);
         pMaterial->SetMetallic(1.f);
     }
     if (gltfMaterial.ambientOcclusionMap.IsValid()) {
-        std::shared_ptr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);
-        dx::SRV srv = _textureLoader.GetSRV2D(pAmbientOcclusionMap.get());
+        SharedPtr<dx::Texture> pAmbientOcclusionMap = gltfMaterial.LoadTexture(gltfMaterial.ambientOcclusionMap, false);
+        dx::SRV srv = _textureLoader.GetSRV2D(pAmbientOcclusionMap.Get());
         pMaterial->SetTexture(Material::eAmbientOcclusionTex, pAmbientOcclusionMap, std::move(srv));
     }
     return pMaterial;
@@ -241,12 +242,12 @@ void GLTFLoader::GLTFMaterial::Create(TextureLoader *pTextureLoader, stdfs::path
     }
 }
 
-auto GLTFLoader::GLTFMaterial::LoadTexture(Texture &texture, bool makeSRGB) -> std::shared_ptr<dx::Texture> {
+auto GLTFLoader::GLTFMaterial::LoadTexture(Texture &texture, bool makeSRGB) -> SharedPtr<dx::Texture> {
     if (auto it = textureMap.find(&texture); it != textureMap.end()) {
         return it->second;
     }
 
-    std::shared_ptr<dx::Texture> pTexture = nullptr;
+    SharedPtr<dx::Texture> pTexture = nullptr;
     std::unique_ptr<dx::IImageLoader> pImageLoader;
     if (texture.pTextureData != nullptr) {
 	    bool loadSuccess = false;

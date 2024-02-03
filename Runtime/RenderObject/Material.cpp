@@ -53,7 +53,7 @@ void Material::SetRenderGroup(uint16_t renderGroup) {
     _pipelineIDDirty = true;
 }
 
-void Material::SetTexture(TextureType textureType, std::shared_ptr<dx::Texture> pTexture, dx::SRV srv) {
+void Material::SetTexture(TextureType textureType, SharedPtr<dx::Texture> pTexture, dx::SRV srv) {
     _textures[textureType] = std::move(pTexture);
     _defineList.Set(ShaderFeatures::sTextureKeyword[textureType], _textures[textureType] != nullptr);
     _pipelineIDDirty = true;
@@ -64,7 +64,7 @@ void Material::SetTexture(TextureType textureType, std::shared_ptr<dx::Texture> 
     }
 }
 
-auto Material::GetTexture(TextureType textureType) -> const std::shared_ptr<dx::Texture> & {
+auto Material::GetTexture(TextureType textureType) -> const SharedPtr<dx::Texture> & {
     return _textures[textureType];
 }
 

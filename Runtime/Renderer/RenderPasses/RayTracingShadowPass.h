@@ -2,6 +2,7 @@
 #include "RenderPass.h"
 #include "D3d12/D3dStd.h"
 #include "D3d12/DescriptorHandle.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 #include "SceneObject/RayTracingGeometry.h"
 #include "Utils/GlobalCallbacks.h"
 
@@ -54,9 +55,9 @@ private:
     // clang-format off
 	dx::SRV							   _shadowMaskSRV;
 	dx::UAV							   _shadowMaskUAV;
-    std::unique_ptr<dx::Texture>       _pShadowMaskTex;
+    SharedPtr<dx::Texture>             _pShadowMaskTex;
 
-	std::unique_ptr<dx::Texture>	   _pShadowDataTex;
+	SharedPtr<dx::Texture>	           _pShadowDataTex;
     dx::UAV                            _shadowDataUAV;
 
 	std::shared_ptr<dx::RootSignature> _pGlobalRootSignature;

@@ -137,8 +137,7 @@ void NrdIntegrationD3D12::Resize(size_t width, size_t height) {
 
         D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(format, w, h);
         textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        _texturePool[i] = std::make_unique<dx::Texture>();
-        _texturePool[i]->OnCreate(pGfxDevice->GetDevice(), textureDesc, D3D12_RESOURCE_STATE_COMMON);
+        _texturePool[i] = dx::Texture::Create(pGfxDevice->GetDevice(), textureDesc, D3D12_RESOURCE_STATE_COMMON);
 
         std::string name;
         if (i < instanceDesc.permanentPoolSize) {
@@ -251,9 +250,9 @@ void NrdIntegrationD3D12::Dispatch(dx::ComputeContext *pComputeContext,
             const nrd::ResourceDesc &nrdResource = dispatchDesc.resources[handles.size()];
             dx::Texture *pTexture = nullptr;
             if (nrdResource.type == nrd::ResourceType::TRANSIENT_POOL) {
-                pTexture = _texturePool[nrdResource.indexInPool + instanceDesc.permanentPoolSize].get();
+                pTexture = _texturePool[nrdResource.indexInPool + instanceDesc.permanentPoolSize].Get();
             } else if (nrdResource.type == nrd::ResourceType::PERMANENT_POOL) {
-                pTexture = _texturePool[nrdResource.indexInPool].get();
+                pTexture = _texturePool[nrdResource.indexInPool].Get();
             } else {
                 pTexture = userPool[static_cast<uint32_t>(nrdResource.type)];
             }

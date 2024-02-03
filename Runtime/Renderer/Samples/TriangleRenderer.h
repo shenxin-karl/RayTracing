@@ -37,7 +37,7 @@ private:
 	dx::RootSignature						_globalRootSignature;
 	dx::RootSignature						_localRootSignature;
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
-	dx::Texture								_rayTracingOutput;
+	SharedPtr<dx::Texture>					_rayTracingOutput;
 	dx::UAV									_rayTracingOutputView;
 	RayGenConstantBuffer					_rayGenConstantBuffer = {};
 

@@ -1,10 +1,11 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "D3d12/D3dStd.h"
 #include "NRD.h"
 #include "NRDDescs.h"
+#include "D3d12/D3dStd.h"
 #include "D3d12/DescriptorHandle.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 using NrdUserPoolD3D12 = std::array<dx::Texture *, static_cast<size_t>(nrd::ResourceType::MAX_NUM) - 2>;
 
@@ -33,7 +34,7 @@ private:
 	auto GetTextureUAV(const dx::Texture *pTexture) -> D3D12_CPU_DESCRIPTOR_HANDLE;
     auto GetTextureSRV(const dx::Texture *pTexture) -> D3D12_CPU_DESCRIPTOR_HANDLE;
 private:
-    using TexturePool = std::vector<std::unique_ptr<dx::Texture>>;
+    using TexturePool = std::vector<SharedPtr<dx::Texture>>;
     using RootSignaturePool = std::vector<std::unique_ptr<dx::RootSignature>>;
     using PipelineStatePool = std::vector<dx::WRL::ComPtr<ID3D12PipelineState>>;
     using TextureUAVMap = std::unordered_map<ID3D12Resource *, dx::UAV>;

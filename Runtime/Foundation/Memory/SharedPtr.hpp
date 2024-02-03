@@ -5,6 +5,8 @@
 template<typename T>
 class SharedPtr {
 public:
+    SharedPtr(nullptr_t) noexcept : _ptr(nullptr) {
+    }
     SharedPtr() noexcept : _ptr(nullptr) {
     }
     ~SharedPtr() {
@@ -37,7 +39,7 @@ public:
     }
     SharedPtr &operator=(const SharedPtr &other) {
         Assert(this != &other);
-		Release();
+        Release();
         _ptr = other._ptr;
         AddRef();
         return *this;
@@ -52,32 +54,36 @@ public:
         return *this;
     }
     SharedPtr &operator=(SharedPtr &&other) noexcept {
-		Release();
+        Release();
         _ptr = other._ptr;
         other._ptr = nullptr;
+        return *this;
+    }
+    SharedPtr &operator=(std::nullptr_t) {
+        Release();
         return *this;
     }
     template<typename U>
         requires(std::is_base_of_v<T, U>)
     SharedPtr &operator=(SharedPtr<U> &&other) {
-		Release();
+        Release();
         _ptr = other._ptr;
         other._ptr = nullptr;
         return *this;
     }
-    auto Get() -> T * {
-        return _ptr;
+    void Release() {
+        if (_ptr != nullptr) {
+            _ptr->Release();
+        }
+        _ptr = nullptr;
     }
-    auto Get() const -> const T * {
+    auto Get() const -> T * {
         return _ptr;
     }
     explicit operator bool() const {
         return _ptr != nullptr;
     }
-    auto operator->() -> T * {
-        return _ptr;
-    }
-    auto operator->() const -> const T * {
+    auto operator->() const -> T * {
         return _ptr;
     }
     friend void swap(SharedPtr &lhs, SharedPtr &rhs) noexcept {
@@ -110,12 +116,7 @@ private:
             _ptr->AddRef();
         }
     }
-    void Release() {
-        if (_ptr != nullptr) {
-            _ptr->Release();
-        }
-    }
-    template<typename >
+    template<typename>
     friend class SharedPtr;
 private:
     T *_ptr;

@@ -39,12 +39,12 @@ private:
 	void LoadSkyBoxTexture();
 	void RecreateWindowSizeDependentResources();
 private:
-	dx::Texture						_renderTargetTex;
+	SharedPtr<dx::Texture>			_pRenderTargetTex;
 	dx::RTV							_renderTargetRTV;
 	dx::SRV							_renderTargetSRV;
 	dx::UAV							_renderTargetUAV;
 
-	dx::Texture						_depthStencilTex;
+	SharedPtr<dx::Texture>			_pDepthStencilTex;
 	dx::DSV							_depthStencilDSV;
 	dx::SRV							_depthStencilSRV;
 
@@ -52,7 +52,7 @@ private:
 	Scene							*_pScene;
 	GameObject						*_pCameraGO;
 
-	std::shared_ptr<dx::Texture>	_pSkyBoxCubeMap;
+	SharedPtr<dx::Texture>			_pSkyBoxCubeMap;
 	dx::SRV							_skyBoxCubeSRV;
 
 	std::unique_ptr<GBufferPass>			_pGBufferPass;

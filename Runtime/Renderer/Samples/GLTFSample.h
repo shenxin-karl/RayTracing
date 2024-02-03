@@ -28,8 +28,8 @@ private:
 	void LoadGLTF();
 private:
 	// clang-format off
-	dx::Texture					 _renderTargetTex;
-	dx::Texture					 _depthStencilTex;
+	SharedPtr<dx::Texture>		 _renderTargetTex;
+	SharedPtr<dx::Texture>		 _depthStencilTex;
 	dx::RTV						 _renderTextureRTV;
 	dx::SRV						 _renderTextureSRV;
 	dx::DSV						 _depthStencilDSV;

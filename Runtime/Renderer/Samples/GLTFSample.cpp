@@ -88,8 +88,8 @@ void GLTFSample::PrepareFrame(GameTimer &timer) {
     dx::FrameResource &pFrameResource = _pFrameResourceRing->GetCurrentFrameResource();
     std::shared_ptr<dx::GraphicsContext> pGfxCxt = pFrameResource.AllocGraphicsContext();
 
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    pGfxCxt->Transition(_depthStencilTex.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    pGfxCxt->Transition(_renderTargetTex->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    pGfxCxt->Transition(_depthStencilTex->GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
     pGfxCxt->SetRenderTargets(_renderTextureRTV.GetCpuHandle(), _depthStencilDSV.GetCpuHandle());
     pGfxCxt->ClearRenderTargetView(_renderTextureRTV.GetCpuHandle(), Colors::Black);
     pGfxCxt->ClearDepthStencilView(_depthStencilDSV.GetCpuHandle(),
@@ -111,7 +111,7 @@ void GLTFSample::PrepareFrame(GameTimer &timer) {
 
     // todo SkyBox pass
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetTransparentRenderObjects(), forwardPassDrawArgs);
-    pGfxCxt->Transition(_renderTargetTex.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pGfxCxt->Transition(_renderTargetTex->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     pFrameResource.ExecuteContexts(pGfxCxt.get());
 }
 
@@ -143,7 +143,6 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     dx::NativeDevice *device = _pDevice->GetNativeDevice();
 
     // recreate render target
-    _renderTargetTex.OnDestroy();
     D3D12_RESOURCE_DESC renderTargetDesc = {};
     renderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     renderTargetDesc.Alignment = 0;
@@ -161,8 +160,8 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     renderTargetClearValue.Color[1] = 0.f;
     renderTargetClearValue.Color[2] = 0.f;
     renderTargetClearValue.Color[3] = 1.f;
-    _renderTargetTex.OnCreate(_pDevice, renderTargetDesc, D3D12_RESOURCE_STATE_COMMON, &renderTargetClearValue);
-    _renderTargetTex.SetName("RenderTargetTexture");
+    _renderTargetTex = dx::Texture::Create(_pDevice, renderTargetDesc, D3D12_RESOURCE_STATE_COMMON, &renderTargetClearValue);
+    _renderTargetTex->SetName("RenderTargetTexture");
 
     if (_renderTextureRTV.IsNull()) {
         _renderTextureRTV = _pDevice->AllocDescriptor<dx::RTV>(1);
@@ -172,7 +171,7 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     rtv.Texture2D.MipSlice = 0;
     rtv.Texture2D.PlaneSlice = 0;
-    device->CreateRenderTargetView(_renderTargetTex.GetResource(), &rtv, _renderTextureRTV.GetCpuHandle());
+    device->CreateRenderTargetView(_renderTargetTex->GetResource(), &rtv, _renderTextureRTV.GetCpuHandle());
 
     if (_renderTextureSRV.IsNull()) {
 	    _renderTextureSRV = _pDevice->AllocDescriptor<dx::SRV>(1);
@@ -185,10 +184,9 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     srv.Texture2D.MipLevels = 1;
     srv.Texture2D.PlaneSlice = 0;
     srv.Texture2D.ResourceMinLODClamp = 0.f;
-    device->CreateShaderResourceView(_renderTargetTex.GetResource(), &srv, _renderTextureSRV.GetCpuHandle());
+    device->CreateShaderResourceView(_renderTargetTex->GetResource(), &srv, _renderTextureSRV.GetCpuHandle());
 
     // recreate depth stencil
-    _depthStencilTex.OnDestroy();
     D3D12_RESOURCE_DESC depthStencilDesc = renderTargetDesc;
     depthStencilDesc.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -196,8 +194,8 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     depthStencilClearValue.Format = pGfxDevice->GetDepthStencilFormat();
     depthStencilClearValue.DepthStencil.Depth = RenderSetting::Get().GetDepthClearValue();
     depthStencilClearValue.DepthStencil.Stencil = 0;
-    _depthStencilTex.OnCreate(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
-    _depthStencilTex.SetName("DepthStencilTexture");
+    _depthStencilTex = dx::Texture::Create(_pDevice, depthStencilDesc, D3D12_RESOURCE_STATE_COMMON, &depthStencilClearValue);
+    _depthStencilTex->SetName("DepthStencilTexture");
 
     if (_depthStencilDSV.IsNull()) {
         _depthStencilDSV = _pDevice->AllocDescriptor<dx::DSV>(1);
@@ -206,7 +204,7 @@ void GLTFSample::OnResize(uint32_t width, uint32_t height) {
     dsv.Format = pGfxDevice->GetDepthStencilFormat();
     dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv.Texture2D.MipSlice = 0;
-    device->CreateDepthStencilView(_depthStencilTex.GetResource(), &dsv, _depthStencilDSV.GetCpuHandle());
+    device->CreateDepthStencilView(_depthStencilTex->GetResource(), &dsv, _depthStencilDSV.GetCpuHandle());
 }
 
 void GLTFSample::InitRenderPass() {
