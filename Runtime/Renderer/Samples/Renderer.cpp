@@ -1,4 +1,6 @@
 #include "Renderer.h"
+
+#include "D3d12/ASBuilder.h"
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
 #include "D3d12/FrameResourceRing.h"
@@ -34,6 +36,12 @@ void Renderer::OnCreate() {
 void Renderer::OnDestroy() {
     _pFrameResourceRing->OnDestroy();
     _pFrameResourceRing = nullptr;
+}
+
+void Renderer::OnPreRender(GameTimer &timer) {
+	ITick::OnPreRender(timer);
+    _pUploadHeap->FlushAndFinish();
+    _pASBuilder->FlushAndFinish();
 }
 
 void Renderer::OnPostRender(GameTimer &timer) {

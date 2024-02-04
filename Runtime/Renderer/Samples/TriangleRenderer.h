@@ -41,8 +41,8 @@ private:
 	dx::UAV									_rayTracingOutputView;
 	RayGenConstantBuffer					_rayGenConstantBuffer = {};
 
-	dx::BottomLevelAS::SharedPtr			_bottomLevelAs;
-	dx::TopLevelAS::SharedPtr				_topLevelAs;
+	SharedPtr<dx::BottomLevelAS>			_pBottomLevelAs;
+	SharedPtr<dx::TopLevelAS>				_pTopLevelAs;
 
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};

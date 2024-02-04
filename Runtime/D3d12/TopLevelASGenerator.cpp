@@ -21,9 +21,9 @@ void TopLevelASGenerator::AddInstance(ID3D12Resource *pBottomLevelAs,
 }
 
 auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS *pPreviousResult)
-    -> std::shared_ptr<TopLevelAS> {
+    -> SharedPtr<TopLevelAS> {
 
-    std::shared_ptr<TopLevelAS> pResult;
+    SharedPtr<TopLevelAS> pResult;
 #if ENABLE_RAY_TRACING
     if (pPreviousResult != nullptr && pPreviousResult->GetInstanceCount() != _instances.size()) {
         const char *pMsg = "Cannot be updated on the existing acceleration structure because the number of instances "
@@ -31,14 +31,13 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
         Exception::Throw(pMsg);
     }
 
-    pResult = std::make_shared<TopLevelAS>();
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc = {};
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     preBuildDesc.NumDescs = static_cast<UINT>(_instances.size());
     preBuildDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     if (pPreviousResult != nullptr) {
-	    preBuildDesc.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+        preBuildDesc.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
     }
 
     NativeDevice *device = pASBuilder->GetDevice()->GetNativeDevice();
@@ -48,7 +47,8 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
     info.ResultDataMaxSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes,
         D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-    pResult->OnCreate(pASBuilder->GetDevice(), info.ResultDataMaxSizeInBytes);
+    pResult = TopLevelAS::Create(pASBuilder->GetDevice(), info.ResultDataMaxSizeInBytes);
+    pResult->_instanceCount = _instances.size();
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
     buildDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     buildDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
@@ -71,6 +71,5 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
 #endif
     return pResult;
 }
-
 
 }    // namespace dx

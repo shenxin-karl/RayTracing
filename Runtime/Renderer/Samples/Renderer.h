@@ -10,6 +10,7 @@ public:
 public:
 	virtual void OnCreate();
 	virtual void OnDestroy();
+	virtual void OnPreRender(GameTimer &timer) override;
 	virtual void OnPostRender(GameTimer &timer) override;
 	virtual void OnResize(uint32_t width, uint32_t height);
 protected:

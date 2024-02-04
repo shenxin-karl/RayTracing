@@ -21,6 +21,7 @@
 #include <array>
 #include <glm/glm.hpp>
 #include <variant>
+#include <glm/ext/matrix_transform.hpp>
 
 #define ENABLE_D3D_11 0
 
@@ -107,12 +108,27 @@ enum class ContextType {
     eCompute = 1,
 };
 
+// clang-format off
+
+/// top acceleration structure Instance flag
+enum class RayTracingInstanceFlag : uint16_t {
+    eNone                           = D3D12_RAYTRACING_INSTANCE_FLAG_NONE,
+    eTriangleCullDisable            = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
+    eTriangleFrontCounterClockWise  = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE,
+    eForceOpaque                    = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE,
+    eForceNonOpaque                 = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE,
+};
+ENUM_FLAGS(RayTracingInstanceFlag)
+// clang-format off
+
+
 struct ASInstance {
     ID3D12Resource *pBottomLevelAs = nullptr;
-    glm::mat4x4 transform = glm::mat4x4(1.0);
+    glm::mat4x4 transform = glm::identity<glm::mat4x4>();
     uint32_t instanceID = 0;
     uint32_t hitGroupIndex = 0;
     uint16_t instanceMask = 0xff;
+    RayTracingInstanceFlag instanceFlag = RayTracingInstanceFlag::eNone;
 public:
     bool IsValid() const {
         return pBottomLevelAs != nullptr;
@@ -265,14 +281,14 @@ Inline(2) CD3DX12_STATIC_SAMPLER_DESC GetPointShadowCompareStaticSampler(UINT sh
 }
 
 Inline(2) std::array<CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplerArray() {
-	return {
-		GetPointWrapStaticSampler(0),
+    return {
+        GetPointWrapStaticSampler(0),
         GetPointClampStaticSampler(1),
         GetLinearWrapStaticSampler(2),
         GetLinearClampStaticSampler(3),
         GetAnisotropicWrapStaticSampler(4),
         GetAnisotropicClampStaticSampler(5),
-	};
+    };
 };
 
 }    // namespace dx

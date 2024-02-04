@@ -16,13 +16,12 @@ public:
 private:
 	friend class Mesh;
 	void UploadGpuMemory(const CPUMeshData *pMeshData);
-	auto RequireBottomLevelAS(dx::IASBuilder *pIASBuilder, bool isOpaque) -> dx::BottomLevelAS *;
-	auto GenerateBottomLevelAccelerationStructure(dx::IASBuilder *pIASBuilder, bool isOpaque) const -> std::shared_ptr<dx::BottomLevelAS>;
+	auto RequireBottomLevelAS(dx::IASBuilder *pIASBuilder) -> dx::BottomLevelAS *;
+	auto GenerateBottomLevelAccelerationStructure(dx::IASBuilder *pIASBuilder) const -> SharedPtr<dx::BottomLevelAS>;
 private:
 	// clang-format off
 	SharedPtr<dx::Buffer>				_pStaticBuffer;
-	std::shared_ptr<dx::BottomLevelAS>	_pOpaqueBottomLevelAS;
-	std::shared_ptr<dx::BottomLevelAS>  _pTransparentBottomLevelAS;
+	SharedPtr<dx::BottomLevelAS>		_pBottomLevelAS;
 	D3D12_VERTEX_BUFFER_VIEW			_vertexBufferView;
 	D3D12_INDEX_BUFFER_VIEW				_indexBufferView;
 	// clang-format on

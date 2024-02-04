@@ -15,14 +15,13 @@ public:
         uint32_t hitGroupIndex,
         uint16_t instanceMask = 0xff);
     // If you're building from an old accelerated structure, you need to provide pPreviousResult
-    auto CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS *pPreviousResult = nullptr)
-        -> std::shared_ptr<TopLevelAS>;
+    auto CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS *pPreviousResult = nullptr) -> SharedPtr<TopLevelAS>;
 
     auto GetInstanceCount() const -> size_t {
         return _instances.size();
     }
     void SetInstances(std::vector<ASInstance> instances) {
-	    _instances = std::move(instances);
+        _instances = std::move(instances);
     }
 private:
     std::vector<ASInstance> _instances;

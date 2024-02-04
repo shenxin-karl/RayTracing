@@ -5,23 +5,7 @@
 
 namespace dx {
 
-AccelerationStructure::AccelerationStructure() {
-}
-
-AccelerationStructure::~AccelerationStructure() {
-    OnDestroy();
-}
-
-AccelerationStructure::AccelerationStructure(AccelerationStructure &&other) noexcept {
-    _pAllocation = std::move(other._pAllocation);
-}
-
-AccelerationStructure &AccelerationStructure::operator=(AccelerationStructure &&other) noexcept {
-    _pAllocation = std::exchange(other._pAllocation, nullptr);
-    return *this;
-}
-
-void AccelerationStructure::OnCreate(Device *pDevice, size_t bufferSize) {
+AccelerationStructure::AccelerationStructure(Device *pDevice, size_t bufferSize) {
     Assert(_pAllocation == nullptr);
 
     D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize,
@@ -42,7 +26,7 @@ void AccelerationStructure::OnCreate(Device *pDevice, size_t bufferSize) {
         D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
 }
 
-void AccelerationStructure::OnDestroy() {
+AccelerationStructure::~AccelerationStructure() {
     if (_pAllocation != nullptr) {
         GlobalResourceState::RemoveResourceState(_pAllocation->GetResource());
         _pAllocation = nullptr;

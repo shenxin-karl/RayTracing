@@ -9,7 +9,7 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "..\..\D3d12\Buffer.h"
+#include "D3d12/Buffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
 #include "D3d12/UploadHeap.h"
@@ -77,8 +77,8 @@ void SimpleLighting::OnDestroy() {
     _rayTracingOutput.Release();
     _rayTracingOutputHandle.Release();
     _pMeshBuffer.Release();
-    _pBottomLevelAs->OnDestroy();
-    _pTopLevelAs->OnDestroy();
+    _pBottomLevelAs.Release();
+    _pTopLevelAs.Release();
     _pASBuilder->OnDestroy();
     Renderer::OnDestroy();
 }

@@ -2,6 +2,7 @@
 #include "RayTracingGeometry.h"
 #include "D3d12/D3dStd.h"
 #include "Foundation/NonCopyable.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 class MeshRenderer;
 class SceneRayTracingASManager : private NonCopyable {
@@ -19,7 +20,7 @@ private:
     // clang-format off
 	std::vector<MeshRenderer *>		    _meshRendererList;
     std::vector<RayTracingGeometry>     _rayTracingGeometries;
-	std::shared_ptr<dx::TopLevelAS>     _pTopLevelAs;
+	SharedPtr<dx::TopLevelAS>           _pTopLevelAs;
     std::unique_ptr<dx::AsyncASBuilder> _pAsyncASBuilder;
     bool                                _rebuildTopLevelAS;
     // clang-format on

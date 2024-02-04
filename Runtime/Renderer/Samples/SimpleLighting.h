@@ -63,8 +63,8 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};
 
-	std::shared_ptr<dx::BottomLevelAS>  	_pBottomLevelAs;
-	std::shared_ptr<dx::TopLevelAS>		    _pTopLevelAs;
+	SharedPtr<dx::BottomLevelAS>  	        _pBottomLevelAs;
+	SharedPtr<dx::TopLevelAS>		        _pTopLevelAs;
 
     SceneConstantBuffer                     _sceneConstantBuffer = {};
     Scene                                  *_pScene = nullptr;

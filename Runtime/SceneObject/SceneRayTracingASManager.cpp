@@ -59,7 +59,7 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
     dx::TopLevelASGenerator generator;
     generator.SetInstances(std::move(instances));
     if (_pTopLevelAs != nullptr && _pTopLevelAs->GetInstanceCount() == instances.size()) {
-        _pTopLevelAs = generator.CommitBuildCommand(_pAsyncASBuilder.get(), _pTopLevelAs.get());
+        _pTopLevelAs = generator.CommitBuildCommand(_pAsyncASBuilder.get(), _pTopLevelAs.Get());
     } else {
         _pTopLevelAs = generator.CommitBuildCommand(_pAsyncASBuilder.get());
     }
@@ -100,7 +100,7 @@ void SceneRayTracingASManager::OnPreRender() {
 }
 
 auto SceneRayTracingASManager::GetTopLevelAS() const -> dx::TopLevelAS * {
-    return _pTopLevelAs.get();
+    return _pTopLevelAs.Get();
 }
 
 auto SceneRayTracingASManager::GetRayTracingGeometries() const -> const std::vector<RayTracingGeometry> & {

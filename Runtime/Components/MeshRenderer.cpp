@@ -42,8 +42,8 @@ void MeshRenderer::OnAddToScene() {
 }
 
 void MeshRenderer::OnAddToGameObject() {
-	Component::OnAddToGameObject();
-	_renderData.renderObject.pTransform = GetGameObject()->GetTransform();
+    Component::OnAddToGameObject();
+    _renderData.renderObject.pTransform = GetGameObject()->GetTransform();
     _renderData.renderObject.cbPreObject.matWorld = glm::identity<glm::mat4x4>();
 }
 
@@ -58,11 +58,14 @@ bool MeshRenderer::CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder) 
     if (_pMesh != nullptr) {
         if (_pMaterial != nullptr) {
             uint16_t renderGroup = _pMaterial->GetRenderGroup();
-            if (RenderGroup::IsOpaque(renderGroup) || RenderGroup::IsAlphaTest(renderGroup)) {
-                pBottomLevelAs = _pMesh->RequireBottomLevelAS(pAsyncAsBuilder, true);
-            } else if (RenderGroup::IsTransparent(renderGroup)) {
-                pBottomLevelAs = _pMesh->RequireBottomLevelAS(pAsyncAsBuilder, false);
-            }
+            bool isTransparent = RenderGroup::IsTransparent(renderGroup);
+            _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
+                dx::RayTracingInstanceFlag::eForceOpaque,
+                !isTransparent);
+            _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
+                dx::RayTracingInstanceFlag::eForceNonOpaque,
+                isTransparent);
+            pBottomLevelAs = _pMesh->RequireBottomLevelAS(pAsyncAsBuilder);
         }
     }
 
@@ -97,7 +100,7 @@ void MeshRenderer::CommitRenderObject() {
         _renderData.renderObject.pMesh = _pMesh.get();
     }
 
-	cbuffer::CbPreObject &cbPreObject = _renderData.renderObject.cbPreObject;
+    cbuffer::CbPreObject &cbPreObject = _renderData.renderObject.cbPreObject;
     cbPreObject.matWorldPrev = cbPreObject.matWorld;
     if (pTransform->ThisFrameChanged()) {
         cbPreObject.matWorld = pTransform->GetWorldMatrix();

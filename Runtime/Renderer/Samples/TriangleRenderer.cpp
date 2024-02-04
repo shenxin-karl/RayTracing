@@ -5,7 +5,7 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "..\..\D3d12\Buffer.h"
+#include "D3d12/Buffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
 #include "D3d12/UploadHeap.h"
@@ -42,8 +42,8 @@ void TriangleRenderer::OnCreate() {
 void TriangleRenderer::OnDestroy() {
     _pTriangleStaticBuffer.Release();
     _pASBuilder->OnDestroy();
-    _bottomLevelAs->OnDestroy();
-    _topLevelAs->OnDestroy();
+    _pBottomLevelAs.Release();
+    _pTopLevelAs.Release();
     Renderer::OnDestroy();
 }
 
@@ -72,7 +72,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
 
     pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     pGraphicsCtx->SetComputeRootSignature(_globalRootSignature.Get());
-    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs->GetGPUVirtualAddress());
+    pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _pTopLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
 
@@ -239,10 +239,10 @@ void TriangleRenderer::BuildAccelerationStructures() {
 
     dx::BottomLevelASGenerator bottomLevelAsGenerator;
     bottomLevelAsGenerator.AddGeometry(_vertexBufferView, DXGI_FORMAT_R32G32B32_FLOAT, _indexBufferView);
-    _bottomLevelAs = bottomLevelAsGenerator.CommitBuildCommand(_pASBuilder);
+    _pBottomLevelAs = bottomLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 
     dx::TopLevelASGenerator topLevelAsGenerator;
-    topLevelAsGenerator.AddInstance(_bottomLevelAs->GetResource(), glm::mat3x4(1.f), 0, 0);
+    topLevelAsGenerator.AddInstance(_pBottomLevelAs->GetResource(), glm::mat3x4(1.f), 0, 0);
 
-    _topLevelAs = topLevelAsGenerator.CommitBuildCommand(_pASBuilder);
+    _pTopLevelAs = topLevelAsGenerator.CommitBuildCommand(_pASBuilder);
 }

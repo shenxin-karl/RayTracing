@@ -148,11 +148,11 @@ void Mesh::SetDataCheck(size_t vertexCount, SemanticIndex index) const {
     }
 }
 
-auto Mesh::RequireBottomLevelAS(dx::IASBuilder *pASBuilder, bool isOpaque) -> dx::BottomLevelAS * {
+auto Mesh::RequireBottomLevelAS(dx::IASBuilder *pASBuilder) -> dx::BottomLevelAS * {
     if (_vertexAttributeDirty) {
         DEBUG_BREAK;
         Logger::Error("Mesh::RequireBottomLevelAS, vertexAttribute Dirty!");
 	    return nullptr;
     }
-    return _pGpuMeshData->RequireBottomLevelAS(pASBuilder, isOpaque);
+    return _pGpuMeshData->RequireBottomLevelAS(pASBuilder);
 }

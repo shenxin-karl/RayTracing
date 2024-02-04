@@ -76,7 +76,6 @@ void SoftShadow::OnPreRender(GameTimer &timer) {
     const std::vector<GameObject *> &directionalLightObjects = _pScene->GetSceneLightManager()
                                                                    ->GetDirectionalLightObjects();
     ResolutionInfo resolutionInfo = _pFsr2Pass->GetResolutionInfo(_width, _height);
-
     _renderView.Step0_OnNewFrame();
     _renderView.Step1_UpdateCameraMatrix(_pCameraGO->GetComponent<Camera>());
     _renderView.Step2_UpdateResolutionInfo(resolutionInfo);

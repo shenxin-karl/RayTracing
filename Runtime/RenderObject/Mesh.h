@@ -45,7 +45,7 @@ public:
 private:
 	friend class MeshRenderer;
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
-	auto RequireBottomLevelAS(dx::IASBuilder *pASBuilder, bool isOpaque) -> dx::BottomLevelAS *;
+	auto RequireBottomLevelAS(dx::IASBuilder *pASBuilder) -> dx::BottomLevelAS *;
 private:
 	// clang-format off
 	std::string						_name;
