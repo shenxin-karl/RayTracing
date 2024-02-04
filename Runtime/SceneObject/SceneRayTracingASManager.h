@@ -12,6 +12,13 @@ public:
     void AddMeshRenderer(MeshRenderer *pMeshRenderer);
     void RemoveMeshRenderer(MeshRenderer *pMeshRenderer);
     void OnPreRender();
+
+    void BeginBuildBottomLevelAS();
+    auto BuildMeshBottomLevelAS() -> std::shared_ptr<RegionTopLevelAS>;
+    void EndBuildBottomLevelAS();
+
+    void BuildTopLevelAS(std::shared_ptr<RegionTopLevelAS> pRegionTopLevelAS);
+
     auto GetTopLevelAS() const -> dx::TopLevelAS *;
     auto GetRayTracingGeometries() const -> const std::vector<RayTracingGeometry> &;
 private:

@@ -111,14 +111,14 @@ enum class ContextType {
 // clang-format off
 
 /// top acceleration structure Instance flag
-enum class RayTracingInstanceFlag : uint16_t {
+enum class RayTracingInstanceFlags : uint16_t {
     eNone                           = D3D12_RAYTRACING_INSTANCE_FLAG_NONE,
     eTriangleCullDisable            = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
     eTriangleFrontCounterClockWise  = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE,
     eForceOpaque                    = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE,
     eForceNonOpaque                 = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE,
 };
-ENUM_FLAGS(RayTracingInstanceFlag)
+ENUM_FLAGS(RayTracingInstanceFlags)
 // clang-format off
 
 
@@ -128,7 +128,7 @@ struct ASInstance {
     uint32_t instanceID = 0;
     uint32_t hitGroupIndex = 0;
     uint16_t instanceMask = 0xff;
-    RayTracingInstanceFlag instanceFlag = RayTracingInstanceFlag::eNone;
+    RayTracingInstanceFlags instanceFlag = RayTracingInstanceFlags::eNone;
 public:
     bool IsValid() const {
         return pBottomLevelAs != nullptr;

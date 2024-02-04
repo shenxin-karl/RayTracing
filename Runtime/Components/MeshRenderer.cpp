@@ -53,35 +53,46 @@ void MeshRenderer::OnPreRender() {
 }
 
 bool MeshRenderer::CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder) {
-    bool transformDirty = GetGameObject()->GetTransform()->ThisFrameChanged();
-    dx::BottomLevelAS *pBottomLevelAs = nullptr;
-    if (_pMesh != nullptr) {
-        if (_pMaterial != nullptr) {
-            uint16_t renderGroup = _pMaterial->GetRenderGroup();
-            bool isTransparent = RenderGroup::IsTransparent(renderGroup);
-            _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
-                dx::RayTracingInstanceFlag::eForceOpaque,
-                !isTransparent);
-            _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
-                dx::RayTracingInstanceFlag::eForceNonOpaque,
-                isTransparent);
-            pBottomLevelAs = _pMesh->RequireBottomLevelAS(pAsyncAsBuilder);
-        }
-    }
+    return false;
+    //bool transformDirty = GetGameObject()->GetTransform()->ThisFrameChanged();
+    //dx::BottomLevelAS *pBottomLevelAs = nullptr;
+    //if (_pMesh != nullptr) {
+    //    if (_pMaterial != nullptr) {
+    //        uint16_t renderGroup = _pMaterial->GetRenderGroup();
+    //        bool isTransparent = RenderGroup::IsTransparent(renderGroup);
+    //        _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
+    //            dx::RayTracingInstanceFlags::eForceOpaque,
+    //            !isTransparent);
+    //        _instanceData.instanceFlag = SetOrClearFlags(_instanceData.instanceFlag,
+    //            dx::RayTracingInstanceFlags::eForceNonOpaque,
+    //            isTransparent);
+    //        pBottomLevelAs = _pMesh->RequireBottomLevelAS(pAsyncAsBuilder);
+    //    }
+    //}
 
-    ID3D12Resource *pBottomLevelASResource = nullptr;
-    if (pBottomLevelAs != nullptr) {
-        pBottomLevelASResource = pBottomLevelAs->GetResource();
-    }
+    //ID3D12Resource *pBottomLevelASResource = nullptr;
+    //if (pBottomLevelAs != nullptr) {
+    //    pBottomLevelASResource = pBottomLevelAs->GetResource();
+    //}
 
-    if (transformDirty) {
-        _instanceData.transform = GetGameObject()->GetTransform()->GetWorldMatrix();
-    }
+    //if (transformDirty) {
+    //    _instanceData.transform = GetGameObject()->GetTransform()->GetWorldMatrix();
+    //}
 
-    bool needRebuild = transformDirty;
-    needRebuild |= _instanceData.pBottomLevelAs != pBottomLevelASResource;
-    _instanceData.pBottomLevelAs = pBottomLevelASResource;
-    return needRebuild;
+    //bool needRebuild = transformDirty;
+    //needRebuild |= _instanceData.pBottomLevelAs != pBottomLevelASResource;
+    //_instanceData.pBottomLevelAs = pBottomLevelASResource;
+    //return needRebuild;
+}
+
+bool MeshRenderer::PrepareAccelerationStructure() const {
+    if (_pMaterial == nullptr || _pMesh == nullptr) {
+	    return false;
+    }
+    if (_pMesh->IsGpuDataDirty()) {
+	    return false;
+    }
+    return _pMesh->GetVertexCount() > 0;
 }
 
 void MeshRenderer::CommitRenderObject() {

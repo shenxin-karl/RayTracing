@@ -42,8 +42,11 @@ public:
 	void SetSubMeshes(std::vector<SubMesh> subMeshes);
 	void Resize(SemanticMask mask, size_t vertexCount, size_t indexCount);
 	void UploadMeshData();
+	bool IsGpuDataDirty() const {
+		return _vertexAttributeDirty;
+	}
 private:
-	friend class MeshRenderer;
+	friend class SceneRayTracingASManager;
 	void SetDataCheck(size_t vertexCount, SemanticIndex index) const;
 	auto RequireBottomLevelAS(dx::IASBuilder *pASBuilder) -> dx::BottomLevelAS *;
 private:

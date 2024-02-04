@@ -30,6 +30,7 @@ public:
     void OnPreRender() override;
     // Check if the ray tracing acceleration structure validity
     bool CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder);
+    bool PrepareAccelerationStructure();
 private:
     void CommitRenderObject();
 private:

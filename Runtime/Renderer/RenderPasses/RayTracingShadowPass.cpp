@@ -268,7 +268,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
     dx::BindlessCollection bindlessCollection;
     size_t shadowMaterialCount = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-        const Material *pMaterial = geometry.pMaterial;
+        const Material *pMaterial = geometry.GetMaterial();
         if (!RenderGroup::IsAlphaTest(pMaterial->GetRenderGroup())) {
             continue;
         }
@@ -309,7 +309,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
 
     uint materialIndex = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-        const Material *pMaterial = geometry.pMaterial;
+        const Material *pMaterial = geometry.GetMaterial();
         if (RenderGroup::IsOpaque(pMaterial->GetRenderGroup())) {
             dispatchRaysDesc.hitGroupTable.push_back(
                 dx::ShaderRecode(pOpaqueHitGroupIdentifier, pEmptyLocalRootSignature.Get()));
@@ -323,14 +323,14 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
         shadowMaterial.sampleStateIndex = pMaterial->GetSamplerStateIndex();
         shadowMaterial.albedoTextureIndex = bindlessCollection.GetHandleIndex(
             pMaterial->GetTextureHandle(Material::eAlbedoTex));
-        shadowMaterial.vertexStride = GetSemanticStride(geometry.pMesh->GetSemanticMask());
-        shadowMaterial.uv0Offset = GetSemanticOffset(geometry.pMesh->GetSemanticMask(), SemanticIndex::eTexCoord0);
+        shadowMaterial.vertexStride = GetSemanticStride(geometry.GetMesh()->GetSemanticMask());
+        shadowMaterial.uv0Offset = GetSemanticOffset(geometry.GetMesh()->GetSemanticMask(), SemanticIndex::eTexCoord0);
 
         // the geometry is not visible
         shadowMaterial.skipGeometry = shadowMaterial.albedoTextureIndex == -1 &&
                                       shadowMaterial.alpha < shadowMaterial.cutoff;
 
-        const GPUMeshData *pGpuMeshData = geometry.pMesh->GetGPUMeshData();
+        const GPUMeshData *pGpuMeshData = geometry.GetMesh()->GetGPUMeshData();
         dx::ShaderRecode shaderRecode(pAlphaTestHitGroupIdentifier, _pAlphaTestLocalRootSignature.Get());
         dx::LocalRootParameterData &localRootParameterData = shaderRecode.GetLocalRootParameterData();
         localRootParameterData.SetConstants(eMaterialIndex, dx::DWParam(currentMaterialIndex));

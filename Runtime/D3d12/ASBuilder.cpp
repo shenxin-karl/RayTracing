@@ -92,7 +92,7 @@ void AsyncASBuilder::Flush() {
         for (ASInstance &instance : topBuildItem.instances) {
             pInstance->InstanceID = instance.instanceID;
             pInstance->InstanceContributionToHitGroupIndex = instance.hitGroupIndex;
-            pInstance->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+            pInstance->Flags = static_cast<UINT>(instance.instanceFlag);
             pInstance->AccelerationStructure = instance.pBottomLevelAs->GetGPUVirtualAddress();
             glm::mat4x4 matrix = glm::transpose(instance.transform);
             std::memcpy(pInstance->Transform, glm::value_ptr(matrix), sizeof(pInstance->Transform));

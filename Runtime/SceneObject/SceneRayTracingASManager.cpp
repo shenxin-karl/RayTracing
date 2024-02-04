@@ -1,5 +1,6 @@
 #include "SceneRayTracingASManager.h"
 #include "Components/MeshRenderer.h"
+#include "Components/Transform.h"
 #include "D3d12/AccelerationStructure.h"
 #include "D3d12/ASBuilder.h"
 #include "D3d12/Device.h"
@@ -10,6 +11,10 @@
 
 #include "Renderer/RenderUtils/FrameCaptrue.h"
 #include "Foundation/DebugBreak.h"
+#include "Object/GameObject.h"
+#include "RenderObject/Material.h"
+#include "RenderObject/Mesh.h"
+#include "RenderObject/RenderGroup.hpp"
 
 SceneRayTracingASManager::SceneRayTracingASManager() : _rebuildTopLevelAS(false) {
     _pAsyncASBuilder = std::make_unique<dx::AsyncASBuilder>();
@@ -34,9 +39,9 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
     static bool sDebugBuildAS = false;
     if (CompileEnvInfo::IsModeDebug() && sDebugBuildAS) {
         GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-		HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
-		dx::Device *device = pGfxDevice->GetDevice();
-		FrameCapture::BeginFrameCapture(hwnd, device);
+        HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
+        dx::Device *device = pGfxDevice->GetDevice();
+        FrameCapture::BeginFrameCapture(hwnd, device);
     }
 
     _rayTracingGeometries.clear();
@@ -47,11 +52,13 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
         if (instance.IsValid()) {
             instances.push_back(instance);
             RayTracingGeometry geometry;
-            geometry.instanceID = instance.instanceID;
-            geometry.hitGroupIndex = instance.hitGroupIndex;
-            geometry.instanceMask = instance.instanceMask;
-            geometry.pMesh = pMeshRenderer->GetMesh().get();
-            geometry.pMaterial = pMeshRenderer->GetMaterial().get();
+            geometry._pMaterial = pMeshRenderer->GetMaterial().get();
+            geometry._pMesh = pMeshRenderer->GetMesh().get();
+            geometry._instanceID = instance.instanceID;
+            geometry._hitGroupIndex = instance.hitGroupIndex;
+            geometry._instanceMask = instance.instanceMask;
+            geometry._instanceFlag = instance.instanceFlag;
+            geometry._transform = pMeshRenderer->GetGameObject()->GetTransform()->GetWorldMatrix();
             _rayTracingGeometries.push_back(geometry);
         }
     }
@@ -70,13 +77,13 @@ void SceneRayTracingASManager::RebuildTopLevelAS() {
 
     if (CompileEnvInfo::IsModeDebug() && sDebugBuildAS) {
         GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-		HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
-		dx::Device *device = pGfxDevice->GetDevice();
-	    _pAsyncASBuilder->GetUploadFinishedFence().CpuWaitForFence();
-	    FrameCapture::EndFrameCapture(hwnd, device);
-	    FrameCapture::OpenCaptureInUI();
+        HWND hwnd = pGfxDevice->GetSwapChain()->GetHWND();
+        dx::Device *device = pGfxDevice->GetDevice();
+        _pAsyncASBuilder->GetUploadFinishedFence().CpuWaitForFence();
+        FrameCapture::EndFrameCapture(hwnd, device);
+        FrameCapture::OpenCaptureInUI();
         sDebugBuildAS = false;
-	    DEBUG_BREAK;
+        DEBUG_BREAK;
     }
 }
 
@@ -97,6 +104,56 @@ void SceneRayTracingASManager::OnPreRender() {
         RebuildTopLevelAS();
         _rebuildTopLevelAS = false;
     }
+}
+
+void SceneRayTracingASManager::BeginBuildBottomLevelAS() {
+    if (!_pAsyncASBuilder->IsIdle()) {
+        _pAsyncASBuilder->GetUploadFinishedFence().CpuWaitForFence();
+        _pAsyncASBuilder->Reset();
+    }
+}
+
+auto SceneRayTracingASManager::BuildMeshBottomLevelAS() -> std::shared_ptr<RegionTopLevelAS> {
+    std::shared_ptr<RegionTopLevelAS> pRegionTopLevelAS = RegionTopLevelAS::Create();
+
+    size_t hitGroupIndex = 0;
+    for (MeshRenderer *pMeshRenderer : _meshRendererList) {
+        if (!pMeshRenderer->PrepareAccelerationStructure()) {
+	        continue;
+        }
+
+        RayTracingGeometry geometry;
+        geometry._pMaterial = pMeshRenderer->GetMaterial().get();
+        geometry._pMesh = pMeshRenderer->GetMesh().get();
+        geometry._instanceID = pMeshRenderer->GetInstanceID();
+        geometry._hitGroupIndex = hitGroupIndex++;
+        geometry._instanceMask = 0xFF;    // todo
+        geometry._instanceFlag = dx::RayTracingInstanceFlags::eNone;
+
+        bool isTransparent = RenderGroup::IsTransparent(pMeshRenderer->GetMaterial()->GetRenderGroup());
+        geometry._instanceFlag = SetOrClearFlags(geometry._instanceFlag,
+            dx::RayTracingInstanceFlags::eForceOpaque,
+            !isTransparent);
+        geometry._instanceFlag = SetOrClearFlags(geometry._instanceFlag,
+            dx::RayTracingInstanceFlags::eForceNonOpaque,
+            isTransparent);
+
+        geometry._transform = pMeshRenderer->GetGameObject()->GetTransform()->GetWorldMatrix();
+        pRegionTopLevelAS->_geometries.push_back(geometry);
+
+        pMeshRenderer->GetMesh()->RequireBottomLevelAS(_pAsyncASBuilder.get());
+    }
+    return pRegionTopLevelAS;
+}
+
+void SceneRayTracingASManager::EndBuildBottomLevelAS() {
+    _pAsyncASBuilder->Flush();
+    dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
+    _pAsyncASBuilder->GetUploadFinishedFence().GpuWaitForFence(pDevice->GetGraphicsQueue());
+}
+
+void SceneRayTracingASManager::BuildTopLevelAS(std::shared_ptr<RegionTopLevelAS> pRegionTopLevelAS) {
+
 }
 
 auto SceneRayTracingASManager::GetTopLevelAS() const -> dx::TopLevelAS * {
