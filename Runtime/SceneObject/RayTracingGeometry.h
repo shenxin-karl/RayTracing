@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 #include "D3d12/D3dStd.h"
+#include "Foundation/Memory/SharedPtr.hpp"
+#include "D3d12/AccelerationStructure.h"
 
 class Material;
 class Mesh;

@@ -1,7 +1,8 @@
 #include "TopLevelASGenerator.h"
 #include "ASBuilder.h"
 #include "Device.h"
-#include <glm/gtc/type_ptr.inl>
+#include "Buffer.h"
+#include "Context.h"
 
 namespace dx {
 
@@ -69,6 +70,72 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
     buildItem.pOutputResource = pResult->GetResource();
     pASBuilder->AddBuildItem(std::move(buildItem));
 #endif
+    return pResult;
+}
+
+auto TopLevelASGenerator::Build(const BuildDesc &buildArgs) -> SharedPtr<TopLevelAS> {
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc = {};
+    preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+    preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    preBuildDesc.NumDescs = static_cast<UINT>(_instances.size());
+    preBuildDesc.Flags = buildArgs.flags;
+
+    NativeDevice *device = buildArgs.pDevice->GetNativeDevice();
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
+    device->GetRaytracingAccelerationStructurePrebuildInfo(&preBuildDesc, &info);
+    Assert(info.ResultDataMaxSizeInBytes > 0);
+
+#if MODE_DEBUG
+    if (buildArgs.pInstanceBuffer != nullptr) {
+	    Assert(buildArgs.pInstanceBuffer->IsDynamicBuffer());
+    }
+    if (buildArgs.pScratchBuffer != nullptr) {
+	    Assert(buildArgs.pScratchBuffer->IsStaticBuffer());
+    }
+#endif
+
+    size_t instanceBufferSize =  _instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+    size_t scratchBufferSize = info.ScratchDataSizeInBytes;
+
+    instanceBufferSize = AlignUp(instanceBufferSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+    scratchBufferSize = AlignUp(scratchBufferSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+    if (buildArgs.pInstanceBuffer == nullptr || buildArgs.pInstanceBuffer->GetBufferSize() < instanceBufferSize) {
+	    buildArgs.pInstanceBuffer = Buffer::CreateDynamic(buildArgs.pDevice, instanceBufferSize);
+    }
+
+    if (buildArgs.pScratchBuffer == nullptr || buildArgs.pScratchBuffer->GetBufferSize() < scratchBufferSize) {
+	    buildArgs.pScratchBuffer = Buffer::CreateStatic(buildArgs.pDevice, scratchBufferSize);
+    }
+
+    SharedPtr<TopLevelAS> pResult = TopLevelAS::Create(buildArgs.pDevice, info.ResultDataMaxSizeInBytes);
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+    buildDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+    buildDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    buildDesc.Inputs.NumDescs = static_cast<UINT>(_instances.size());
+    buildDesc.DestAccelerationStructureData = pResult->GetGPUVirtualAddress();
+    buildDesc.ScratchAccelerationStructureData = buildArgs.pScratchBuffer->GetResource()->GetGPUVirtualAddress();
+    buildDesc.Inputs.InstanceDescs = buildArgs.pInstanceBuffer->GetResource()->GetGPUVirtualAddress();
+
+    D3D12_RAYTRACING_INSTANCE_DESC *pBuffer = nullptr;
+    buildArgs.pInstanceBuffer->GetResource()->Map(0, nullptr, reinterpret_cast<void **>(&pBuffer));
+
+    D3D12_RAYTRACING_INSTANCE_DESC *pInstance = pBuffer;
+    for (ASInstance &instance : _instances) {
+        pInstance->InstanceID = instance.instanceID;
+        pInstance->InstanceContributionToHitGroupIndex = instance.hitGroupIndex;
+        pInstance->Flags = static_cast<UINT>(instance.instanceFlag);
+        pInstance->AccelerationStructure = instance.pBottomLevelAs->GetGPUVirtualAddress();
+        glm::mat4x4 matrix = glm::transpose(instance.transform);
+        std::memcpy(pInstance->Transform, glm::value_ptr(matrix), sizeof(pInstance->Transform));
+        pInstance->InstanceMask = instance.instanceMask;
+        ++pInstance;
+    }
+    _instances.clear();
+    buildArgs.pInstanceBuffer->GetResource()->Unmap(0, nullptr);
+
+    NativeCommandList *pCommandList = buildArgs.pComputeContext->GetCommandList();
+    pCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+    pCommandList->ResourceBarrier(1, RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(pResult->GetResource())));
     return pResult;
 }
 

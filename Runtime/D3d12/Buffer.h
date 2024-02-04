@@ -50,6 +50,9 @@ public:
     Inline(2) bool IsReadbackBuffer() const {
         return _heapType == D3D12_HEAP_TYPE_READBACK;
     }
+    Inline(2) auto GetBufferSize() const -> size_t {
+	    return _bufferDesc.Width;
+    }
 private:
     // clang-format off
     std::string                   _name;

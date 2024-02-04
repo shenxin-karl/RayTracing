@@ -73,7 +73,7 @@ public:
     }
     void Release() {
         if (_ptr != nullptr) {
-            _ptr->Release();
+            static_cast<RefCounter *>(_ptr)->Release();
         }
         _ptr = nullptr;
     }
@@ -113,7 +113,7 @@ public:
 private:
     void AddRef() {
         if (_ptr != nullptr) {
-            _ptr->AddRef();
+            static_cast<RefCounter *>(_ptr)->AddRef();
         }
     }
     template<typename>
