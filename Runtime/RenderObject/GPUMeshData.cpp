@@ -2,7 +2,7 @@
 #include "CPUMeshData.h"
 #include "D3d12/ASBuilder.h"
 #include "D3d12/BottomLevelASGenerator.h"
-#include "D3d12/StaticBuffer.h"
+#include "..\D3d12\Buffer.h"
 #include "Renderer/GfxDevice.h"
 #include "Foundation/Formatter.hpp"
 
@@ -44,11 +44,9 @@ void GPUMeshData::UploadGpuMemory(const CPUMeshData *pMeshData) {
     size_t indexBufferSize = indexCount * indexStride;
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-    _pStaticBuffer = std::make_unique<dx::StaticBuffer>();
-    CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize + indexBufferSize);
-    _pStaticBuffer->OnCreate(pGfxDevice->GetDevice(), bufferDesc);
+    _pStaticBuffer = dx::Buffer::CreateStatic(pGfxDevice->GetDevice(), vertexBufferSize + indexBufferSize);
 
-    dx::StaticBufferUploadHeap uploadHeap(pGfxDevice->GetUploadHeap(), _pStaticBuffer.get());
+    dx::StaticBufferUploadHeap uploadHeap(pGfxDevice->GetUploadHeap(), _pStaticBuffer.Get());
     _vertexBufferView = uploadHeap.AllocVertexBuffer(vertexCount, vertexStride, pMeshData->GetVertices()).value();
 
     _indexBufferView = {};

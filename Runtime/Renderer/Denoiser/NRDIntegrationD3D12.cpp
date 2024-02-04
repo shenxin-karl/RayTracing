@@ -156,10 +156,9 @@ void NrdIntegrationD3D12::CreatePipelines() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
     const nrd::InstanceDesc &instanceDesc = nrd::GetInstanceDesc(*_pInstance);
     for (uint32_t i = 0; i < instanceDesc.pipelinesNum; i++) {
-        std::unique_ptr<dx::RootSignature> pRootSignature = std::make_unique<dx::RootSignature>();
         const nrd::PipelineDesc &nrdPipelineDesc = instanceDesc.pipelines[i];
         size_t numRootParam = nrdPipelineDesc.hasConstantData ? 3 : 2;
-        pRootSignature->OnCreate(numRootParam);
+        SharedPtr<dx::RootSignature> pRootSignature = dx::RootSignature::Create(numRootParam);
         size_t idx = 0;
         if (nrdPipelineDesc.hasConstantData) {
             pRootSignature->At(0).InitAsBufferCBV(instanceDesc.constantBufferRegisterIndex,
@@ -239,7 +238,7 @@ void NrdIntegrationD3D12::Dispatch(dx::ComputeContext *pComputeContext,
     const nrd::InstanceDesc &instanceDesc = nrd::GetInstanceDesc(*_pInstance);
     const nrd::PipelineDesc &pipelineDesc = instanceDesc.pipelines[dispatchDesc.pipelineIndex];
 
-    pComputeContext->SetComputeRootSignature(_rootSignatures[dispatchDesc.pipelineIndex].get());
+    pComputeContext->SetComputeRootSignature(_rootSignatures[dispatchDesc.pipelineIndex].Get());
     pComputeContext->SetPipelineState(_pipelines[dispatchDesc.pipelineIndex].Get());
 
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;

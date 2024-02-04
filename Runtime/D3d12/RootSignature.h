@@ -3,6 +3,7 @@
 #include <array>
 #include "D3dStd.h"
 #include "Foundation/ReadonlyArraySpan.hpp"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 namespace dx {
 
@@ -22,7 +23,7 @@ public:
 };
 // clang-format on
 
-class RootSignature : NonCopyable {
+class RootSignature : public RefCounter {
 public:
     using DescriptorTableBitMask = std::bitset<kMaxRootParameter>;
     using NumDescriptorPreTable = std::array<uint8_t, kMaxRootParameter>;
@@ -31,12 +32,14 @@ public:
         bool enableBindless = false;
     };
     using RootParamDescriptorTableInfo = std::array<DescriptorTableInfo, kMaxRootParameter>;
+private:
+    RootSignature(size_t numRootParam, size_t numStaticSamplers = 0);
 public:
-    RootSignature();
-    ~RootSignature();
-public:
-    void OnCreate(size_t numRootParam, size_t numStaticSamplers = 0);
-    void OnDestroy();
+    template<typename ...Args>
+    static SharedPtr<RootSignature> Create(Args &&...args) {
+	    return SharedPtr<RootSignature>(new RootSignature(std::forward<Args>(args)...));
+    }
+	~RootSignature() override;
     void SetStaticSamplers(ReadonlyArraySpan<CD3DX12_STATIC_SAMPLER_DESC> descs, size_t offset = 0);
     void SetStaticSampler(size_t index, const D3D12_STATIC_SAMPLER_DESC &desc);
     auto GetRootSignature() const -> ID3D12RootSignature *;

@@ -29,7 +29,7 @@ private:
     using PipelineStateMap = std::unordered_map<size_t, dx::WRL::ComPtr<ID3D12PipelineState>>;
 private:
     // clang-format off
-    PipelineStateMap                    _pipelineStateMap;
-    std::unique_ptr<dx::RootSignature>  _pRootSignature;
+    PipelineStateMap             _pipelineStateMap;
+    SharedPtr<dx::RootSignature> _pRootSignature;
     // clang-format on
 };

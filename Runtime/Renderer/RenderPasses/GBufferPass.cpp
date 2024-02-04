@@ -25,8 +25,7 @@ void GBufferPass::OnCreate() {
     _gBufferSRV = pDevice->GetDevice()->AllocDescriptor<dx::SRV>(5);
     _gBufferRTV = pDevice->GetDevice()->AllocDescriptor<dx::RTV>(5);
 
-    _pRootSignature = std::make_unique<dx::RootSignature>();
-    _pRootSignature->OnCreate(eMaxNumRootParam, 6);
+    _pRootSignature = dx::RootSignature::Create(eMaxNumRootParam, 6);
     _pRootSignature->At(eCbPrePass).InitAsBufferCBV(0);
     _pRootSignature->At(eCbPreObject).InitAsBufferCBV(1);
     _pRootSignature->At(eCbMaterial).InitAsBufferCBV(2);
@@ -49,7 +48,7 @@ void GBufferPass::OnDestroy() {
     _gBufferTextures.clear();
     _gBufferRTV.Release();
     _gBufferSRV.Release();
-    _pRootSignature->OnDestroy();
+    _pRootSignature.Release();
     _pipelineStateMap.clear();
 }
 
@@ -135,7 +134,7 @@ void GBufferPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
 
     // bind pipeline state object
     ID3D12PipelineState *pPipelineState = GetPipelineState(batch.front());
-    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.Get());
     pGfxCtx->SetPipelineState(pPipelineState);
     pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pGfxCtx->SetGraphicsRootConstantBufferView(eCbPrePass, args.cbPrePassCBuffer);
@@ -226,6 +225,7 @@ auto GBufferPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
         CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+        CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
     };
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
@@ -255,6 +255,12 @@ auto GBufferPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
 	    rtvFormats.RTFormats[i] = _gBufferTextures[i]->GetFormat();
     }
     pipelineDesc.RTVFormats = rtvFormats;
+
+    CD3DX12_RASTERIZER_DESC rasterizer(D3D12_DEFAULT);
+    if (RenderGroup::IsAlphaTest(pMaterial->GetRenderGroup())) {
+	    rasterizer.CullMode = D3D12_CULL_MODE_NONE;
+    }
+    pipelineDesc.Rasterizer = rasterizer;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream),

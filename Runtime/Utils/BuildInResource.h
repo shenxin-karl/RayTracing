@@ -2,6 +2,7 @@
 #include <memory>
 #include "GlobalCallbacks.h"
 #include "D3d12/D3dStd.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 class Mesh;
 class BuildInResource {
@@ -17,7 +18,7 @@ public:
 	auto GetCubeMesh() const -> std::shared_ptr<Mesh> {
 		return _pCubeMesh;
 	}
-	auto GetEmptyLocalRootSignature() const -> const std::shared_ptr<dx::RootSignature> & {
+	auto GetEmptyLocalRootSignature() const -> const SharedPtr<dx::RootSignature> & {
 		return _pEmptyLocalRootSignature;
 	}
 private:
@@ -28,5 +29,5 @@ private:
 	CallbackHandle						_onDestroyCallbackHandle;
 	std::shared_ptr<Mesh>				_pSkyBoxCubeMesh;
 	std::shared_ptr<Mesh>				_pCubeMesh;
-	std::shared_ptr<dx::RootSignature>	_pEmptyLocalRootSignature;
+	SharedPtr<dx::RootSignature>		_pEmptyLocalRootSignature;
 };

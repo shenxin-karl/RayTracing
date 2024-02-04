@@ -18,7 +18,7 @@ private:
 	void BuildRenderSettingUI();
 private:
 	// clang-format off
-	dx::RootSignature					 _rootSignature;
+	SharedPtr<dx::RootSignature>		 _pRootSignature;
 	dx::WRL::ComPtr<ID3D12PipelineState> _pPipelineState;
 	CallbackHandle						 _buildRenderSettingUIHandle;
 	// clang-format on

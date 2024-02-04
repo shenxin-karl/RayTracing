@@ -10,8 +10,7 @@
 
 void DeferredLightingPass::OnCreate() {
 	GfxDevice *pGfxDevice = GfxDevice::GetInstance();
-	_pRootSignature = std::make_unique<dx::RootSignature>();
-	_pRootSignature->OnCreate(eNumRootParam);
+	_pRootSignature = dx::RootSignature::Create(eNumRootParam);
 	_pRootSignature->At(eCbPrePass).InitAsBufferCBV(1);	// b1
 	_pRootSignature->At(eCbLighting).InitAsBufferCBV(0);	// b0
 	_pRootSignature->At(eTable0).InitAsDescriptorTable({
@@ -54,7 +53,7 @@ void DeferredLightingPass::OnCreate() {
 
 void DeferredLightingPass::OnDestroy() {
 	RenderPass::OnDestroy();
-	_pRootSignature->OnDestroy();
+	_pRootSignature = nullptr;
 	_pRootSignature = nullptr;
 	_pPipelineState = nullptr;
 }
@@ -63,7 +62,7 @@ void DeferredLightingPass::Dispatch(const DispatchArgs &args) {
 	dx::ComputeContext *pComputeCtx = args.pComputeCtx;
 	UserMarker marker(pComputeCtx, "DeferredLightingPass");
 
-	pComputeCtx->SetComputeRootSignature(_pRootSignature.get());
+	pComputeCtx->SetComputeRootSignature(_pRootSignature.Get());
 	pComputeCtx->SetPipelineState(_pPipelineState.Get());
 	pComputeCtx->SetComputeRootConstantBufferView(eCbLighting, args.cbLightingAddress);
 	pComputeCtx->SetComputeRootConstantBufferView(eCbPrePass, args.cbPrePassAddress);

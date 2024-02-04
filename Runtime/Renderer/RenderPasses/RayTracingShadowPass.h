@@ -60,8 +60,8 @@ private:
 	SharedPtr<dx::Texture>	           _pShadowDataTex;
     dx::UAV                            _shadowDataUAV;
 
-	std::shared_ptr<dx::RootSignature> _pGlobalRootSignature;
-	std::shared_ptr<dx::RootSignature> _pAlphaTestLocalRootSignature;
+	SharedPtr<dx::RootSignature>       _pGlobalRootSignature;
+	SharedPtr<dx::RootSignature>       _pAlphaTestLocalRootSignature;
 	dx::WRL::ComPtr<ID3D12StateObject> _pRayTracingPSO;
     CallbackHandle                     _buildRenderSettingUiHandle;
     // clang-format on

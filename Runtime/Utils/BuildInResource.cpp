@@ -15,8 +15,7 @@ void BuildInResource::OnCreate() {
     BuildSkyBoxCubeMesh();
     BuildCubeMesh();
 #if ENABLE_RAY_TRACING
-    _pEmptyLocalRootSignature = std::make_shared<dx::RootSignature>();
-    _pEmptyLocalRootSignature->OnCreate(0);
+    _pEmptyLocalRootSignature = dx::RootSignature::Create(0);
     _pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(),
         D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 #endif

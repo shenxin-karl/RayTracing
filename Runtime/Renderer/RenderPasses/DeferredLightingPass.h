@@ -41,7 +41,7 @@ public:
 	void Dispatch(const DispatchArgs &args);
 private:
     // clang-format off
-	std::unique_ptr<dx::RootSignature>	 _pRootSignature;
+	SharedPtr<dx::RootSignature>		 _pRootSignature;
 	dx::WRL::ComPtr<ID3D12PipelineState> _pPipelineState;
     // clang-format on
 };

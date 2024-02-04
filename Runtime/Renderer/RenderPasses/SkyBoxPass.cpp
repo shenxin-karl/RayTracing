@@ -22,8 +22,7 @@ SkyBoxPass::~SkyBoxPass() {
 
 void SkyBoxPass::OnCreate(DXGI_FORMAT renderTargetFormat) {
     dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
-    _pRootSignature = std::make_unique<dx::RootSignature>();
-    _pRootSignature->OnCreate(eNumRootParam, 1);
+    _pRootSignature = dx::RootSignature::Create(eNumRootParam, 1);
     _pRootSignature->At(eCbSetting).InitAsBufferCBV(0);
     _pRootSignature->At(eCubeMap).InitAsDescriptorTable({
         CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0),
@@ -58,7 +57,7 @@ void SkyBoxPass::Draw(const DrawArgs &drawArgs) {
     cbSetting.matViewProj = cbPrePass.matJitteredProj * matView;
     cbSetting.reversedZ = RenderSetting::Get().GetReversedZ() ? 1.f : 0.f;
 
-    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.Get());
     pGfxCtx->SetPipelineState(_pPipelineState.Get());
 
 	pGfxCtx->SetGraphicsRootDynamicConstantBuffer(eCbSetting, cbSetting);

@@ -22,7 +22,7 @@
 #include <glm/glm.hpp>
 #include <variant>
 
-//#define ENABLE_D3D_11 1
+#define ENABLE_D3D_11 0
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
     #define ENABLE_D3D_COMPUTE_QUEUE 0
@@ -90,6 +90,7 @@ class UAV;
 class SRV;
 class SAMPLER;
 
+class Buffer;
 class StaticBuffer;
 class DynamicDescriptorHeap;
 

@@ -35,7 +35,7 @@ private:
     auto GetTextureSRV(const dx::Texture *pTexture) -> D3D12_CPU_DESCRIPTOR_HANDLE;
 private:
     using TexturePool = std::vector<SharedPtr<dx::Texture>>;
-    using RootSignaturePool = std::vector<std::unique_ptr<dx::RootSignature>>;
+    using RootSignaturePool = std::vector<SharedPtr<dx::RootSignature>>;
     using PipelineStatePool = std::vector<dx::WRL::ComPtr<ID3D12PipelineState>>;
     using TextureUAVMap = std::unordered_map<ID3D12Resource *, dx::UAV>;
     using TextureSRVMap = std::unordered_map<ID3D12Resource *, dx::SRV>;

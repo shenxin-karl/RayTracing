@@ -33,8 +33,7 @@ static const wchar_t *sAlphaClosestHitShader = L"ShadowAlphaTestClosestHitShader
 void RayTracingShadowPass::OnCreate() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 #if ENABLE_RAY_TRACING
-    _pGlobalRootSignature = std::make_unique<dx::RootSignature>();
-    _pGlobalRootSignature->OnCreate(3, 6);
+    _pGlobalRootSignature = dx::RootSignature::Create(3, 6);
     _pGlobalRootSignature->At(eScene).InitAsBufferSRV(0);
     _pGlobalRootSignature->At(eRayGenCb).InitAsBufferCBV(0);
     _pGlobalRootSignature->At(eTable0).InitAsDescriptorTable({
@@ -44,8 +43,7 @@ void RayTracingShadowPass::OnCreate() {
     _pGlobalRootSignature->SetStaticSamplers(dx::GetStaticSamplerArray());
     _pGlobalRootSignature->Generate(pGfxDevice->GetDevice());
 
-    _pAlphaTestLocalRootSignature = std::make_unique<dx::RootSignature>();
-    _pAlphaTestLocalRootSignature->OnCreate(5);
+    _pAlphaTestLocalRootSignature = dx::RootSignature::Create(5);
     _pAlphaTestLocalRootSignature->At(eMaterialIndex).InitAsConstants(1, 0, 1);
     _pAlphaTestLocalRootSignature->At(eVertexBuffer).InitAsBufferSRV(0, 1);
     _pAlphaTestLocalRootSignature->At(eIndexBuffer).InitAsBufferSRV(1, 1);
@@ -126,7 +124,7 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     dx::ComputeContext *pComputeContext = args.pComputeContext;
     UserMarker userMarker(pComputeContext, "RayTracingShadowData");
 
-    pComputeContext->SetComputeRootSignature(_pGlobalRootSignature.get());
+    pComputeContext->SetComputeRootSignature(_pGlobalRootSignature.Get());
     pComputeContext->SetRayTracingPipelineState(_pRayTracingPSO.Get());
     pComputeContext->SetComputeRootShaderResourceView(eScene, args.sceneTopLevelAS);
 
@@ -314,7 +312,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
         const Material *pMaterial = geometry.pMaterial;
         if (RenderGroup::IsOpaque(pMaterial->GetRenderGroup())) {
             dispatchRaysDesc.hitGroupTable.push_back(
-                dx::ShaderRecode(pOpaqueHitGroupIdentifier, pEmptyLocalRootSignature.get()));
+                dx::ShaderRecode(pOpaqueHitGroupIdentifier, pEmptyLocalRootSignature.Get()));
             continue;
         }
 
@@ -333,7 +331,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
                                       shadowMaterial.alpha < shadowMaterial.cutoff;
 
         const GPUMeshData *pGpuMeshData = geometry.pMesh->GetGPUMeshData();
-        dx::ShaderRecode shaderRecode(pAlphaTestHitGroupIdentifier, _pAlphaTestLocalRootSignature.get());
+        dx::ShaderRecode shaderRecode(pAlphaTestHitGroupIdentifier, _pAlphaTestLocalRootSignature.Get());
         dx::LocalRootParameterData &localRootParameterData = shaderRecode.GetLocalRootParameterData();
         localRootParameterData.SetConstants(eMaterialIndex, dx::DWParam(currentMaterialIndex));
         localRootParameterData.SetView(eVertexBuffer, pGpuMeshData->GetVertexBufferView().BufferLocation);

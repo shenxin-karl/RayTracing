@@ -56,12 +56,12 @@ private:
 private:
     // clang-format off
     using TexturePtr = SharedPtr<dx::Texture>;
-    std::vector<TexturePtr>             _gBufferTextures;
-    dx::RTV                             _gBufferRTV;   
-    dx::SRV                             _gBufferSRV;
-    size_t                              _width;
-    size_t                              _height;
-    PipelineStateMap                    _pipelineStateMap;
-    std::unique_ptr<dx::RootSignature>  _pRootSignature;
+    std::vector<TexturePtr>         _gBufferTextures;
+    dx::RTV                         _gBufferRTV;   
+    dx::SRV                         _gBufferSRV;
+    size_t                          _width;
+    size_t                          _height;
+    PipelineStateMap                _pipelineStateMap;
+    SharedPtr<dx::RootSignature>    _pRootSignature;
     // clang-format on
 };

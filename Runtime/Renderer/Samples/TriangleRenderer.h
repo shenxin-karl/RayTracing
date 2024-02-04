@@ -33,9 +33,9 @@ public:
 	};
 private:
 	// clang-format off
-	std::shared_ptr<dx::StaticBuffer>		_pTriangleStaticBuffer;
-	dx::RootSignature						_globalRootSignature;
-	dx::RootSignature						_localRootSignature;
+	SharedPtr<dx::Buffer>					_pTriangleStaticBuffer;
+	SharedPtr<dx::RootSignature>			_globalRootSignature;
+	SharedPtr<dx::RootSignature>			_localRootSignature;
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
 	SharedPtr<dx::Texture>					_rayTracingOutput;
 	dx::UAV									_rayTracingOutputView;

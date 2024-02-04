@@ -13,15 +13,15 @@
 void PostProcessPass::OnCreate() {
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
 
-    _rootSignature.OnCreate(2, 1);
-    _rootSignature.SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
-    _rootSignature.At(0).InitAsConstants(3, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);    // CbSetting
-    _rootSignature.At(1).InitAsDescriptorTable(
+    _pRootSignature = dx::RootSignature::Create(2, 1);
+    _pRootSignature->SetStaticSampler(0, dx::GetLinearClampStaticSampler(0));
+    _pRootSignature->At(0).InitAsConstants(3, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);    // CbSetting
+    _pRootSignature->At(1).InitAsDescriptorTable(
         {
             CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0),    // gInput
         },
         D3D12_SHADER_VISIBILITY_PIXEL);
-    _rootSignature.Generate(pGfxDevice->GetDevice());
+    _pRootSignature->Generate(pGfxDevice->GetDevice());
 
     CreatePipelineState();
     _buildRenderSettingUIHandle = GlobalCallbacks::Get().OnBuildRenderSettingGUI.Register(this,
@@ -29,13 +29,13 @@ void PostProcessPass::OnCreate() {
 }
 
 void PostProcessPass::OnDestroy() {
-    _rootSignature.OnDestroy();
+    _pRootSignature = nullptr;
     _pPipelineState = nullptr;
 }
 
 void PostProcessPass::Draw(const PostProcessPassDrawArgs &args) {
     UserMarker userMarker(args.pGfxCtx, "PostProcessPass");
-    args.pGfxCtx->SetGraphicsRootSignature(&_rootSignature);
+    args.pGfxCtx->SetGraphicsRootSignature(_pRootSignature.Get());
     args.pGfxCtx->SetPipelineState(_pPipelineState.Get());
     args.pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -71,7 +71,7 @@ void PostProcessPass::CreatePipelineState() {
     psShaderLoadInfo.shaderType = dx::ShaderType::ePS;
 
     PipelineStateStream pipelineDesc = {};
-    pipelineDesc.pRootSignature = _rootSignature.GetRootSignature();
+    pipelineDesc.pRootSignature = _pRootSignature->GetRootSignature();
     pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipelineDesc.VS = ShaderManager::GetInstance()->LoadShaderByteCode(vsShaderLoadInfo);
     pipelineDesc.PS = ShaderManager::GetInstance()->LoadShaderByteCode(psShaderLoadInfo);

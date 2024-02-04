@@ -115,15 +115,8 @@ static size_t GetPerTableIndexByRangeType(D3D12_DESCRIPTOR_RANGE_TYPE type) {
     return -1;
 }
 
-RootSignature::RootSignature() : _numParameters(0), _numStaticSamplers(0), _descriptorTableInfo{} {
-}
-
-RootSignature::~RootSignature() {
-    OnDestroy();
-}
-
-void RootSignature::OnCreate(size_t numRootParam, size_t numStaticSamplers) {
-    _numParameters = numRootParam;
+RootSignature::RootSignature(size_t numRootParam, size_t numStaticSamplers) {
+     _numParameters = numRootParam;
     _numStaticSamplers = numStaticSamplers;
     for (size_t i = 0; i < 2; ++i) {
         std::ranges::fill(_descriptorTableInfo[i], DescriptorTableInfo{0, false});
@@ -134,7 +127,7 @@ void RootSignature::OnCreate(size_t numRootParam, size_t numStaticSamplers) {
     _staticSamplers.resize(numStaticSamplers);
 }
 
-void RootSignature::OnDestroy() {
+RootSignature::~RootSignature() {
     _numParameters = 0;
     _pRootSignature = nullptr;
     _rootParameters.clear();

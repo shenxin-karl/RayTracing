@@ -55,11 +55,11 @@ private:
     SharedPtr<dx::Texture>                  _pCubeMap;
     dx::SRV                                 _cubeMapHandle;
 
-	dx::RootSignature						_globalRootSignature;
-	dx::RootSignature						_closestLocalRootSignature;
+	SharedPtr<dx::RootSignature>			_pGlobalRootSignature;
+	SharedPtr<dx::RootSignature>			_pClosestLocalRootSignature;
     dx::WRL::ComPtr<ID3D12StateObject>		_pRayTracingPSO;
 
-	std::shared_ptr<dx::StaticBuffer>		_pMeshBuffer;
+	SharedPtr<dx::Buffer>       		    _pMeshBuffer;
 	D3D12_VERTEX_BUFFER_VIEW				_vertexBufferView = {};
 	D3D12_INDEX_BUFFER_VIEW					_indexBufferView  = {};
 

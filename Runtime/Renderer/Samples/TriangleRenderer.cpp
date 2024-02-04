@@ -5,7 +5,7 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "D3d12/StaticBuffer.h"
+#include "..\..\D3d12\Buffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
 #include "D3d12/UploadHeap.h"
@@ -40,7 +40,7 @@ void TriangleRenderer::OnCreate() {
 }
 
 void TriangleRenderer::OnDestroy() {
-    _pTriangleStaticBuffer->OnDestroy();
+    _pTriangleStaticBuffer.Release();
     _pASBuilder->OnDestroy();
     _bottomLevelAs->OnDestroy();
     _topLevelAs->OnDestroy();
@@ -71,7 +71,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
     std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
 
     pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
+    pGraphicsCtx->SetComputeRootSignature(_globalRootSignature.Get());
     pGraphicsCtx->SetComputeRootShaderResourceView(AccelerationStructureSlot, _topLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetDynamicViews(OutputRenderTarget, _rayTracingOutputView.GetCpuHandle());
     pGraphicsCtx->SetRayTracingPipelineState(_pRayTracingPSO.Get());
@@ -85,7 +85,7 @@ void TriangleRenderer::OnRender(GameTimer &timer) {
         void *pHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(HitGroupName.data());
 
         dx::DispatchRaysDesc dispatchRaysDesc = {};
-        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, &_localRootSignature);
+        dx::ShaderRecode rayGenShaderRecode(pRayGenShaderIdentifier, _localRootSignature.Get());
         rayGenShaderRecode.GetLocalRootParameterData().SetConstants(0,
             dx::SizeofInUint32<RayGenConstantBuffer>(),
             &_rayGenConstantBuffer);
@@ -135,17 +135,16 @@ void TriangleRenderer::OnResize(uint32_t width, uint32_t height) {
 }
 
 void TriangleRenderer::CreateGeometry() {
-    _pTriangleStaticBuffer = std::make_shared<dx::StaticBuffer>();
     uint16_t indices[] = {0, 1, 2};
 
     float depthValue = 1.0;
     float offset = 0.7f;
     glm::vec3 vertices[] = {{0, -offset, depthValue}, {-offset, offset, depthValue}, {offset, offset, depthValue}};
 
-    _pTriangleStaticBuffer->OnCreate(_pDevice, sizeof(indices) + sizeof(vertices));
+    _pTriangleStaticBuffer = dx::Buffer::CreateStatic(_pDevice, sizeof(indices) + sizeof(vertices));
     _pTriangleStaticBuffer->SetName("Triangle Mesh");
 
-    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pTriangleStaticBuffer.get());
+    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pTriangleStaticBuffer.Get());
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(glm::vec3), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
     uploadHeap.CommitUploadCommand();
@@ -153,14 +152,14 @@ void TriangleRenderer::CreateGeometry() {
 
 void TriangleRenderer::CreateRootSignature() {
     CD3DX12_DESCRIPTOR_RANGE1 range(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-    _globalRootSignature.OnCreate(2, 0);
-    _globalRootSignature.At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
-    _globalRootSignature.At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0
-    _globalRootSignature.Generate(_pDevice);
+    _globalRootSignature = dx::RootSignature::Create(2, 0);
+    _globalRootSignature->At(AccelerationStructureSlot).InitAsBufferSRV(0);         // s0
+    _globalRootSignature->At(OutputRenderTarget).InitAsDescriptorTable({range});    // u0
+    _globalRootSignature->Generate(_pDevice);
 
-    _localRootSignature.OnCreate(1, 0);
-    _localRootSignature.At(0).InitAsConstants(dx::SizeofInUint32<RayGenConstantBuffer>(), 0);    // b0
-    _localRootSignature.Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _localRootSignature = dx::RootSignature::Create(1, 0);
+    _localRootSignature->At(0).InitAsConstants(dx::SizeofInUint32<RayGenConstantBuffer>(), 0);    // b0
+    _localRootSignature->Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 }
 
 void TriangleRenderer::CreateRayTracingPipelineStateObject() {
@@ -191,14 +190,14 @@ void TriangleRenderer::CreateRayTracingPipelineStateObject() {
 
     CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
     *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pLocalRootSignature->SetRootSignature(_localRootSignature.GetRootSignature());
+    pLocalRootSignature->SetRootSignature(_localRootSignature->GetRootSignature());
     CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
         CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
     rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
     rootSignatureAssociation->AddExport(RayGenShaderName.data());
 
     auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pGlobalRootSignature->SetRootSignature(_globalRootSignature.GetRootSignature());
+    pGlobalRootSignature->SetRootSignature(_globalRootSignature->GetRootSignature());
 
     auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
     pPipelineConfig->Config(1);

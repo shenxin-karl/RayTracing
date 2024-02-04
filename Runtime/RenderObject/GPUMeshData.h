@@ -2,11 +2,7 @@
 #include <memory>
 #include "Foundation/NonCopyable.h"
 #include "D3d12/D3dStd.h"
-
-namespace dx {
-class StaticBuffer;
-class BottomLevelAS;
-}
+#include "Foundation/Memory/SharedPtr.hpp"
 
 class CPUMeshData;
 class GPUMeshData : private NonCopyable {
@@ -24,7 +20,7 @@ private:
 	auto GenerateBottomLevelAccelerationStructure(dx::IASBuilder *pIASBuilder, bool isOpaque) const -> std::shared_ptr<dx::BottomLevelAS>;
 private:
 	// clang-format off
-	std::unique_ptr<dx::StaticBuffer>	_pStaticBuffer;
+	SharedPtr<dx::Buffer>				_pStaticBuffer;
 	std::shared_ptr<dx::BottomLevelAS>	_pOpaqueBottomLevelAS;
 	std::shared_ptr<dx::BottomLevelAS>  _pTransparentBottomLevelAS;
 	D3D12_VERTEX_BUFFER_VIEW			_vertexBufferView;

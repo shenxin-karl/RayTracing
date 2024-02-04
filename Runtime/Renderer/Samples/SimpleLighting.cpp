@@ -9,7 +9,7 @@
 #include "D3d12/FrameResource.h"
 #include "D3d12/FrameResourceRing.h"
 #include "D3d12/ShaderCompiler.h"
-#include "D3d12/StaticBuffer.h"
+#include "..\..\D3d12\Buffer.h"
 #include "D3d12/SwapChain.h"
 #include "D3d12/TopLevelASGenerator.h"
 #include "D3d12/UploadHeap.h"
@@ -76,7 +76,7 @@ void SimpleLighting::OnDestroy() {
     _pDevice->WaitForGPUFlush();
     _rayTracingOutput.Release();
     _rayTracingOutputHandle.Release();
-    _pMeshBuffer->OnDestroy();
+    _pMeshBuffer.Release();
     _pBottomLevelAs->OnDestroy();
     _pTopLevelAs->OnDestroy();
     _pASBuilder->OnDestroy();
@@ -119,7 +119,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
     std::shared_ptr<dx::GraphicsContext> pGraphicsCtx = frameResource.AllocGraphicsContext();
 
     pGraphicsCtx->Transition(_rayTracingOutput->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    pGraphicsCtx->SetComputeRootSignature(&_globalRootSignature);
+    pGraphicsCtx->SetComputeRootSignature(_pGlobalRootSignature.Get());
     pGraphicsCtx->SetComputeRootShaderResourceView(GlobalRootParams::Scene, _pTopLevelAs->GetGPUVirtualAddress());
     pGraphicsCtx->SetComputeRootDynamicConstantBuffer(GlobalRootParams::SceneCB, _sceneConstantBuffer);
     pGraphicsCtx->SetDynamicViews(GlobalRootParams::Table0,
@@ -146,7 +146,7 @@ void SimpleLighting::OnRender(GameTimer &timer) {
         cbuffer.noiseTile = (std::sin(timer.GetTotalTimeS() * 0.5f) * 0.5 + 0.5) + 2.f;
         auto cubeCB = pGraphicsCtx->AllocConstantBuffer(cbuffer);
 
-        dx::ShaderRecode hitGroupShaderRecode(pHitGroupShaderIdentifier, &_closestLocalRootSignature);
+        dx::ShaderRecode hitGroupShaderRecode(pHitGroupShaderIdentifier, _pClosestLocalRootSignature.Get());
         dx::LocalRootParameterData &localRootParameterData = hitGroupShaderRecode.GetLocalRootParameterData();
         localRootParameterData.SetView(LocalRootParams::CubeCB, cubeCB);
         localRootParameterData.SetView(LocalRootParams::Indices, _indexBufferView.BufferLocation);
@@ -234,11 +234,10 @@ void SimpleLighting::BuildGeometry() {
     // clang-format on
 
     constexpr size_t bufferSize = sizeof(indices) + sizeof(vertices);
-    _pMeshBuffer = std::make_unique<dx::StaticBuffer>();
-    _pMeshBuffer->OnCreate(_pDevice, bufferSize);
+    _pMeshBuffer = dx::Buffer::CreateStatic(_pDevice, bufferSize);
     _pMeshBuffer->SetName("CubeMesh");
 
-    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pMeshBuffer.get());
+    dx::StaticBufferUploadHeap uploadHeap(_pUploadHeap, _pMeshBuffer.Get());
     _vertexBufferView = uploadHeap.AllocVertexBuffer(std::size(vertices), sizeof(Vertex), vertices).value();
     _indexBufferView = uploadHeap.AllocIndexBuffer(std::size(indices), sizeof(uint16_t), indices).value();
     uploadHeap.CommitUploadCommand();
@@ -271,25 +270,25 @@ void SimpleLighting::CreateRayTracingOutput() {
 
 void SimpleLighting::CreateRootSignature() {
     // clang-format off
-    _closestLocalRootSignature.OnCreate(3);
+    _pClosestLocalRootSignature = dx::RootSignature::Create(3);
     {
-        _closestLocalRootSignature.At(LocalRootParams::CubeCB).InitAsBufferCBV(1);                      // gCubeCB(b1)
-        _closestLocalRootSignature.At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices(t1)
-        _closestLocalRootSignature.At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices(t2)
+        _pClosestLocalRootSignature->At(LocalRootParams::CubeCB).InitAsBufferCBV(1);                      // gCubeCB(b1)
+        _pClosestLocalRootSignature->At(LocalRootParams::Indices).InitAsBufferSRV(1);                     // gIndices(t1)
+        _pClosestLocalRootSignature->At(LocalRootParams::Vertices).InitAsBufferSRV(2);                    // gVertices(t2)
     }
-    _closestLocalRootSignature.Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _pClosestLocalRootSignature->Generate(_pDevice, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 
-    _globalRootSignature.OnCreate(3, 1);
+    _pGlobalRootSignature = dx::RootSignature::Create(3, 1);
     {
-        _globalRootSignature.At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
-        _globalRootSignature.At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
-        _globalRootSignature.At(GlobalRootParams::Table0).InitAsDescriptorTable({ 
+        _pGlobalRootSignature->At(GlobalRootParams::Scene).InitAsBufferSRV(0);            // gScene(t0)
+        _pGlobalRootSignature->At(GlobalRootParams::SceneCB).InitAsBufferCBV(0);          // gSceneCB(b0)
+        _pGlobalRootSignature->At(GlobalRootParams::Table0).InitAsDescriptorTable({ 
             CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0), // gOutput(u0);
             CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3)  // gCubeMap(t3);
         });
     }
-    _globalRootSignature.SetStaticSamplers(dx::GetLinearClampStaticSampler(0));        // s0
-    _globalRootSignature.Generate(_pDevice);
+    _pGlobalRootSignature->SetStaticSamplers(dx::GetLinearClampStaticSampler(0));        // s0
+    _pGlobalRootSignature->Generate(_pDevice);
     // clang-format on
 }
 
@@ -320,14 +319,14 @@ void SimpleLighting::CreateRayTracingPipeline() {
 
     CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT
     *pLocalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pLocalRootSignature->SetRootSignature(_closestLocalRootSignature.GetRootSignature());
+    pLocalRootSignature->SetRootSignature(_pClosestLocalRootSignature->GetRootSignature());
     CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT *rootSignatureAssociation = rayTracingPipeline.CreateSubobject<
         CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
     rootSignatureAssociation->SetSubobjectToAssociate(*pLocalRootSignature);
     rootSignatureAssociation->AddExport(sClosestHitShader);
 
     auto *pGlobalRootSignature = rayTracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    pGlobalRootSignature->SetRootSignature(_globalRootSignature.GetRootSignature());
+    pGlobalRootSignature->SetRootSignature(_pGlobalRootSignature->GetRootSignature());
 
     auto *pPipelineConfig = rayTracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
     pPipelineConfig->Config(1);

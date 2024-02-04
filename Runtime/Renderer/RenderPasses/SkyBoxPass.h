@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderPass.h"
 #include "D3d12/D3dStd.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 #include "Utils/GlobalCallbacks.h"
 
 class RenderView;
@@ -30,7 +31,7 @@ private:
 	void CreatePipelineState(DXGI_FORMAT renderTargetFormat);
 private:
 	// clang-format off
-	std::unique_ptr<dx::RootSignature>		_pRootSignature;
+	SharedPtr<dx::RootSignature>			_pRootSignature;
 	dx::WRL::ComPtr<ID3D12PipelineState>	_pPipelineState;
 	CallbackHandle							_recreatePipelineStateCallbackHandle;
 

@@ -15,8 +15,7 @@
 #include "Renderer/RenderUtils/UserMarker.h"
 
 void ForwardPass::OnCreate() {
-    _pRootSignature = std::make_unique<dx::RootSignature>();
-    _pRootSignature->OnCreate(5, 6);
+    _pRootSignature = dx::RootSignature::Create(5, 6);
     _pRootSignature->At(ePrePass).InitAsBufferCBV(0);    // gCbPrePass;
     _pRootSignature->At(ePreObject).InitAsBufferCBV(1);    // gCbPreObject;
     _pRootSignature->At(eLighting).InitAsBufferCBV(3);    // gCbLighting;
@@ -52,7 +51,7 @@ void ForwardPass::DrawBatchInternal(std::span<RenderObject *const> batch, const 
 
     // bind pipeline state object
     ID3D12PipelineState *pPipelineState = GetPipelineState(batch.front());
-    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.get());
+    pGfxCtx->SetGraphicsRootSignature(_pRootSignature.Get());
     pGfxCtx->SetPipelineState(pPipelineState);
     pGfxCtx->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -145,6 +144,7 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
         CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+        CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
     };
 
     GfxDevice *pGfxDevice = GfxDevice::GetInstance();
@@ -187,6 +187,12 @@ auto ForwardPass::GetPipelineState(RenderObject *pRenderObject) -> ID3D12Pipelin
     rtvFormats.RTFormats[0] = pGfxDevice->GetRenderTargetFormat();
     rtvFormats.NumRenderTargets = 1;
     pipelineDesc.RTVFormats = rtvFormats;
+
+    CD3DX12_RASTERIZER_DESC rasterizer(D3D12_DEFAULT);
+    if (RenderGroup::IsAlphaTest(pMaterial->GetRenderGroup())) {
+	    rasterizer.CullMode = D3D12_CULL_MODE_NONE;
+    }
+    pipelineDesc.Rasterizer = rasterizer;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream),

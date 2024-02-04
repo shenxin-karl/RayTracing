@@ -1,20 +1,29 @@
 #pragma once
 #include "D3dStd.h"
 #include "Foundation/StringUtil.h"
+#include "Foundation/Memory/SharedPtr.hpp"
 
 namespace dx {
 
-class StaticBuffer : NonCopyable {
+class Buffer : public RefCounter {
+    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC &desc);
+    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, size_t bufferSize)
+        : Buffer(pDevice, heapType, CD3DX12_RESOURCE_DESC::Buffer(bufferSize)) {
+    }
 public:
-    StaticBuffer(std::source_location sl = std::source_location::current());
-    ~StaticBuffer();
-public:
-    void OnCreate(Device *pDevice,
-        size_t totalMemSize,
-        D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
-        UINT64 alignment = 0);
-    void OnCreate(Device *pDevice, const D3D12_RESOURCE_DESC &desc);
-    void OnDestroy();
+    template<typename... Args>
+    static SharedPtr<Buffer> CreateStatic(Device *pDevice, Args &&...args) {
+        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_DEFAULT, std::forward<Args>(args)...));
+    }
+    template<typename... Args>
+    static SharedPtr<Buffer> CreateDynamic(Device *pDevice, Args &&...args) {
+        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_UPLOAD, std::forward<Args>(args)...));
+    }
+    template<typename... Args>
+    static SharedPtr<Buffer> CreateReadback(Device *pDevice, Args &&...args) {
+        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_READBACK, std::forward<Args>(args)...));
+    }
+    ~Buffer() override;
 public:
     Inline(2) auto GetResource() const -> ID3D12Resource * {
         return _pAllocation != nullptr ? _pAllocation->GetResource() : nullptr;
@@ -32,10 +41,20 @@ public:
     Inline(2) auto GetName() const -> std::string_view {
         return _name;
     }
+    Inline(2) bool IsStaticBuffer() const {
+        return _heapType == D3D12_HEAP_TYPE_DEFAULT;
+    }
+    Inline(2) bool IsDynamicBuffer() const {
+        return _heapType == D3D12_HEAP_TYPE_UPLOAD;
+    }
+    Inline(2) bool IsReadbackBuffer() const {
+        return _heapType == D3D12_HEAP_TYPE_READBACK;
+    }
 private:
     // clang-format off
     std::string                   _name;
 	Device						 *_pDevice;
+    D3D12_HEAP_TYPE               _heapType;
     D3D12MA::Allocation *         _pAllocation;
     D3D12_RESOURCE_DESC           _bufferDesc;
     // clang-format on
@@ -43,7 +62,7 @@ private:
 
 class StaticBufferUploadHeap {
 public:
-    StaticBufferUploadHeap(UploadHeap *pUploadHeap, StaticBuffer *pStaticBuffer, size_t staticBufferOffset = 0);
+    StaticBufferUploadHeap(UploadHeap *pUploadHeap, Buffer *pStaticBuffer, size_t staticBufferOffset = 0);
     ~StaticBufferUploadHeap();
 public:
     [[nodiscard]]
@@ -92,7 +111,7 @@ private:
         -> std::optional<BufferInResourceInfo>;
 private:
     // clang-format off
-    StaticBuffer   *_pStaticBuffer      = nullptr;
+    Buffer         *_pStaticBuffer      = nullptr;
     UploadHeap     *_pUploadHeap        = nullptr;
     size_t          _srcOffset          = 0;
     size_t          _dstOffset          = 0;
