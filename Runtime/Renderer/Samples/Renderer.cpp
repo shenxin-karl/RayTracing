@@ -54,3 +54,11 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
     _height = height;
     _pSwapChain->OnResize(width, height);
 }
+
+void Renderer::ShowFPS() {
+    static uint64_t frameCount = 0;
+    if (static_cast<uint64_t>(GameTimer::Get().GetTotalTimeS()) > frameCount) {
+        Logger::Info("fps {}", GameTimer::Get().GetFPS());
+        frameCount = static_cast<uint64_t>(GameTimer::Get().GetTotalTimeS());
+    }
+}

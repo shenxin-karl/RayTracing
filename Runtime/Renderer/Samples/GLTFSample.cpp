@@ -50,6 +50,11 @@ void GLTFSample::OnDestroy() {
     _pPostProcessPass = nullptr;
 }
 
+void GLTFSample::OnUpdate(GameTimer &timer) {
+	Renderer::OnUpdate(timer);
+    ShowFPS();
+}
+
 void GLTFSample::OnPreRender(GameTimer &timer) {
     Renderer::OnPreRender(timer);
 

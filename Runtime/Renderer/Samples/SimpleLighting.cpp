@@ -85,6 +85,7 @@ void SimpleLighting::OnDestroy() {
 
 void SimpleLighting::OnUpdate(GameTimer &timer) {
     Renderer::OnUpdate(timer);
+    ShowFPS();
 }
 
 void SimpleLighting::OnPreRender(GameTimer &timer) {
@@ -101,12 +102,6 @@ void SimpleLighting::OnPreRender(GameTimer &timer) {
 }
 
 void SimpleLighting::OnRender(GameTimer &timer) {
-    static uint64_t frameCount = 0;
-    if (static_cast<uint64_t>(timer.GetTotalTimeMS()) > frameCount) {
-        Logger::Info("fps {}", timer.GetFPS());
-        frameCount = static_cast<uint64_t>(timer.GetTotalTimeMS());
-    }
-
     bool beginCapture = InputSystem::GetInstance()->pKeyboard->IsKeyClicked(VK_F11);
     if (beginCapture) {
         FrameCapture::BeginFrameCapture(_pSwapChain->GetHWND(), _pDevice);

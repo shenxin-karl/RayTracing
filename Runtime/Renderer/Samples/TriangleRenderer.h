@@ -10,6 +10,7 @@ class TriangleRenderer : public Renderer {
 private:
 	void OnCreate() override;
 	void OnDestroy() override;
+	void OnUpdate(GameTimer &timer) override;
 	void OnPreRender(GameTimer &timer) override;
 	void OnRender(GameTimer &timer) override;
 	void OnResize(uint32_t width, uint32_t height) override;

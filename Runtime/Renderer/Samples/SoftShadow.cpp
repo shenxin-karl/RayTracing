@@ -11,6 +11,7 @@
 #include "D3d12/SwapChain.h"
 #include "D3d12/UploadHeap.h"
 #include "Foundation/GameTimer.h"
+#include "Foundation/Logger.h"
 #include "Foundation/Memory/SharedPtr.hpp"
 #include "InputSystem/InputSystem.h"
 #include "InputSystem/Keyboard.h"
@@ -68,6 +69,7 @@ void SoftShadow::OnDestroy() {
 
 void SoftShadow::OnUpdate(GameTimer &timer) {
     Renderer::OnUpdate(timer);
+    ShowFPS();
 }
 
 void SoftShadow::OnPreRender(GameTimer &timer) {

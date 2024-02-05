@@ -15,6 +15,7 @@ public:
 public:
 	void OnCreate() override;
 	void OnDestroy() override;
+	void OnUpdate(GameTimer &timer) override;
 	void OnPreRender(GameTimer &timer) override;
 	void OnRender(GameTimer &timer) override;
 	void PrepareFrame(GameTimer &timer);

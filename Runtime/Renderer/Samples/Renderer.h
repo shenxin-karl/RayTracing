@@ -13,6 +13,7 @@ public:
 	virtual void OnPreRender(GameTimer &timer) override;
 	virtual void OnPostRender(GameTimer &timer) override;
 	virtual void OnResize(uint32_t width, uint32_t height);
+	static void ShowFPS();
 protected:
 	// clang-format off
 	size_t									_width;
