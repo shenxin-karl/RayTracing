@@ -28,9 +28,8 @@ public:
     void OnAddToScene() override;
     void OnAddToGameObject() override;
     void OnPreRender() override;
-    // Check if the ray tracing acceleration structure validity
-    bool CheckASInstanceValidity(dx::AsyncASBuilder *pAsyncAsBuilder);
     bool PrepareAccelerationStructure() const;
+    auto GetBottomLevelAS() const -> dx::BottomLevelAS *;
 private:
     void CommitRenderObject();
 private:

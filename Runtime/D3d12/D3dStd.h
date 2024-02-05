@@ -1,29 +1,29 @@
 #pragma once
-#include <Windows.h>
-#include <source_location>
-#include <wrl.h>
 #include <d3d12.h>
-#include <dxgi1_6.h>
 #include <D3D12MemAlloc.h>
 #include <dxcapi.h>
+#include <dxgi1_6.h>
+#include <source_location>
+#include <Windows.h>
+#include <wrl.h>
 
 #include "Foundation/Exception.h"
-#include "Foundation/PreprocessorDirectives.h"
 #include "Foundation/NonCopyable.h"
+#include "Foundation/PreprocessorDirectives.h"
 
 #include "d3dx12.h"
 #include "FormatHelper.hpp"
 
-#include <optional>
-#include <span>
-#include <queue>
-#include <bitset>
 #include <array>
-#include <glm/glm.hpp>
+#include <bitset>
+#include <optional>
+#include <queue>
+#include <span>
 #include <variant>
+#include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#define ENABLE_D3D_11 0
+#define ENABLE_D3D_11 1
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
     #define ENABLE_D3D_COMPUTE_QUEUE 0
@@ -163,8 +163,24 @@ inline DWParam DWParam::Zero = {0.f};
 
 Inline(2) void ThrowIfFailed(HRESULT hr, const std::source_location &location = std::source_location::current()) {
     if (FAILED(hr)) {
-        FormatAndLocation formatAndLocation{"d3d api error", location};
-        Exception::Throw(formatAndLocation);
+        LPSTR pErrorMessage = nullptr;
+	    DWORD result = FormatMessageA(
+	        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+	        nullptr,
+	        hr,
+	        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+	        reinterpret_cast<LPSTR>(&pErrorMessage),
+	        0,
+	        nullptr
+	    );
+	    if (result != 0) {
+            FormatAndLocation formatAndLocation{"d3d api error, ErrorMessage: {}", location};
+			Exception::Throw(formatAndLocation, pErrorMessage);;
+	        LocalFree(pErrorMessage);
+	    } else {
+	        FormatAndLocation formatAndLocation{"d3d api error, {}", location};
+	        Exception::Throw(formatAndLocation, "Unknown error!");
+	    }
     }
 }
 

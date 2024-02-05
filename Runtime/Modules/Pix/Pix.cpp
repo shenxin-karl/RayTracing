@@ -22,7 +22,8 @@ bool Pix::Load() {
 
     stdfs::path path = AssetProjectSetting::ToCachePath("CaptureFrame");
     if (!stdfs::exists(path)) {
-        stdfs::remove_all(path);
+        std::error_code errorCode;
+        stdfs::create_directories(path, errorCode);
     }
     return sModule != nullptr;
 }

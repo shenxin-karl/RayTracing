@@ -47,6 +47,9 @@ void Application::OnCreate() {
 
     ShaderManager::GetInstance()->OnCreate();
     GarbageCollection::GetInstance()->OnCreate();
+
+    // the gpu needs to run the command finish before the resource can be safely released
+    GarbageCollection::GetInstance()->SetDelayedReleaseFrames(GfxDevice::GetInstance()->GetNumBackBuffer() + 1);
     SceneManager::GetInstance()->OnCreate();
     GlobalCallbacks::Get().OnCreate.Invoke();
     GUI::Get().OnCreate();

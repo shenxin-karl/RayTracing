@@ -13,6 +13,7 @@ public:
 	void SetName(std::string_view name);
 	auto GetVertexBufferView() const -> D3D12_VERTEX_BUFFER_VIEW;
 	auto GetIndexBufferView() const -> D3D12_INDEX_BUFFER_VIEW;
+	auto GetBottomLevelAS() const -> dx::BottomLevelAS *;
 private:
 	friend class Mesh;
 	void UploadGpuMemory(const CPUMeshData *pMeshData);

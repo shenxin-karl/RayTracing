@@ -61,5 +61,5 @@ private:
 	std::unique_ptr<SkyBoxPass>				_pSkyBoxPass;
 	std::unique_ptr<RayTracingShadowPass>	_pRayTracingShadowPass;
 	std::unique_ptr<Denoiser>				_pDenoiser;
-	std::unique_ptr<FSR2Integration> _pFsr2Pass;
+	std::unique_ptr<FSR2Integration>		_pFsr2Pass;
 };

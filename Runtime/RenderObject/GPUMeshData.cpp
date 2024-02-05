@@ -30,6 +30,10 @@ auto GPUMeshData::GetIndexBufferView() const -> D3D12_INDEX_BUFFER_VIEW {
     return _indexBufferView;
 }
 
+auto GPUMeshData::GetBottomLevelAS() const -> dx::BottomLevelAS * {
+    return _pBottomLevelAS.Get();
+}
+
 void GPUMeshData::UploadGpuMemory(const CPUMeshData *pMeshData) {
     SemanticMask semanticMask = pMeshData->GetSemanticMask();
     size_t vertexStride = GetSemanticStride(semanticMask);

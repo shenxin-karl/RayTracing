@@ -16,7 +16,7 @@ public:
     struct TopASBuildItem {
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc;
         size_t scratchBufferSize;
-        std::vector<ASInstance> instances;
+        std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instances;
         ID3D12Resource *pOutputResource;
     };
 

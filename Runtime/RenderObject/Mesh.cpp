@@ -138,6 +138,10 @@ void Mesh::UploadMeshData() {
     _pGpuMeshData->SetName(_name);
 }
 
+auto Mesh::GetBottomLevelAS() const -> dx::BottomLevelAS * {
+    return _pGpuMeshData->GetBottomLevelAS();
+}
+
 void Mesh::SetDataCheck(size_t vertexCount, SemanticIndex index) const {
     if (vertexCount != _pCpuMeshData->GetVertexCount()) {
         Exception::Throw("The number of vertices does not match");

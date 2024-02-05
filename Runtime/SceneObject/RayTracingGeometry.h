@@ -4,6 +4,7 @@
 #include "Foundation/Memory/SharedPtr.hpp"
 #include "D3d12/AccelerationStructure.h"
 
+class MeshRenderer;
 class Material;
 class Mesh;
 
@@ -37,11 +38,8 @@ public:
     void SetTransform(const glm::mat4x4 &transform) {
 	    _transform = transform;
     }
-    auto GetMesh() const -> const Mesh * {
-	    return _pMesh;
-    }
-    auto GetMaterial() const -> const Material * {
-	    return _pMaterial;
+    auto GetMeshRenderer() const -> const MeshRenderer * {
+	    return _pMeshRenderer;
     }
     auto GetInstanceID() const -> uint32_t {
 	    return _instanceID;
@@ -60,8 +58,7 @@ public:
     }
 private:
     // clang-format off
-    Mesh                       *_pMesh;
-    Material                   *_pMaterial;
+    MeshRenderer               *_pMeshRenderer;
     uint32_t                    _instanceID;
     uint32_t                    _hitGroupIndex : 24;
     uint32_t                    _instanceMask  : 8;
@@ -77,7 +74,7 @@ private:
     static std::shared_ptr<RegionTopLevelAS> Create();
 public:
     ~RegionTopLevelAS() = default;
-    auto GetTopLevelAS() -> const SharedPtr<dx::TopLevelAS> & {
+    auto GetTopLevelAS() const -> const SharedPtr<dx::TopLevelAS> & {
 	    return _pTopLevelAS;
     }
     auto GetGeometries() const -> const std::vector<RayTracingGeometry> & {

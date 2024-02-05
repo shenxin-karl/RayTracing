@@ -42,6 +42,7 @@ public:
 	void SetSubMeshes(std::vector<SubMesh> subMeshes);
 	void Resize(SemanticMask mask, size_t vertexCount, size_t indexCount);
 	void UploadMeshData();
+	auto GetBottomLevelAS() const -> dx::BottomLevelAS *;
 	bool IsGpuDataDirty() const {
 		return _vertexAttributeDirty;
 	}

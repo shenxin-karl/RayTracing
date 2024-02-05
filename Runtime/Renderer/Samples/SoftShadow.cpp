@@ -158,11 +158,15 @@ void SoftShadow::PrepareFrame() {
     _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, _pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex));
 
 #if ENABLE_RAY_TRACING
-    // shadow map
     SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
+    pSceneRayTracingAsManager->BeginBuildBottomLevelAS();
+    std::shared_ptr<RegionTopLevelAS> pRegionTopLevelAs = pSceneRayTracingAsManager->BuildMeshBottomLevelAS();
+    pSceneRayTracingAsManager->EndBuildBottomLevelAS();
+    pSceneRayTracingAsManager->BuildTopLevelAS(pGfxCxt.get(), pRegionTopLevelAs);
+
+    // shadow map
     RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
-    shadowPassDrawArgs.sceneTopLevelAS = pSceneRayTracingAsManager->GetTopLevelAS()->GetGPUVirtualAddress();
-    shadowPassDrawArgs.geometries = pSceneRayTracingAsManager->GetRayTracingGeometries();
+    shadowPassDrawArgs.pRegionTopLevelAs = pRegionTopLevelAs.get();
     shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
     shadowPassDrawArgs.pRenderView = &_renderView;
     shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
@@ -181,7 +185,11 @@ void SoftShadow::PrepareFrame() {
     deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
     deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
     deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
+#if ENABLE_RAY_TRACING
     deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
+#else
+    deferredLightingPassDrawArgs.shadowMaskSRV = BuildInResource::Get().GetWhiteTexSRV().GetCpuHandle();
+#endif
     deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
     _pDeferredLightingPass->Dispatch(deferredLightingPassDrawArgs);
 

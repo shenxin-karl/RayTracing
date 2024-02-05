@@ -96,7 +96,6 @@ void Device::OnCreate(bool validationEnabled) {
 
     _pDescriptorManager = std::make_unique<DescriptorManager>();
     _pDescriptorManager->OnCreate(this);
-
 }
 
 void Device::OnDestroy() {

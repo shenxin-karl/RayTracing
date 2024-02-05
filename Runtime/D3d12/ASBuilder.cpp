@@ -1,11 +1,11 @@
 #include "ASBuilder.h"
 #include "Device.h"
-#include <glm/gtc/type_ptr.inl>
+#include <glm/gtc/type_ptr.hpp>
 #include "AccelerationStructure.h"
 
 namespace dx {
 
-AsyncASBuilder::AsyncASBuilder(): _idle(true) {
+AsyncASBuilder::AsyncASBuilder() : _idle(true) {
 }
 
 AsyncASBuilder::~AsyncASBuilder() {
@@ -88,17 +88,10 @@ void AsyncASBuilder::Flush() {
     D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddress = _pInstanceBuffer->GetResource()->GetGPUVirtualAddress();
 
     for (TopASBuildItem &topBuildItem : _topAsBuildItems) {
-        D3D12_RAYTRACING_INSTANCE_DESC *pInstance = pBuffer;
-        for (ASInstance &instance : topBuildItem.instances) {
-            pInstance->InstanceID = instance.instanceID;
-            pInstance->InstanceContributionToHitGroupIndex = instance.hitGroupIndex;
-            pInstance->Flags = static_cast<UINT>(instance.instanceFlag);
-            pInstance->AccelerationStructure = instance.pBottomLevelAs->GetGPUVirtualAddress();
-            glm::mat4x4 matrix = glm::transpose(instance.transform);
-            std::memcpy(pInstance->Transform, glm::value_ptr(matrix), sizeof(pInstance->Transform));
-            pInstance->InstanceMask = instance.instanceMask;
-            ++pInstance;
-        }
+        std::memcpy(pBuffer,
+            topBuildItem.instances.data(),
+            topBuildItem.instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+        pBuffer += topBuildItem.instances.size();
         topBuildItem.desc.ScratchAccelerationStructureData = scratchBufferAddress;
         topBuildItem.desc.Inputs.InstanceDescs = instanceBufferAddress;
         topBuildItem.instances.clear();
@@ -172,6 +165,5 @@ void AsyncASBuilder::ConditionalGrowScratchBuffer(size_t scratchBufferSize) {
         _pScratchBuffer->GetResource()->SetName(L"AsyncASBuilder::ScratchBuffer");
     }
 }
-
 
 }    // namespace dx

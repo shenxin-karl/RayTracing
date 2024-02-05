@@ -133,15 +133,15 @@ auto StaticBufferUploadHeap::AllocStructuredBuffer(size_t numOfVertices, size_t 
 
 void StaticBufferUploadHeap::CommitUploadCommand() {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
-    if (_vertexBuffer || _constantBuffer) {
-        state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    }
-    if (_indexBuffer) {
-        state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-    }
-    if (_structuredBuffer) {
-        state |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    }
+    //if (_vertexBuffer || _constantBuffer) {
+    //    state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    //}
+    //if (_indexBuffer) {
+    //    state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+    //}
+    //if (_structuredBuffer) {
+    //    state |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    //}
     _pUploadHeap->AddPostUploadTranslation(_pStaticBuffer->GetResource(), state);
 }
 

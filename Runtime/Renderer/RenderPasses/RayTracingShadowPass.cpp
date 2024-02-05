@@ -1,4 +1,6 @@
 #include "RayTracingShadowPass.h"
+
+#include "Components/MeshRenderer.h"
 #include "D3d12/BindlessCollection.hpp"
 #include "D3d12/Context.h"
 #include "D3d12/Device.h"
@@ -122,11 +124,12 @@ void RayTracingShadowPass::OnResize(const ResolutionInfo &resolution) {
 
 void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     dx::ComputeContext *pComputeContext = args.pComputeContext;
+    const RegionTopLevelAS *pRegionTopLevelAs = args.pRegionTopLevelAs;
     UserMarker userMarker(pComputeContext, "RayTracingShadowData");
 
     pComputeContext->SetComputeRootSignature(_pGlobalRootSignature.Get());
     pComputeContext->SetRayTracingPipelineState(_pRayTracingPSO.Get());
-    pComputeContext->SetComputeRootShaderResourceView(eScene, args.sceneTopLevelAS);
+    pComputeContext->SetComputeRootShaderResourceView(eScene, pRegionTopLevelAs->GetTopLevelAS()->GetGPUVirtualAddress());
 
     // clang-format off
     struct RayGenCB {
@@ -170,7 +173,7 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
     pComputeContext->Transition(_pShadowDataTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     dx::DispatchRaysDesc dispatchRaysDesc = {};
-    BuildShaderRecode(args.geometries, pComputeContext, dispatchRaysDesc);
+    BuildShaderRecode(pRegionTopLevelAs->GetGeometries(), pComputeContext, dispatchRaysDesc);
     dispatchRaysDesc.width = _pShadowDataTex->GetWidth();
     dispatchRaysDesc.height = _pShadowDataTex->GetHeight();
     dispatchRaysDesc.depth = 1;
@@ -213,11 +216,10 @@ void RayTracingShadowPass::CreatePipelineState() {
     CD3DX12_STATE_OBJECT_DESC rayTracingPipeline{D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE};
     CD3DX12_DXIL_LIBRARY_SUBOBJECT *pLib = rayTracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
     pLib->SetDXILLibrary(&byteCode);
-    /*    pLib->DefineExport(sShadowRayGenShaderName);
+    pLib->DefineExport(sShadowRayGenShaderName);
     pLib->DefineExport(sOpaqueClosestHitShaderName);
     pLib->DefineExport(sAlphaClosestHitShader);
-    pLib->DefineExport(sShadowMissShaderName)*/
-    ;
+    pLib->DefineExport(sShadowMissShaderName);
 
     CD3DX12_HIT_GROUP_SUBOBJECT *pOpaqueHitGroup = rayTracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
     pOpaqueHitGroup->SetHitGroupExport(sOpaqueHitGroupName);
@@ -268,7 +270,8 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
     dx::BindlessCollection bindlessCollection;
     size_t shadowMaterialCount = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-        const Material *pMaterial = geometry.GetMaterial();
+	    const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
+        const Material *pMaterial = pMeshRender->GetMaterial().get();
         if (!RenderGroup::IsAlphaTest(pMaterial->GetRenderGroup())) {
             continue;
         }
@@ -309,13 +312,15 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
 
     uint materialIndex = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-        const Material *pMaterial = geometry.GetMaterial();
+	    const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
+        const Material *pMaterial = pMeshRender->GetMaterial().get();
         if (RenderGroup::IsOpaque(pMaterial->GetRenderGroup())) {
             dispatchRaysDesc.hitGroupTable.push_back(
                 dx::ShaderRecode(pOpaqueHitGroupIdentifier, pEmptyLocalRootSignature.Get()));
             continue;
         }
 
+        const Mesh *pMesh = pMeshRender->GetMesh().get();
         uint currentMaterialIndex = materialIndex++;
         auto &shadowMaterial = shadowMaterials[currentMaterialIndex];
         shadowMaterial.alpha = pMaterial->GetAlbedo().a;
@@ -323,14 +328,14 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
         shadowMaterial.sampleStateIndex = pMaterial->GetSamplerStateIndex();
         shadowMaterial.albedoTextureIndex = bindlessCollection.GetHandleIndex(
             pMaterial->GetTextureHandle(Material::eAlbedoTex));
-        shadowMaterial.vertexStride = GetSemanticStride(geometry.GetMesh()->GetSemanticMask());
-        shadowMaterial.uv0Offset = GetSemanticOffset(geometry.GetMesh()->GetSemanticMask(), SemanticIndex::eTexCoord0);
+        shadowMaterial.vertexStride = GetSemanticStride(pMesh->GetSemanticMask());
+        shadowMaterial.uv0Offset = GetSemanticOffset(pMesh->GetSemanticMask(), SemanticIndex::eTexCoord0);
 
         // the geometry is not visible
         shadowMaterial.skipGeometry = shadowMaterial.albedoTextureIndex == -1 &&
                                       shadowMaterial.alpha < shadowMaterial.cutoff;
 
-        const GPUMeshData *pGpuMeshData = geometry.GetMesh()->GetGPUMeshData();
+        const GPUMeshData *pGpuMeshData = pMesh->GetGPUMeshData();
         dx::ShaderRecode shaderRecode(pAlphaTestHitGroupIdentifier, _pAlphaTestLocalRootSignature.Get());
         dx::LocalRootParameterData &localRootParameterData = shaderRecode.GetLocalRootParameterData();
         localRootParameterData.SetConstants(eMaterialIndex, dx::DWParam(currentMaterialIndex));

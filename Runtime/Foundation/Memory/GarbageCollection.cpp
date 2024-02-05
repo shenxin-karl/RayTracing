@@ -11,7 +11,7 @@ void GarbageCollection::OnCreate() {
 }
 
 void GarbageCollection::OnDestroy() {
-    _frameIndex += _delayedReleaseFrames;
+    _frameIndex = std::numeric_limits<uint64_t>::max();
     DoGCWork();
 }
 

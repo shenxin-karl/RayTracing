@@ -23,7 +23,7 @@ void GfxDevice::OnCreate(uint32_t numBackBuffer, HWND hwnd, DXGI_FORMAT rtFormat
     _pASBuilder = std::make_unique<dx::SyncASBuilder>();
 
     _pDevice->OnCreate(true);
-    _pSwapChain->OnCreate(_pDevice.get(), 3, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);
+    _pSwapChain->OnCreate(_pDevice.get(), _numBackBuffer, hwnd, DXGI_FORMAT_R8G8B8A8_UNORM);
     _pUploadHeap->OnCreate(_pDevice.get(), dx::GetMByte(64));
     _pASBuilder->OnCreate(_pDevice.get());
 }

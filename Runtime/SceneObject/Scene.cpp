@@ -81,9 +81,6 @@ void Scene::OnPostUpdate(GameTimer &timer) {
 
 void Scene::OnPreRender(GameTimer &timer) {
     InvokeTickFunc(&GameObject::InnerOnPreRender);
-#if ENABLE_RAY_TRACING
-    _pRayTracingASMgr->OnPreRender();
-#endif
 }
 
 void Scene::OnRender(GameTimer &timer) {

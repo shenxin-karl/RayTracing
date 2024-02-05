@@ -33,8 +33,7 @@ public:
     };
 
     struct DrawArgs {
-        D3D12_GPU_VIRTUAL_ADDRESS sceneTopLevelAS;
-        ReadonlyArraySpan<RayTracingGeometry> geometries;
+        const RegionTopLevelAS *pRegionTopLevelAs;
         D3D12_CPU_DESCRIPTOR_HANDLE depthTexSRV;
         const RenderView *pRenderView;
         dx::ComputeContext *pComputeContext;

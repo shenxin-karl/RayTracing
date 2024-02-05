@@ -1,8 +1,11 @@
 #include "BuildInResource.h"
+
+#include "AssetProjectSetting.h"
 #include "D3d12/RootSignature.h"
 #include "Renderer/GfxDevice.h"
 #include "RenderObject/Mesh.h"
 #include "RenderObject/VertexSemantic.hpp"
+#include "TextureObject/TextureLoader.h"
 
 static BuildInResource sInstance;
 
@@ -14,17 +17,21 @@ BuildInResource::BuildInResource() {
 void BuildInResource::OnCreate() {
     BuildSkyBoxCubeMesh();
     BuildCubeMesh();
+    LoadWhiteTex();
 #if ENABLE_RAY_TRACING
     _pEmptyLocalRootSignature = dx::RootSignature::Create(0);
     _pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(),
         D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 #endif
+
 }
 
 void BuildInResource::OnDestroy() {
     _pSkyBoxCubeMesh = nullptr;
     _pCubeMesh = nullptr;
     _pEmptyLocalRootSignature = nullptr;
+    _pWhiteTex = nullptr;
+    _whiteTexSRV.Release();
 }
 
 auto BuildInResource::Get() -> BuildInResource & {
@@ -173,4 +180,11 @@ void BuildInResource::BuildCubeMesh() {
     _pCubeMesh->SetUV0(uv0);
     _pCubeMesh->SetIndices(indices);
     _pCubeMesh->UploadMeshData();
+}
+
+void BuildInResource::LoadWhiteTex() {
+    TextureLoader textureLoader;
+    stdfs::path path = AssetProjectSetting::ToAssetPath("Textures/white.DDS");
+    _pWhiteTex = textureLoader.LoadFromFile(path, true);
+    _whiteTexSRV = textureLoader.GetSRV2D(_pWhiteTex.Get());
 }
