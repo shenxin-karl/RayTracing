@@ -6,22 +6,27 @@
 namespace dx {
 
 class Buffer : public RefCounter {
-    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC &desc);
-    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, size_t bufferSize)
-        : Buffer(pDevice, heapType, CD3DX12_RESOURCE_DESC::Buffer(bufferSize)) {
+    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES initState, const D3D12_RESOURCE_DESC &desc);
+    Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES initState, size_t bufferSize)
+        : Buffer(pDevice, heapType, initState, CD3DX12_RESOURCE_DESC::Buffer(bufferSize)) {
     }
 public:
     template<typename... Args>
     static SharedPtr<Buffer> CreateStatic(Device *pDevice, Args &&...args) {
-        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_DEFAULT, std::forward<Args>(args)...));
+        return SharedPtr<Buffer>(
+            new Buffer(pDevice, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, std::forward<Args>(args)...));
     }
     template<typename... Args>
     static SharedPtr<Buffer> CreateDynamic(Device *pDevice, Args &&...args) {
-        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_UPLOAD, std::forward<Args>(args)...));
+        return SharedPtr<Buffer>(new Buffer(pDevice,
+            D3D12_HEAP_TYPE_UPLOAD,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            std::forward<Args>(args)...));
     }
     template<typename... Args>
     static SharedPtr<Buffer> CreateReadback(Device *pDevice, Args &&...args) {
-        return SharedPtr<Buffer>(new Buffer(pDevice, D3D12_HEAP_TYPE_READBACK, std::forward<Args>(args)...));
+        return SharedPtr<Buffer>(
+            new Buffer(pDevice, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST, std::forward<Args>(args)...));
     }
     ~Buffer() override;
 public:
@@ -51,7 +56,7 @@ public:
         return _heapType == D3D12_HEAP_TYPE_READBACK;
     }
     Inline(2) auto GetBufferSize() const -> size_t {
-	    return _bufferDesc.Width;
+        return _bufferDesc.Width;
     }
 private:
     // clang-format off

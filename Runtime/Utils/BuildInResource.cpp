@@ -22,6 +22,7 @@ void BuildInResource::OnCreate() {
     _pEmptyLocalRootSignature = dx::RootSignature::Create(0);
     _pEmptyLocalRootSignature->Generate(GfxDevice::GetInstance()->GetDevice(),
         D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    _pEmptyLocalRootSignature->SetName("BuildInResource::EmptyLocalRootSignature");
 #endif
 
 }

@@ -23,7 +23,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#define ENABLE_D3D_11 1
+#define ENABLE_D3D_11 0
 
 #ifndef ENABLE_D3D_COMPUTE_QUEUE
     #define ENABLE_D3D_COMPUTE_QUEUE 0

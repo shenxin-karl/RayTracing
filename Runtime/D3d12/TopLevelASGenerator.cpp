@@ -83,7 +83,7 @@ auto TopLevelASGenerator::CommitBuildCommand(IASBuilder *pASBuilder, TopLevelAS 
 
 auto TopLevelASGenerator::Build(const BuildArgs &buildArgs) -> SharedPtr<TopLevelAS> {
     SharedPtr<TopLevelAS> pResult = nullptr;
-#if ENALBE_RAY_TRACING
+#if ENABLE_RAY_TRACING
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS preBuildDesc = {};
     preBuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     preBuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
@@ -94,15 +94,17 @@ auto TopLevelASGenerator::Build(const BuildArgs &buildArgs) -> SharedPtr<TopLeve
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
     device->GetRaytracingAccelerationStructurePrebuildInfo(&preBuildDesc, &info);
     Assert(info.ResultDataMaxSizeInBytes > 0);
+    info.ResultDataMaxSizeInBytes = AlignUp(info.ResultDataMaxSizeInBytes,
+        D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-#if MODE_DEBUG
+    #if MODE_DEBUG
     if (buildArgs.pInstanceBuffer != nullptr) {
         Assert(buildArgs.pInstanceBuffer->IsDynamicBuffer());
     }
     if (buildArgs.pScratchBuffer != nullptr) {
         Assert(buildArgs.pScratchBuffer->IsStaticBuffer());
     }
-#endif
+    #endif
 
     size_t instanceBufferSize = _instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
     size_t scratchBufferSize = info.ScratchDataSizeInBytes;

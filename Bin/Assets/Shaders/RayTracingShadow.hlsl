@@ -76,10 +76,10 @@ float3 GetConeSample(inout uint randSeed, float3 hitNorm, float cosThetaMax) {
 
 void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
 	TraceRay(gScene, 
-        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH  | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_CULL_NON_OPAQUE,
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_CULL_NON_OPAQUE,
         ~0,
         0,          // RayContributionToHitGroupIndex
-        1,          // MultiplierForGeometryContributionToShaderIndex
+        0,          // MultiplierForGeometryContributionToShaderIndex
         0,          // MissShaderIndex
         rayDesc,
         payload
@@ -88,7 +88,7 @@ void RayCast(in RayDesc rayDesc, inout ShadowRayPayload payload) {
 
 [shader("raygeneration")]
 void ShadowRaygenShader() {
-    ShadowRayPayload payload = { NRD_FP16_MAX, 0 };
+    ShadowRayPayload payload = { NRD_FP16_MAX, 1 };
     uint2 index = DispatchRaysIndex().xy;
     float2 uv = float2(index + 0.5f) / DispatchRaysDimensions().xy;
     float zNdc = gDepthTex[index];
@@ -135,14 +135,14 @@ void ShadowOpaqueClosestHitShader(inout ShadowRayPayload payload, in MyAttribute
 }
 
 void AlphaTestRayCast(float rayCurrentDistance, float3 rayOrigin, float3 rayDirection, inout ShadowRayPayload payload) {
-	if (payload.depth >= gRayGenCB.maxRecursiveDepth) {
+    if (payload.depth >= gRayGenCB.maxRecursiveDepth) {
 		payload.occlusionDistance = NRD_FP16_MAX;
         return;
-	} 
+	}
 
     payload.depth += 1;
     RayDesc rayDesc;
-    rayDesc.Origin = rayOrigin;
+    rayDesc.Origin = rayOrigin + rayCurrentDistance * rayDirection;
     rayDesc.Direction = rayDirection;
     rayDesc.TMin = gRayGenCB.minT;
     rayDesc.TMax = gRayGenCB.maxT - rayCurrentDistance;
@@ -178,14 +178,13 @@ void ShadowAlphaTestClosestHitShader(inout ShadowRayPayload payload, in MyAttrib
     float2 uv2 = lVertexBuffer.Load<float2>(indices[2] * mat.vertexStride + mat.uv0Offset);
     float2 uv = BarycentricBlend(uv0, uv1, uv2, attr.barycentrics);
     float alpha = mat.alpha;
-
     SamplerState samplerState = gStaticSamplerState[mat.sampleStateIndex];
     Texture2D<float4> albedoTexture = lAlbedoTextureList[mat.albedoTextureIndex];
     alpha *= albedoTexture.SampleLevel(samplerState, uv, 0).a;
+
     if (alpha > mat.cutoff) {     
 		payload.occlusionDistance = RayTCurrent();
         return;
     }
-
     AlphaTestRayCast(RayTCurrent(), WorldRayOrigin(), WorldRayDirection(), payload);
 }

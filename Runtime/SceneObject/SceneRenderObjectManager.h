@@ -4,8 +4,18 @@
 #include "Foundation/GlmStd.hpp"
 
 class RenderObjectKey {
-	uint64_t key1;
-	uint64_t key2;
+	union {
+		uint64_t key1;
+		struct {
+			uint32_t pipelineID;
+			uint16_t priority;
+			uint16_t renderGroup;
+		};
+	};
+	union {
+		uint64_t key2;
+		double distanceSqr;
+	};
 public:
 	RenderObjectKey();
 	void SetRenderGroup(uint16_t renderGroup);

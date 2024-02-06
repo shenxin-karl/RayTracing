@@ -152,7 +152,6 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
         float       minT;
 		uint        maxRecursiveDepth;
         float       backgroundNDCDepth;
-        uint        padding0;
     };
     // clang-format on
 
@@ -362,7 +361,7 @@ void RayTracingShadowPass::BuildRenderSettingUI() {
     RenderSetting &renderSetting = RenderSetting::Get();
     ShadowConfig &shadowConfig = renderSetting.GetShadowConfig();
 
-    ImGui::DragFloat("RayTMin", &shadowConfig.rayTMin, 0.05f, 0.f, 5.f);
+    ImGui::DragFloat("RayTMin", &shadowConfig.rayTMin, 0.001f, 0.f, 5.f);
     ImGui::InputFloat("RayTMax", &shadowConfig.rayTMax);
 
     ImGui::SliderFloat("SunAngularDiameter", &shadowConfig.sunAngularDiameter, 0.f, 5.f);

@@ -10,45 +10,36 @@ RenderObjectKey::RenderObjectKey() : key1(0), key2(0) {
 }
 
 void RenderObjectKey::SetRenderGroup(uint16_t renderGroup) {
-    key1 = (key1 | static_cast<uint64_t>(renderGroup) << 48);
+    this->renderGroup = renderGroup;
 }
 
 auto RenderObjectKey::GetRenderGroup() const -> uint16_t {
-    return (key1 & 0xFFFF000000000000) >> 48;
+    return renderGroup;
 }
 
 void RenderObjectKey::SetPriority(uint16_t priority) {
-    key1 = (key1 | static_cast<uint64_t>(priority) << 32);
+    this->priority = priority;
 }
 
 auto RenderObjectKey::GetPriority() const -> uint16_t {
-    return (key1 & 0x0000FFFF0000000) >> 32;
+    return priority;;
 }
 
 void RenderObjectKey::SetPipelineID(uint32_t variantID) {
-    key1 = (key1 | variantID);
+    this->pipelineID = variantID;
 }
 
 auto RenderObjectKey::GetPipelineID() const -> uint32_t {
-    return key1 & (0x00000000FFFFFFFF);
+    return pipelineID;
 }
 
 void RenderObjectKey::SetDepthSquare(double depthSqr) {
-    uint64_t integerDepthSqr = std::bit_cast<uint64_t>(depthSqr);
-    if (RenderGroup::IsTransparent(GetRenderGroup())) {
-        integerDepthSqr = ~integerDepthSqr;
-    }
-    key2 = integerDepthSqr;
+	this->distanceSqr = depthSqr;
 }
 
 auto RenderObjectKey::GetDepthSquare() const -> double {
-    uint64_t integerDepthSqr = key2;
-    if (RenderGroup::IsTransparent(GetRenderGroup())) {
-	    integerDepthSqr = ~integerDepthSqr;
-    }
-    return std::bit_cast<double>(integerDepthSqr);
+	return distanceSqr;
 }
-
 
 void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCameraPos) {
     struct Item {
@@ -103,14 +94,14 @@ void SceneRenderObjectManager::ClassifyRenderObjects(const glm::vec3 &worldCamer
         }
     };
 
-    FetchRenderObject(_transparentRenderObjects, &RenderGroup::IsTransparent);
-    FetchRenderObject(_alphaTestRenderObjects, &RenderGroup::IsAlphaTest);
     FetchRenderObject(_opaqueRenderObjects, &RenderGroup::IsOpaque);
+    FetchRenderObject(_alphaTestRenderObjects, &RenderGroup::IsAlphaTest);
+    FetchRenderObject(_transparentRenderObjects, &RenderGroup::IsTransparent);
 }
 
 std::strong_ordering operator<=>(const RenderObjectKey &lhs, const RenderObjectKey &rhs) {
-    if (lhs.key1 > rhs.key1) {
-        return std::strong_ordering::greater;
+    if (std::strong_ordering cmp = lhs.key1 <=> rhs.key1; cmp != std::strong_ordering::equal) {
+        return cmp;
     }
     return lhs.key2 <=> rhs.key2;
 }

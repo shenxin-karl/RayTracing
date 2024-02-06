@@ -160,7 +160,7 @@ void SoftShadow::PrepareFrame() {
     _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, _pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex));
 
 #if ENABLE_RAY_TRACING
-    // 如果加速结构没有构建, 就够就一下, 因为这是静态的场景, 不用每帧都重新构建
+    // 如果加速结构没有构建, 因为这是静态的场景, 不用每帧都重新构建
     if (_pRegionTopLevelAs == nullptr) {
 	    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
 	    pSceneRayTracingAsManager->BeginBuildBottomLevelAS();

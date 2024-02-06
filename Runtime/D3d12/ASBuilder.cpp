@@ -83,24 +83,27 @@ void AsyncASBuilder::Flush() {
     }
     _bottomAsBuildItems.clear();
 
-    D3D12_RAYTRACING_INSTANCE_DESC *pBuffer = nullptr;
-    _pInstanceBuffer->GetResource()->Map(0, nullptr, reinterpret_cast<void **>(&pBuffer));
-    D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddress = _pInstanceBuffer->GetResource()->GetGPUVirtualAddress();
+    if (!_topAsBuildItems.empty()) {
+	    D3D12_RAYTRACING_INSTANCE_DESC *pBuffer = nullptr;
+	    _pInstanceBuffer->GetResource()->Map(0, nullptr, reinterpret_cast<void **>(&pBuffer));
+	    D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddress = _pInstanceBuffer->GetResource()->GetGPUVirtualAddress();
 
-    for (TopASBuildItem &topBuildItem : _topAsBuildItems) {
-        std::memcpy(pBuffer,
-            topBuildItem.instances.data(),
-            topBuildItem.instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
-        pBuffer += topBuildItem.instances.size();
-        topBuildItem.desc.ScratchAccelerationStructureData = scratchBufferAddress;
-        topBuildItem.desc.Inputs.InstanceDescs = instanceBufferAddress;
-        topBuildItem.instances.clear();
-        _pCommandList->BuildRaytracingAccelerationStructure(&topBuildItem.desc, 0, nullptr);
-        _pCommandList->ResourceBarrier(1, RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(topBuildItem.pOutputResource)));
+	    for (TopASBuildItem &topBuildItem : _topAsBuildItems) {
+	        std::memcpy(pBuffer,
+	            topBuildItem.instances.data(),
+	            topBuildItem.instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+	        pBuffer += topBuildItem.instances.size();
+	        topBuildItem.desc.ScratchAccelerationStructureData = scratchBufferAddress;
+	        topBuildItem.desc.Inputs.InstanceDescs = instanceBufferAddress;
+	        topBuildItem.instances.clear();
+	        _pCommandList->BuildRaytracingAccelerationStructure(&topBuildItem.desc, 0, nullptr);
+	        _pCommandList->ResourceBarrier(1, RVPtr(CD3DX12_RESOURCE_BARRIER::UAV(topBuildItem.pOutputResource)));
+	    }
+
+	    _topAsBuildItems.clear();
+	    _pInstanceBuffer->GetResource()->Unmap(0, nullptr);
     }
 
-    _topAsBuildItems.clear();
-    _pInstanceBuffer->GetResource()->Unmap(0, nullptr);
 
     ThrowIfFailed(_pCommandList->Close());
     ID3D12CommandList *cmdList[] = {_pCommandList.Get()};
@@ -128,6 +131,10 @@ auto AsyncASBuilder::GetUploadFinishedFence() const -> const Fence & {
 }
 
 void AsyncASBuilder::ConditionalGrowInstanceBuffer(size_t instanceCount) {
+    if (instanceCount == 0) {
+	    return;
+    }
+
     size_t bufferSize = AlignUp(instanceCount * sizeof(D3D12_RAYTRACING_INSTANCE_DESC),
         D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 

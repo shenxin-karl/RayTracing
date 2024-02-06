@@ -1,5 +1,6 @@
 #include "DynamicBufferAllocator.h"
 #include "Device.h"
+#include "Foundation/StringUtil.h"
 
 namespace dx {
 
@@ -105,6 +106,9 @@ auto DynamicBufferAllocator::AllocBuffer(size_t bufferSize, size_t addressAlignm
         nullptr));
 
     ID3D12Resource *pResource = block.pAllocation->GetResource();
+    std::wstring name = nstd::to_wstring(fmt::format("DynamicBufferAllocator::Resource_{}", _memoryBlockList.size()));
+    pResource->SetName(name.data());
+
     pResource->Map(0, nullptr, (void **)&block.pBegin);
     block.pEnd = block.pBegin + bufferDesc.Width;
     block.pCurrent = block.pBegin;

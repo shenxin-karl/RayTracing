@@ -7,7 +7,10 @@
 
 namespace dx {
 
-Buffer::Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC &desc) {
+Buffer::Buffer(Device *pDevice,
+    D3D12_HEAP_TYPE heapType,
+    D3D12_RESOURCE_STATES initState,
+    const D3D12_RESOURCE_DESC &desc) {
     _pDevice = pDevice;
     _bufferDesc = desc;
     _heapType = heapType;
@@ -17,7 +20,7 @@ Buffer::Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_D
     allocationDesc.HeapType = heapType;
     ThrowIfFailed(pAllocator->CreateResource(&allocationDesc,
         &_bufferDesc,
-        D3D12_RESOURCE_STATE_COMMON,
+        initState,
         nullptr,
         &_pAllocation,
         IID_NULL,
@@ -25,7 +28,7 @@ Buffer::Buffer(Device *pDevice, D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_D
 
     ID3D12Resource *pResource = _pAllocation->GetResource();
     pResource->SetName(nstd::to_wstring(_name).c_str());
-    GlobalResourceState::SetResourceState(pResource, D3D12_RESOURCE_STATE_COMMON);
+    GlobalResourceState::SetResourceState(pResource, initState);
 }
 
 Buffer::~Buffer() {
