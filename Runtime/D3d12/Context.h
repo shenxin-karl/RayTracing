@@ -91,6 +91,11 @@ public:
     void SetComputeRootUnorderedAccessView(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void Dispatch(UINT groupX, UINT groupY, UINT groupZ);
 
+    void ClearUnorderedAccessViewFloat(ID3D12Resource *pResource,
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuUAV,
+        glm::vec4 clearValues,
+        ReadonlyArraySpan<D3D12_RECT> rects = {});
+
     template<typename T>
     void SetComputeRootDynamicConstantBuffer(UINT rootIndex, const T &data);
 
@@ -158,9 +163,10 @@ public:
 
 inline Context::Context(Device *pDevice)
     : _pCommandList(nullptr),
+      _pCommandAllocator(nullptr),
       _dynamicViewDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kDynamicDescriptorMaxView),
-      _dynamicSampleDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, kDynamicDescriptorMaxSampler) {
-
+      _dynamicSampleDescriptorHeap(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, kDynamicDescriptorMaxSampler),
+      _bindDescriptorHeap{} {
     _dynamicBufferAllocator.OnCreate(pDevice);
 }
 
@@ -201,12 +207,12 @@ inline void Context::BindDescriptorHeaps() {
     ID3D12DescriptorHeap *heaps[2];
     size_t count = 0;
     for (size_t i = 0; i < 2; ++i) {
-	    if (_bindDescriptorHeap[i] != nullptr) {
-		    heaps[count++] = _bindDescriptorHeap[i];
-	    }
+        if (_bindDescriptorHeap[i] != nullptr) {
+            heaps[count++] = _bindDescriptorHeap[i];
+        }
     }
     if (count > 0) {
-	    _pCommandList->SetDescriptorHeaps(count, heaps);
+        _pCommandList->SetDescriptorHeaps(count, heaps);
     }
 }
 
@@ -230,7 +236,7 @@ inline auto Context::GetCommandList() const -> NativeCommandList * {
 
 inline auto Context::GetCommandAllocator() const -> ID3D12CommandAllocator * {
     return _pCommandAllocator;
-}   
+}
 
 inline void Context::SetPipelineState(ID3D12PipelineState *pPipelineState) {
     _pCommandList->SetPipelineState(pPipelineState);
@@ -375,8 +381,9 @@ inline void GraphicsContext::SetRenderTargets(ReadonlyArraySpan<D3D12_CPU_DESCRI
 
     _pCommandList->OMSetRenderTargets(renderTargets.Count(), renderTargets.Data(), false, &depthDescriptor);
 }
-inline void GraphicsContext::SetRenderTargets(D3D12_CPU_DESCRIPTOR_HANDLE baseHandle, UINT renderTargetCount,
-	D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor) {
+inline void GraphicsContext::SetRenderTargets(D3D12_CPU_DESCRIPTOR_HANDLE baseHandle,
+    UINT renderTargetCount,
+    D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor) {
     _pCommandList->OMSetRenderTargets(renderTargetCount, &baseHandle, true, &depthDescriptor);
 }
 

@@ -79,10 +79,17 @@ void RayTracingShadowPass::OnDestroy() {
 }
 
 void RayTracingShadowPass::GenerateShadowMap(const DrawArgs &args) {
-#if ENABLE_RAY_TRACING
     UserMarker userMarker(args.pComputeContext, "GenerateShadowMaskMap");
+#if ENABLE_RAY_TRACING
     GenerateShadowData(args);
     ShadowDenoise(args);
+#else
+    args.pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    args.pComputeContext->FlushResourceBarriers();
+    args.pComputeContext->ClearUnorderedAccessViewFloat(_pShadowMaskTex->GetResource(),
+        _shadowMaskUAV.GetCpuHandle(),
+        glm::vec4(1.f));
+    args.pComputeContext->Transition(_pShadowMaskTex->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 #endif
 }
 
@@ -129,7 +136,8 @@ void RayTracingShadowPass::GenerateShadowData(const DrawArgs &args) {
 
     pComputeContext->SetComputeRootSignature(_pGlobalRootSignature.Get());
     pComputeContext->SetRayTracingPipelineState(_pRayTracingPSO.Get());
-    pComputeContext->SetComputeRootShaderResourceView(eScene, pRegionTopLevelAs->GetTopLevelAS()->GetGPUVirtualAddress());
+    pComputeContext->SetComputeRootShaderResourceView(eScene,
+        pRegionTopLevelAs->GetTopLevelAS()->GetGPUVirtualAddress());
 
     // clang-format off
     struct RayGenCB {
@@ -270,7 +278,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
     dx::BindlessCollection bindlessCollection;
     size_t shadowMaterialCount = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-	    const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
+        const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
         const Material *pMaterial = pMeshRender->GetMaterial().get();
         if (!RenderGroup::IsAlphaTest(pMaterial->GetRenderGroup())) {
             continue;
@@ -312,7 +320,7 @@ void RayTracingShadowPass::BuildShaderRecode(ReadonlyArraySpan<RayTracingGeometr
 
     uint materialIndex = 0;
     for (const RayTracingGeometry &geometry : geometries) {
-	    const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
+        const MeshRenderer *pMeshRender = geometry.GetMeshRenderer();
         const Material *pMaterial = pMeshRender->GetMaterial().get();
         if (RenderGroup::IsOpaque(pMaterial->GetRenderGroup())) {
             dispatchRaysDesc.hitGroupTable.push_back(

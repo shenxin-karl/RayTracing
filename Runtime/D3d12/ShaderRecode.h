@@ -9,7 +9,8 @@ public:
     LocalRootParameterData(const RootSignature *pRootSignature = nullptr);
     LocalRootParameterData(LocalRootParameterData &&other) noexcept
         : _pRootSignature(std::exchange(other._pRootSignature, nullptr)),
-          _rootParamDataList(std::move(other._rootParamDataList)) {
+          _rootParamDataList(std::move(other._rootParamDataList)),
+          _serializeSize(std::exchange(other._serializeSize, 0)) {
     }
     LocalRootParameterData &operator=(LocalRootParameterData &&other) noexcept {
         if (this == &other) {
@@ -30,17 +31,22 @@ public:
     void SetConstants(size_t rootIndex, size_t num32BitValuesToSet, const void *pData, size_t offset = 0);
     void SetView(size_t rootIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation);
     void SetDescriptorTable(size_t rootIndex, std::shared_ptr<DescriptorHandleArray> pHandleArray);
-    auto GetSize() const -> size_t;
+    auto GetSize() const -> size_t {
+	    return _serializeSize;
+    }
 private:
     friend class ComputeContext;
     enum { eMonoState, eConstants, eView, eDescriptorTable };
     auto GetRootParamType(size_t rootIndex) const -> size_t;
-    using RootParamData = std::
-        variant<std::monostate, std::vector<DWParam>, D3D12_GPU_VIRTUAL_ADDRESS, std::shared_ptr<DescriptorHandleArray>>;
+    using RootParamData = std::variant<std::monostate,
+        std::vector<DWParam>,
+        D3D12_GPU_VIRTUAL_ADDRESS,
+        std::shared_ptr<DescriptorHandleArray>>;
 private:
     // clang-format off
     const RootSignature        *_pRootSignature;
     std::vector<RootParamData>  _rootParamDataList;
+    size_t                      _serializeSize;
     // clang-format on
 };
 
@@ -61,10 +67,10 @@ public:
         return _localRootParameterData;
     }
     auto GetShaderIdentifier() const -> void * {
-	    return _pShaderIdentifier;
+        return _pShaderIdentifier;
     }
     void SetShaderIdentifier(void *pShaderIdentifier) {
-	    _pShaderIdentifier = pShaderIdentifier;
+        _pShaderIdentifier = pShaderIdentifier;
     }
     constexpr static inline size_t kAddressAlignment = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES * 2;
 private:

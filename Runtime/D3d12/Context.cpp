@@ -4,6 +4,24 @@
 
 namespace dx {
 
+void ComputeContext::ClearUnorderedAccessViewFloat(ID3D12Resource *pResource,
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuUAV,
+    glm::vec4 clearValues,
+    ReadonlyArraySpan<D3D12_RECT> rects) {
+
+    DescriptorHandleArray descriptorHandles;
+    descriptorHandles.Add(cpuUAV);
+    _dynamicViewDescriptorHeap.EnsureCapacity(this, 1);
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuUAV = _dynamicViewDescriptorHeap.CommitDescriptorHandleArray(&descriptorHandles);
+
+    float values[4] = {
+        clearValues.x,
+        clearValues.y,
+        clearValues.z,
+        clearValues.w,
+    };
+    _pCommandList->ClearUnorderedAccessViewFloat(gpuUAV, cpuUAV, pResource, values, rects.Count(), rects.Data());
+}
 
 void ComputeContext::DispatchRays(const DispatchRaysDesc &dispatchRaysDesc) {
 #if ENABLE_RAY_TRACING

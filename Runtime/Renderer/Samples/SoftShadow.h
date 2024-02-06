@@ -5,6 +5,7 @@
 #include "Renderer/RenderUtils/ConstantBufferHelper.h"
 #include "Renderer/RenderUtils/RenderView.h"
 
+class RegionTopLevelAS;
 class FSR2Integration;
 class Denoiser;
 class RayTracingShadowPass;
@@ -54,6 +55,9 @@ private:
 
 	SharedPtr<dx::Texture>			_pSkyBoxCubeMap;
 	dx::SRV							_skyBoxCubeSRV;
+
+	// scene top level acceleration structure
+	std::shared_ptr<RegionTopLevelAS> _pRegionTopLevelAs;
 
 	std::unique_ptr<GBufferPass>			_pGBufferPass;
 	std::unique_ptr<PostProcessPass>		_pPostProcessPass;

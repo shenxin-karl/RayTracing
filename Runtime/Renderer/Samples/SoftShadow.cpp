@@ -160,21 +160,24 @@ void SoftShadow::PrepareFrame() {
     _pDenoiser->SetTexture(nrd::ResourceType::IN_VIEWZ, _pGBufferPass->GetGBufferTexture(GBufferPass::eViewDepthTex));
 
 #if ENABLE_RAY_TRACING
-    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
-    pSceneRayTracingAsManager->BeginBuildBottomLevelAS();
-    std::shared_ptr<RegionTopLevelAS> pRegionTopLevelAs = pSceneRayTracingAsManager->BuildMeshBottomLevelAS();
-    pSceneRayTracingAsManager->EndBuildBottomLevelAS();
-    pSceneRayTracingAsManager->BuildTopLevelAS(pGfxCxt.get(), pRegionTopLevelAs);
+    // 如果加速结构没有构建, 就够就一下, 因为这是静态的场景, 不用每帧都重新构建
+    if (_pRegionTopLevelAs == nullptr) {
+	    SceneRayTracingASManager *pSceneRayTracingAsManager = _pScene->GetRayTracingASManager();
+	    pSceneRayTracingAsManager->BeginBuildBottomLevelAS();
+	    _pRegionTopLevelAs = pSceneRayTracingAsManager->BuildMeshBottomLevelAS();
+	    pSceneRayTracingAsManager->EndBuildBottomLevelAS();
+	    pSceneRayTracingAsManager->BuildTopLevelAS(pGfxCxt.get(), _pRegionTopLevelAs);
+    }
+#endif
 
     // shadow map
     RayTracingShadowPass::DrawArgs shadowPassDrawArgs;
-    shadowPassDrawArgs.pRegionTopLevelAs = pRegionTopLevelAs.get();
+    shadowPassDrawArgs.pRegionTopLevelAs = _pRegionTopLevelAs.get();
     shadowPassDrawArgs.depthTexSRV = _depthStencilSRV.GetCpuHandle();
     shadowPassDrawArgs.pRenderView = &_renderView;
     shadowPassDrawArgs.pComputeContext = pGfxCxt.get();
     shadowPassDrawArgs.pDenoiser = _pDenoiser.get();
     _pRayTracingShadowPass->GenerateShadowMap(shadowPassDrawArgs);
-#endif
 
     // deferred lighting pass
     pGfxCxt->Transition(_pRenderTargetTex->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -187,11 +190,7 @@ void SoftShadow::PrepareFrame() {
     deferredLightingPassDrawArgs.gBufferSRV[2] = _pGBufferPass->GetGBufferSRV(2);
     deferredLightingPassDrawArgs.depthStencilSRV = _depthStencilSRV.GetCpuHandle();
     deferredLightingPassDrawArgs.outputUAV = _renderTargetUAV.GetCpuHandle();
-#if ENABLE_RAY_TRACING
     deferredLightingPassDrawArgs.shadowMaskSRV = _pRayTracingShadowPass->GetShadowMaskSRV();
-#else
-    deferredLightingPassDrawArgs.shadowMaskSRV = BuildInResource::Get().GetWhiteTexSRV().GetCpuHandle();
-#endif
     deferredLightingPassDrawArgs.pComputeCtx = pGfxCxt.get();
     _pDeferredLightingPass->Dispatch(deferredLightingPassDrawArgs);
 
