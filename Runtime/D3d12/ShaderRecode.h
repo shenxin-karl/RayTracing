@@ -24,6 +24,7 @@ public:
         using std::swap;
         swap(lhs._pRootSignature, rhs._pRootSignature);
         swap(lhs._rootParamDataList, rhs._rootParamDataList);
+        swap(lhs._serializeSize, rhs._serializeSize);
     }
 public:
     void InitLayout(const RootSignature *pRootSignature);
