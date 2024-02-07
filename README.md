@@ -27,3 +27,11 @@ xmake run
 
 执行 **GenerateProject.bat** 脚本, 在 **Solution** 下有对应的解决方案. 同时在项目路径下会生成 **compile_commands.json** 可供 Vsual Studio Code 使用 clangd 开发
 
+
+
+## 支持的效果
+
+- [x] ToneMapper
+- [x] Forward PBR + Deferred PBR
+- [x] [Ray Tracing Soft Shadow](ReadmeMedia/SoftShadowReadme.md)
+- [x] FSR2
