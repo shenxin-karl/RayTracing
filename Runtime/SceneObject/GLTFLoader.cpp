@@ -104,7 +104,7 @@ auto GLTFLoader::BuildMesh(aiMesh *pAiMesh) -> std::shared_ptr<Mesh> {
     std::vector<glm::vec4> tangents;
     std::vector<glm::vec2> uv0;
     std::vector<glm::vec4> colors;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
 
     vertices.reserve(numVertices);
     normals.reserve(HasFlag(mask, SemanticMask::eNormal) ? numVertices : 0);

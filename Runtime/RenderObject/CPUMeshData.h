@@ -17,7 +17,7 @@ public:
     auto GetVertices() const -> const int8_t * {
         return _pVertices.get();
     }
-    auto GetIndices() const -> const int16_t * {
+    auto GetIndices() const -> const uint32_t * {
         return _pIndices.get();
     }
     auto GetVertexCount() const -> size_t {
@@ -26,10 +26,10 @@ public:
     auto GetIndexCount() const -> size_t {
         return _indexCount;
     }
-    auto GetIndicesBegin() -> int16_t * {
+    auto GetIndicesBegin() -> uint32_t * {
         return _pIndices.get();
     }
-    auto GetIndicesEnd() -> int16_t * {
+    auto GetIndicesEnd() -> uint32_t * {
         return _pIndices.get() + _indexCount;
     }
     auto GetSemanticMask() const -> SemanticMask {
@@ -41,7 +41,7 @@ private:
 	size_t						_vertexCount;
 	size_t						_indexCount;
 	std::unique_ptr<int8_t[]>	_pVertices;
-	std::unique_ptr<int16_t[]>	_pIndices;
+	std::unique_ptr<uint32_t[]>	_pIndices;
     // clang-format on
 };
 

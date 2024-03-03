@@ -19,6 +19,7 @@
 #include "Renderer/Samples/SimpleLighting.h"
 #include "Renderer/Samples/SoftShadow.h"
 #include "Renderer/Samples/TriangleRenderer.h"
+#include "Renderer/Samples/SkyDemo.h"
 
 Application::Application(): _shouldResize(false) {
 }
@@ -57,7 +58,8 @@ void Application::OnCreate() {
     //_pRenderer = std::make_unique<TriangleRenderer>();
     //_pRenderer = std::make_unique<SimpleLighting>();
     //_pRenderer = std::make_unique<GLTFSample>();
-    _pRenderer = std::make_unique<SoftShadow>();
+    //_pRenderer = std::make_unique<SoftShadow>();
+    _pRenderer = std::make_unique<SkyDemo>();
 
     _pRenderer->OnCreate();
 

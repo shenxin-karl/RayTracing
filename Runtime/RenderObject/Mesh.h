@@ -32,8 +32,8 @@ public:
 	auto GetGPUMeshData() const -> const GPUMeshData *;
 public:
 	void SetName(std::string_view name);
-	void SetIndices(ReadonlyArraySpan<uint16_t> indices);
-	void SetIndices(ReadonlyArraySpan<int16_t> indices);
+	void SetIndices(ReadonlyArraySpan<uint32_t> indices);
+	void SetIndices(ReadonlyArraySpan<int32_t> indices);
 	void SetVertices(ReadonlyArraySpan<glm::vec3> vertices);
 	void SetNormals(ReadonlyArraySpan<glm::vec3> normals);
 	void SetTangents(ReadonlyArraySpan<glm::vec4> tangents);

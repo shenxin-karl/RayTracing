@@ -64,7 +64,7 @@ auto SceneRayTracingASManager::BuildMeshBottomLevelAS() -> std::shared_ptr<Regio
 
 void SceneRayTracingASManager::EndBuildBottomLevelAS() {
     _pAsyncASBuilder->Flush();
-    dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
+    //dx::Device *pDevice = GfxDevice::GetInstance()->GetDevice();
     //_pAsyncASBuilder->GetUploadFinishedFence().GpuWaitForFence(pDevice->GetGraphicsQueue());
 }
 

@@ -14,7 +14,7 @@ struct CbPrePass;
 class GBufferPass : public RenderPass {
 public:
     GBufferPass();
-    void OnCreate();
+    void OnCreate(bool generateMotionVector);
     void OnDestroy() override;
     void OnResize(const ResolutionInfo &resolution) override;
     auto GetGBufferSRV(size_t index) const -> D3D12_CPU_DESCRIPTOR_HANDLE;
@@ -56,6 +56,7 @@ private:
 private:
     // clang-format off
     using TexturePtr = SharedPtr<dx::Texture>;
+    bool                            _generateMotionVector;
     std::vector<TexturePtr>         _gBufferTextures;
     dx::RTV                         _gBufferRTV;   
     dx::SRV                         _gBufferSRV;

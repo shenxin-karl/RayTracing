@@ -248,7 +248,7 @@ void SoftShadow::CreateRenderPass() {
     _pDenoiser = std::make_unique<Denoiser>();
     _pFsr2Pass = std::make_unique<FSR2Integration>();
 
-    _pGBufferPass->OnCreate();
+    _pGBufferPass->OnCreate(true);
     _pPostProcessPass->OnCreate();
     _pDeferredLightingPass->OnCreate();
     _pSkyBoxPass->OnCreate(GfxDevice::GetInstance()->GetRenderTargetFormat());

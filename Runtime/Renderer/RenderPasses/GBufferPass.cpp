@@ -17,10 +17,11 @@
 #include "ShaderLoader/ShaderManager.h"
 #include "Utils/AssetProjectSetting.h"
 
-GBufferPass::GBufferPass() : _width(0), _height(0) {
+GBufferPass::GBufferPass() : _generateMotionVector(false), _width(0), _height(0) {
 }
 
-void GBufferPass::OnCreate() {
+void GBufferPass::OnCreate(bool generateMotionVector) {
+    _generateMotionVector = generateMotionVector;
     GfxDevice *pDevice = GfxDevice::GetInstance();
     _gBufferSRV = pDevice->GetDevice()->AllocDescriptor<dx::SRV>(5);
     _gBufferRTV = pDevice->GetDevice()->AllocDescriptor<dx::RTV>(5);
@@ -73,9 +74,9 @@ void GBufferPass::OnResize(const ResolutionInfo &resolutio) {
     };
 
     _gBufferTextures.clear();
-    _gBufferTextures.resize(5);
-
-    for (size_t i = 0; i < 5; ++i) {
+    size_t numTextures = _generateMotionVector ? 5 : 4;
+    _gBufferTextures.resize(numTextures);
+    for (size_t i = 0; i < numTextures; ++i) {
 	    D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(gBufferFormats[i], _width, _height);
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		clearValue.Format = desc.Format;

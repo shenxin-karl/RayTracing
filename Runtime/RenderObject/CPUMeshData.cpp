@@ -27,7 +27,7 @@ void CPUMeshData::Resize(SemanticMask mask, size_t vertexCount, size_t indexCoun
 	}
 	if (_indexCount != indexCount) {
 		_indexCount = indexCount;
-		_pIndices = std::make_unique<int16_t[]>(indexCount);
-		std::memset(_pVertices.get(), 0, sizeof(int16_t) * indexCount);
+		_pIndices = std::make_unique<uint32_t[]>(indexCount);
+		std::memset(_pVertices.get(), 0, sizeof(uint32_t) * indexCount);
 	}
 }

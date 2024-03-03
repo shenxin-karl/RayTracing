@@ -67,7 +67,7 @@ void BuildInResource::BuildSkyBoxCubeMesh() {
 
 static void GenerateTangentAndNormal(const std::vector<glm::vec3> &vertices,
     const std::vector<glm::vec2> &uv0,
-    const std::vector<uint16_t> &indices,
+    const std::vector<uint32_t> &indices,
     std::vector<glm::vec3> &outNormals,
     std::vector<glm::vec4> &outTangents) {
     if (indices.size() < 3) {
@@ -150,7 +150,7 @@ void BuildInResource::BuildCubeMesh() {
 		glm::vec2{ 0.0f, 0.0f }, glm::vec2{ 1.0f, 0.0f }, glm::vec2{ 1.0f, 1.0f },
 	};
 
-	std::vector<uint16_t> indices = {
+	std::vector<uint32_t> indices = {
 		0, 1, 2,
 		0, 2, 3,
 		4, 5, 6,
