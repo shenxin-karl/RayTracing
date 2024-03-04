@@ -53,13 +53,13 @@ void Mesh::SetName(std::string_view name) {
 void Mesh::SetIndices(ReadonlyArraySpan<uint32_t> indices) {
     Assert(indices.Count() == _pCpuMeshData->GetIndexCount());
     auto ptr = _pCpuMeshData->GetIndicesBegin();
-    std::memcpy(ptr, indices.Data(), sizeof(uint16_t) * indices.Count());
+    std::memcpy(ptr, indices.Data(), sizeof(uint32_t) * indices.Count());
 }
 
 void Mesh::SetIndices(ReadonlyArraySpan<int32_t> indices) {
     Assert(indices.Count() == _pCpuMeshData->GetIndexCount());
     auto ptr = _pCpuMeshData->GetIndicesBegin();
-    std::memcpy(ptr, indices.Data(), sizeof(uint16_t) * indices.Count());
+    std::memcpy(ptr, indices.Data(), sizeof(uint32_t) * indices.Count());
 }
 
 template<typename T>

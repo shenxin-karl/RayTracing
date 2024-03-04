@@ -39,7 +39,7 @@ void GPUMeshData::UploadGpuMemory(const CPUMeshData *pMeshData) {
     size_t vertexStride = GetSemanticStride(semanticMask);
     size_t vertexCount = pMeshData->GetVertexCount();
     size_t indexCount = pMeshData->GetIndexCount();
-    size_t indexStride = sizeof(int16_t);
+    size_t indexStride = sizeof(uint32_t);
     size_t vertexBufferSize = vertexCount * vertexStride;
     size_t indexBufferSize = indexCount * indexStride;
 

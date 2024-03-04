@@ -35,6 +35,7 @@ SkyDemo::~SkyDemo() {
 
 void SkyDemo::OnCreate() {
     Renderer::OnCreate();
+    _pSwapChain->SetVSync(true);
     CreateRenderPass();
     LoadScene();
     SetupCamera();
@@ -178,27 +179,31 @@ void SkyDemo::CreateRenderPass() {
 void SkyDemo::LoadScene() {
     _pScene = SceneManager::GetInstance()->CreateScene("Scene");
     RenderSetting::Get().SetToneMapperType(ToneMapperType::eACESFilm);
-    RenderSetting::Get().SetAmbientIntensity(1.2f);
-    RenderSetting::Get().SetExposure(1.1f);
+    RenderSetting::Get().SetAmbientIntensity(0.3f);
+    RenderSetting::Get().SetExposure(1.f);
 
     GLTFLoader gltfLoader;
     stdfs::path path = AssetProjectSetting::ToAssetPath("Models/Terrain/Terrain.gltf");
     gltfLoader.Load(path);
-    _pScene->AddGameObject(gltfLoader.GetRootGameObject());
+    SharedPtr<GameObject> pRootGameObject = gltfLoader.GetRootGameObject();
+    pRootGameObject->GetTransform()->SetWorldTRS(glm::vec3(0.f),
+        glm::identity<glm::quat>(),
+        glm::vec3(300.f, 400.f, 300.f));
+    _pScene->AddGameObject(pRootGameObject);
 }
 
 void SkyDemo::SetupCamera() {
     SharedPtr<GameObject> pGameObject = GameObject::Create();
     pGameObject->AddComponent<Camera>();
-    pGameObject->AddComponent<CameraController>()->cameraMoveSpeed = 300;
+    pGameObject->AddComponent<CameraController>()->cameraMoveSpeed = 1000;
 
     Camera *pCamera = pGameObject->GetComponent<Camera>();
-    pCamera->SetNearClip(1.f);
-    pCamera->SetFarClip(10000.f);
+    pCamera->SetNearClip(10.f);
+    pCamera->SetFarClip(100000.f);
 
     Transform *pTransform = pGameObject->GetTransform();
-    pTransform->SetLocalPosition(glm::vec3(-1000, 1000, 0));
-    pTransform->LookAt(glm::vec3(-850, 200, 15));
+    pTransform->SetLocalPosition(glm::vec3(0, 1000, 0));
+    pTransform->LookAt(glm::vec3(0, 200, 15));
     _pCameraGO = pGameObject.Get();
     _pScene->AddGameObject(pGameObject);
 }
