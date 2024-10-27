@@ -9,7 +9,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 iwr -useb get.scoop.sh | iex
 
 # 安装 llvm 
-scoop install llvm
+scoop install llvm@19.1.1
 
 # 安装 xmake
 scoop install xmake

@@ -1,3 +1,8 @@
+#pragma once
+#include "../Math.hlsli"
+
+namespace Atmosphere {
+
 struct AtmosphereParameter {
     float   seaLevel;                           // 海平面高度
     float   planetRadius;                       // 星球的半径
@@ -21,26 +26,28 @@ float3 RayleighCoefficient(in AtmosphereParameter param, float h) {
 }
 
 // 瑞丽散射相位函数
-float Rayleigh(float cosTheta) {
-    return (3.0 /  (16.0 * 3.1415926f)) * (1.0 + cosTheta * cosTheta);
+float RayleighPhase(float cosTheta) {
+    return (3.0 /  (16.0 * Math::PI)) * (1.0 + cosTheta * cosTheta);
 }
 
 // Mie 散射系数函数
-float3 MieCoefficient(float h) {
+float3 MieCoefficient(in AtmosphereParameter param, float h) {
     const float3 sigma = (3.996 * 1e-6);
-    float rho_H = 1200;
+    float rho_H = param.mieScatteringScalarHeight;
     float rho_h = exp(- (h / rho_H));
-    return sigma * rho_h;
+    float result = sigma * rho_h;
+    return result;
 }
 
 // Mie 散射相位函数
 float MiePhase(in AtmosphereParameter param, float cosTheta) {
     float g = param.mieAnisotropy;
-    float a = 3.0 / (8.0 * 3.1415926);
+    float a = 3.0 / (8.0 * Math::PI);
     float b = (1.0 - g*g) / (2.0 + g+g);
     float c = 1.0 + cosTheta * cosTheta;
     float d = pow(1.0 + g*g - 2 * g * cosTheta, 1.5);
-    return a * b * (c / d);
+    float result = a * b * (c / d);
+    return result;
 }
 
 /**
@@ -49,14 +56,19 @@ float MiePhase(in AtmosphereParameter param, float cosTheta) {
  */
 float3 CalcScattering(in AtmosphereParameter param, 
                       float3 pos, 
-                      float3 lightToPointDir, 
-                      float3 pointToCameraDir)
+                      float cosTheta)
 {
-    float cosTheta = dot(lightToPointDir, pointToCameraDir);
-    float h = length(pos) - param.planetRadius;
-    float3 rayleigh = RayleighCoefficient(param, h) * Rayleigh(cosTheta);
-    float3 mie = MieCoefficient(h) * MiePhase(param, cosTheta);
-    return rayleigh + mie;
+    float posVecLen = length(pos);
+    float h = posVecLen - param.planetRadius;
+    float3 rayleighCoefficient = RayleighCoefficient(param, h);
+    float rayleighPhase = RayleighPhase(cosTheta);
+    float3 rayleigh = rayleighCoefficient * rayleighPhase;
+
+    float3 mieCoefficient = MieCoefficient(param, h);
+    float miePhase = MiePhase(param, cosTheta);
+    float3 mie = mieCoefficient * miePhase;
+    float3 result = rayleigh + mie;
+    return result;
 }
 
 // Mie 散射的吸收
@@ -64,7 +76,8 @@ float3 MieAbsorption(in AtmosphereParameter param, float h) {
     const float3 sigma = 4.4 * 1e-6;
     float H_M = param.mieScatteringScalarHeight;
     float rho_h = exp(-(h / H_M));
-    return sigma * rho_h;
+    float3 result = sigma * rho_h;
+    return result;
 }
 
 // 臭氧的吸收
@@ -73,15 +86,21 @@ float3 OzoneAbsorption(in AtmosphereParameter param, float h) {
     float center = param.ozoneLevelCenterHeight;
     float width = param.ozoneLevelWidth;
     float rho = max(0, 1 - (abs(h - center) / width));
-    return sigma * rho;
+    float3 result = sigma * rho;
+    return result;
 }
 
 // 计算湮灭
 // 湮灭 = 散射系数(瑞利系数 + Mie系数) + 吸收(臭氧吸收 + Mie散射吸收)
 float3 GetExtinction(in AtmosphereParameter param, float h) {
-    float3 scattering = RayleighCoefficient(param, h) + MieCoefficient(h);
-    float3 absorption = OzoneAbsorption(param, h) + MieAbsorption(param, h);
-    return scattering + absorption;
+	float3 rayleighCoefficient = RayleighCoefficient(param, h);
+    float3 mieCoefficient = MieCoefficient(param, h);
+    float3 scattering = rayleighCoefficient + mieCoefficient;
+    float3 ozoneAbsorption = OzoneAbsorption(param, h);
+    float3 mieAbsorption = MieAbsorption(param, h);
+    float3 absorption = ozoneAbsorption + mieAbsorption;
+    float3 result = scattering + absorption;
+    return result;
 }
 
 float3 CalcTransmittance(in AtmosphereParameter param, float3 startPos, float3 endPos) {
@@ -92,12 +111,14 @@ float3 CalcTransmittance(in AtmosphereParameter param, float3 startPos, float3 e
     float3 sum = 0.f;
     float3 p = startPos + (ds * 0.5 * dir) ;
     for (int i = 0; i < SampleCount; ++i) {
-        float h = length(p) - param.planetRadius;
+        float posVecLen = length(p);
+        float h = posVecLen - param.planetRadius;
         float3 extinction = GetExtinction(param, h);
         sum += extinction * ds;
         p += dir * ds;
     }
-    return exp(-sum);
+    float3 result = exp(-sum);
+    return result;
 }
 
 float RayIntersectSphere(float3 center, float radius, float3 rayStart, float3 rayDir) {
@@ -114,7 +135,7 @@ float RayIntersectSphere(float3 center, float radius, float3 rayStart, float3 ra
     // use min distance
     float t1 = SH - PH;
     float t2 = SH + PH;
-    float t = (t1 < 0) ? t2 : t1;
+    float t = (t1 < 0.f) ? t2 : t1;
     return t;
 }
 
@@ -136,23 +157,54 @@ float3 IntegrateSignalScatting(in AtmosphereParameter param,
      *   p2 是大气层中的交点. p0 是相机的位置, p1 是摄像机看向大气层的交点, p 是沿途需要积分的点
      */
     const float sphereRadius = param.planetRadius + param.atmosphereHeight;
-    float t = RayIntersectSphere(0.f, sphereRadius, p0, viewDir);
+    float disToAtmosphereSphere = RayIntersectSphere(0.f, sphereRadius, p0, viewDir);
+    if (disToAtmosphereSphere < 0.f) {
+	    return 0.f;
+    }
+
+    float t = disToAtmosphereSphere;
+    float disToPlanetSphere = RayIntersectSphere(0.f, param.planetRadius, p0, viewDir);
+    if (disToPlanetSphere > 0) {
+	    t = min(t, disToPlanetSphere);
+    }
+
+    float ds = t * INV_N_SAMPLE;
     float3 p1 = p0 + viewDir * t;
     float3 d = (p1 - p0) * INV_N_SAMPLE;
-    float3 p = p1;
+    float3 p = p0 + (viewDir * ds) * 0.5;
+    float cosTheta = dot(viewDir, lightDir);
+    float3 sunLuminance = param.sunLightColor * param.sunLightIntensity;
 
-    float color = 0.f;
-    for (int i = 0; i < N_SAMPLE; ++i) {
+    float3 color = 0.f;
+    for (int i = 0; i < N_SAMPLE-1; ++i) {
 		float disToAtmosphere = RayIntersectSphere(0.f, sphereRadius, p, lightDir);
         float3 p2 = p + lightDir * disToAtmosphere;
         float3 t1 = CalcTransmittance(param, p2, p);
-        float3 s = CalcScattering(param, p, -lightDir, -viewDir);
+        float3 s = CalcScattering(param, p, cosTheta);
         float3 t2 = CalcTransmittance(param, p, p0);
-        float3 inScattering = t1 * s * t2;
+        float3 inScattering = t1 * s * t2 * ds * sunLuminance;
         color += inScattering;
         p += d;
     }
-
-    color *= param.sunLightColor * param.sunLightIntensity * INV_N_SAMPLE;
     return color; 
+}
+
+
+float3 UVToViewDir(float2 uv) {
+    float theta = (1.f - uv.y) * Math::PI;
+    float phi = (uv.x * 2.f - 1.f) * Math::PI;
+    float sinTheta = sin(theta);
+    float x = sinTheta * cos(phi);
+    float z = sinTheta * sin(phi);
+    float y = cos(theta);
+    return float3(x, y, z);
+}
+
+float2 ViewDirToUV(float3 v) {
+    float2 uv = float2(atan2(v.z, v.x), asin(v.y));
+    uv /= float2(2.f * Math::PI, Math::PI);
+    uv += float2(0.5f, 0.5f);
+    return uv; 
+}
+
 }

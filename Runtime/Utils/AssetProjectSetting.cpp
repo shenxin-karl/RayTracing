@@ -3,8 +3,8 @@
 
 IMPLEMENT_SERIALIZER(AssetProjectSetting)
 
-template<TransferContextConcept T>
-void AssetProjectSetting::TransferImpl(T &transfer) {
+template<TransferContextConcept Archive>
+void AssetProjectSetting::TransferImpl(Archive &transfer) {
     TRANSFER_VERSION("AssetProjectSetting", 1);
     TRANSFER(_assetRelativePath);
     TRANSFER(_assetAbsolutePath);

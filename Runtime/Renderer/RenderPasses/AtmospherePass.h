@@ -31,17 +31,29 @@ public:
 		RenderView *pRenderView = nullptr;
 	};
 	void GenerateLut(AtmospherePassArgs args);
+
+	struct SkyboxArgs {
+		dx::GraphicsContext *pGraphicsContext = nullptr;
+		RenderView *pRenderView = nullptr;
+	};
+	void DrawSkyBox(SkyboxArgs args);
 private:
-	void CreateSkyboxLutObject();
+	void CreateSkyboxLutObjects();
+	void CreateSkyboxObjects();
 	void GenerateSkyBoxLut(const AtmospherePassArgs &args);
 public:
 	AtmosphereParameter parameter;
 private:
 	// clang-format off
+	// SkyBoxLut member
 	SharedPtr<dx::Texture>				 _pSkyBoxLutTex;
 	SharedPtr<dx::RootSignature>		 _pSkyBoxLutRS;
 	dx::WRL::ComPtr<ID3D12PipelineState> _pSkyBoxLutPSO;
 	dx::SRV								 _skyboxLutSRV;
 	dx::UAV								 _skyboxLutUAV;
+
+	// SkyBox member
+	SharedPtr<dx::RootSignature>		 _pSkyBoxRS;
+	dx::WRL::ComPtr<ID3D12PipelineState> _pSkyBoxPSO;
 	// clang-format on
 };

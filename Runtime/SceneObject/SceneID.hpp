@@ -27,8 +27,8 @@ struct std::hash<SceneID> : public std::hash<TypeSafeWrapper<int32_t>> {};
 
 template<>
 struct TransferHelper<SceneID> {
-    template<TransferContextConcept Transfer>
-    static void Transfer(Transfer &transfer, std::string_view name, SceneID &data) {
-        transfer.Transfer(name, data._data);
+    template<TransferContextConcept Archive>
+    static void Transfer(Archive &archive, std::string_view name, SceneID &data) {
+        archive.Transfer(name, data._data);
     }
 };

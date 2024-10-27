@@ -119,7 +119,7 @@ void SkyDemo::PrepareFrame() {
     AtmospherePass::AtmospherePassArgs atmospherePassArgs = {};
     atmospherePassArgs.pComputeCtx = pGfxCxt.get();
     atmospherePassArgs.pRenderView = &_renderView;
-    //_pAtmospherePass->GenerateLut(atmospherePassArgs);
+    _pAtmospherePass->GenerateLut(atmospherePassArgs);
 
     SceneRenderObjectManager *pRenderObjectMgr = _pScene->GetRenderObjectManager();
     ForwardPass::DrawArgs forwardDrawArgs = {};
@@ -142,6 +142,12 @@ void SkyDemo::PrepareFrame() {
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetOpaqueRenderObjects(), forwardDrawArgs);
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetAlphaTestRenderObjects(), forwardDrawArgs);
     _pForwardPass->DrawBatch(pRenderObjectMgr->GetTransparentRenderObjects(), forwardDrawArgs);
+
+    // skybox
+    AtmospherePass::SkyboxArgs skyboxArgs = {};
+    skyboxArgs.pGraphicsContext = pGfxCxt.get();
+    skyboxArgs.pRenderView = &_renderView;
+    _pAtmospherePass->DrawSkyBox(skyboxArgs);
 
     pGfxCxt->Transition(_pRenderTargetTex->GetResource(),
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -203,7 +209,7 @@ void SkyDemo::SetupCamera() {
 
     Transform *pTransform = pGameObject->GetTransform();
     pTransform->SetLocalPosition(glm::vec3(0, 1000, 0));
-    pTransform->LookAt(glm::vec3(0, 200, 15));
+    pTransform->LookAt(glm::vec3(0, 1000, 15));
     _pCameraGO = pGameObject.Get();
     _pScene->AddGameObject(pGameObject);
 }

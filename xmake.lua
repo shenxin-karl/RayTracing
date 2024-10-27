@@ -21,7 +21,9 @@ add_cxxflags("-std:c++20")
 -- add_cxxflags("-execution-charset:utf-8")
 -- add_cxxflags("-source-charset:utf-8")
 
-add_defines("__cpp_consteval")
+-- add_defines("__cpp_consteval")
+add_defines("_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")        -- 防止 mutex lock 崩溃
+
 add_defines("NOMINMAX", "UNICODE", "_UNICODE")
 add_rules("mode.debug", "mode.releasedbg")
 set_arch("x64")

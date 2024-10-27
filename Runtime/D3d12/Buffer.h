@@ -2,6 +2,7 @@
 #include "D3dStd.h"
 #include "Foundation/StringUtil.h"
 #include "Foundation/Memory/SharedPtr.hpp"
+#include "DescriptorHandle.h"
 
 namespace dx {
 

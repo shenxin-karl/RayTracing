@@ -19,8 +19,8 @@ struct std::hash<InstanceID> : public std::hash<TypeSafeWrapper<int64_t>> {};
 
 template<>
 struct TransferHelper<InstanceID> {
-    template<TransferContextConcept Transfer>
-    static void Transfer(Transfer &transfer, std::string_view name, InstanceID &data) {
-        transfer.Transfer(name, data._data);
+    template<TransferContextConcept Archive>
+    static void Transfer(Archive &archive, std::string_view name, InstanceID &data) {
+        archive.Transfer(name, data._data);
     }
 };

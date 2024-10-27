@@ -42,7 +42,7 @@ void RenderView::Step1_UpdateCameraMatrix(const Camera *pCamera) {
     glm::quat rotation = glm::quat_cast(_cbPrePass.matView);
     glm::Quaternion2BasisAxis(rotation, right, up, forward);
 
-    glm::vec3 cameraPos = -glm::vec3(_cbPrePass.matView[3][0], _cbPrePass.matView[3][1], _cbPrePass.matView[3][2]);
+    glm::vec3 cameraPos = pCamera->GetGameObject()->GetTransform()->GetWorldPosition();
     _cbPrePass.cameraPos = cameraPos;
     _cbPrePass.cameraLookUp = up;
     _cbPrePass.cameraLookAt = forward;

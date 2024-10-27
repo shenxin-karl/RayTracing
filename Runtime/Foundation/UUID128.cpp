@@ -4,18 +4,18 @@ IMPLEMENT_SERIALIZER(UUID128)
 
 template<>
 struct TransferHelper<uuids::uuid> {
-	template<TransferContextConcept Transfer>
-    static void Transfer(Transfer &transfer, std::string_view name, uuids::uuid &data) {
-		if constexpr (transfer.IsReading()) {
+	template<TransferContextConcept Archive>
+    static void Transfer(Archive &archive, std::string_view name, uuids::uuid &data) {
+		if constexpr (archive.IsReading()) {
 			std::string string;
-	        transfer.Transfer(name, string);
+	        archive.Transfer(name, string);
 	        std::optional<uuids::uuid> pID = uuids::uuid::from_string(string);
 	        if (pID != std::nullopt) {
 		        data = *pID;
 	        }
 		} else {
 			std::string string = uuids::to_string(data);
-			transfer.Transfer(name, string);
+			archive.Transfer(name, string);
 		}
 	}
 };

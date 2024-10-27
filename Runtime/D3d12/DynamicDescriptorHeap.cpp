@@ -1,5 +1,4 @@
 #include "DynamicDescriptorHeap.h"
-
 #include "Context.h"
 #include "DescriptorHandleArray.hpp"
 #include "Device.h"

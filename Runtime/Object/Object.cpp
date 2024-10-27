@@ -12,8 +12,8 @@ void Object::InitInstanceId() {
 	_instanceId.Set(sGlobalInstanceID++);
 };
 
-template<TransferContextConcept T>
-void Object::TransferImpl(T &transfer) {
+template<TransferContextConcept Archive>
+void Object::TransferImpl(Archive &transfer) {
 	TRANSFER_VERSION("Object", 1);
 	TRANSFER(_name);
 	TRANSFER(_instanceId);

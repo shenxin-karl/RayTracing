@@ -79,6 +79,10 @@ void BottomLevelASGenerator::AddGeometryInternal(D3D12_VERTEX_BUFFER_VIEW *pVbv,
         case DXGI_FORMAT_R16_UINT:
             desc.Triangles.IndexCount = pIbv->SizeInBytes / sizeof(std::uint16_t);
             break;
+        case DXGI_FORMAT_R32_SINT:
+        case DXGI_FORMAT_R32_UINT:
+            desc.Triangles.IndexCount = pIbv->SizeInBytes / sizeof(std::uint32_t);
+            break;
         default:
             Exception::Throw("Invalid Index Buffer Format!");
         }
